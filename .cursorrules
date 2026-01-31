@@ -1,0 +1,12 @@
+# tanmai 项目 Cursor 规则
+
+## 每次修改后必须 git commit
+
+对 tanmai 下任何文件进行修改后，必须：
+1. `cd /var/www/html/moodle/tanmai`
+2. `git add -A && git status`
+3. `git commit -m "简要描述本次修改"`
+4. 如有配置 Gitea 远程：`git push`
+
+## 目的
+避免代码意外丢失，保留修改历史。
