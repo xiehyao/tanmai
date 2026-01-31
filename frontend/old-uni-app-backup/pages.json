@@ -1,0 +1,126 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "探脉",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/card/card",
+      "style": {
+        "navigationBarTitleText": "我的名片"
+      }
+    },
+    {
+      "path": "pages/voice-input/voice-input",
+      "style": {
+        "navigationBarTitleText": "AI语音录入"
+      }
+    },
+    {
+      "path": "pages/intro-card/intro-card",
+      "style": {
+        "navigationBarTitleText": "自我简介卡片"
+      }
+    },
+    {
+      "path": "pages/map/map",
+      "style": {
+        "navigationBarTitleText": "周边朋友地图"
+      }
+    },
+    {
+      "path": "pages/meeting/meeting",
+      "style": {
+        "navigationBarTitleText": "约见管理"
+      }
+    },
+    {
+      "path": "pages/reminders/reminders",
+      "style": {
+        "navigationBarTitleText": "提醒管理"
+      }
+    },
+    {
+      "path": "pages/updates/updates",
+      "style": {
+        "navigationBarTitleText": "信息更新"
+      }
+    },
+    {
+      "path": "pages/exchange/exchange",
+      "style": {
+        "navigationBarTitleText": "交换名片"
+      }
+    },
+    {
+      "path": "pages/match/match",
+      "style": {
+        "navigationBarTitleText": "匹配结果"
+      }
+    },
+    {
+      "path": "pages/assistant/assistant",
+      "style": {
+        "navigationBarTitleText": "AI助手"
+      }
+    },
+    {
+      "path": "pages/profile/profile",
+      "style": {
+        "navigationBarTitleText": "个人中心"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "探脉",
+    "navigationBarBackgroundColor": "#F8F8F8",
+    "backgroundColor": "#F8F8F8"
+  },
+  "tabBar": {
+    "color": "#7A7E83",
+    "selectedColor": "#3cc51f",
+    "borderStyle": "black",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "iconPath": "static/tab-home.png",
+        "selectedIconPath": "static/tab-home-current.png",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/map/map",
+        "iconPath": "static/tab-map.png",
+        "selectedIconPath": "static/tab-map-current.png",
+        "text": "地图"
+      },
+      {
+        "pagePath": "pages/assistant/assistant",
+        "iconPath": "static/tab-assistant.png",
+        "selectedIconPath": "static/tab-assistant-current.png",
+        "text": "AI助手"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "iconPath": "static/tab-profile.png",
+        "selectedIconPath": "static/tab-profile-current.png",
+        "text": "我的"
+      }
+    ]
+  },
+  "condition": {
+    "current": 0,
+    "list": [
+      {
+        "name": "首页",
+        "path": "pages/index/index",
+        "query": ""
+      }
+    ]
+  }
+}
+

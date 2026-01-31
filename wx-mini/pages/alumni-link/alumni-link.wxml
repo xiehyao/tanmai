@@ -1,0 +1,164 @@
+<!--pages/alumni-link/alumni-link.wxml-->
+<view class="alumni-link-page">
+  <!-- 顶部栏 -->
+  <view class="header-bar">
+    <view class="header-left" bindtap="openHistoryDrawer">
+      <text class="menu-icon">☰</text>
+    </view>
+    <view class="header-title">校友连连看</view>
+    <view class="header-right" bindtap="onNewTopic">
+      <text class="new-topic-icon">💬+</text>
+    </view>
+  </view>
+
+  <!-- 对话区域（全宽） -->
+  <view class="chat-container">
+    <!-- 对话历史（包含问候语和消息） -->
+    <scroll-view class="chat-history" scroll-y="true" scroll-top="{{scrollTop}}" scroll-with-animation="true">
+      <!-- 顶部问候语（移到滚动区域内） -->
+      <view class="greeting-section">
+        <text class="greeting-text">Hi, {{userNickname || '校友'}}</text>
+      </view>
+
+      <!-- 场景卡片区域（未开始对话时显示） -->
+      <view class="mode-cards-section" wx:if="{{!hasStartedChat}}">
+        <view class="mode-cards-grid">
+          <view
+            wx:for="{{modes}}"
+            wx:key="index"
+            class="mode-card {{index === activeModeIndex ? 'active' : ''}}"
+            data-index="{{index}}"
+            bindtap="onSelectModeCard"
+          >
+            <text class="mode-card-text">{{item}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{messages.length === 0 && hasStartedChat}}" class="empty-message">
+        <text class="empty-text">我是校友AI匹配助手，可以根据你的需求在校友中做智能推荐。</text>
+      </view>
+      <view wx:for="{{messages}}" wx:key="index" class="msg-item {{item.role}}">
+        <!-- 助手消息：区分思考过程和正式答案 -->
+        <view wx:if="{{item.role === 'assistant'}}" class="assistant-msg-wrapper">
+          <!-- 思考过程 -->
+          <view wx:if="{{item.thinking}}" class="thinking-section">
+            <text class="thinking-text">{{item.thinking}}</text>
+          </view>
+          <!-- 正式答案 -->
+          <view wx:if="{{item.answer}}" class="answer-bubble">
+            <text class="answer-text">{{item.answer}}</text>
+          </view>
+          <!-- 如果没有分离，显示原始内容 -->
+          <view wx:if="{{!item.thinking && !item.answer && item.content}}" class="answer-bubble">
+            <text class="answer-text">{{item.content}}</text>
+          </view>
+        </view>
+        <!-- 用户消息 -->
+        <view wx:else class="msg-bubble">
+          <text class="msg-text">{{item.content}}</text>
+        </view>
+      </view>
+      <view wx:if="{{loading}}" class="msg-item assistant">
+        <view class="assistant-msg-wrapper">
+          <view class="thinking-section">
+            <text class="thinking-text">正在思考中...</text>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+
+    <!-- 底部操作区 -->
+    <view class="chat-controls">
+      <!-- 模式选择滚动框 + 策略按钮 -->
+      <view class="controls-row">
+        <!-- 模式选择滚动框 -->
+        <scroll-view class="mode-selector" scroll-x="true" wx:if="{{showModeSelector}}">
+          <view class="mode-selector-content">
+            <view
+              wx:for="{{modes}}"
+              wx:key="index"
+              class="mode-selector-item {{index === activeModeIndex ? 'active' : ''}}"
+              data-index="{{index}}"
+              bindtap="onSelectModeFromSelector"
+            >
+              <text>{{item}}</text>
+            </view>
+          </view>
+        </scroll-view>
+
+        <!-- 策略按钮 -->
+        <view class="strategy-buttons">
+          <view
+            class="strategy-btn {{strategy === 'deepthink' ? 'active' : ''}}"
+            data-strategy="deepthink"
+            bindtap="onSelectStrategy"
+          >
+            <text class="strategy-icon">💭</text>
+            <text class="strategy-text">深度思考</text>
+          </view>
+          <view
+            class="strategy-btn {{strategy === 'knowledge' ? 'active' : ''}}"
+            data-strategy="knowledge"
+            bindtap="onSelectStrategy"
+          >
+            <text class="strategy-icon">📚</text>
+            <text class="strategy-text">校友知识库</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 输入框和发送按钮（包成一整行，圆角） -->
+      <view class="input-container">
+        <view class="mode-toggle-btn" bindtap="toggleModeSelector" wx:if="{{!showModeSelector}}">
+          <text>{{modes[activeModeIndex]}}</text>
+        </view>
+        <input
+          class="chat-input"
+          placeholder="有问题,尽管问,shift+enter换行"
+          confirm-type="send"
+          value="{{inputValue}}"
+          bindinput="onInput"
+          bindconfirm="onSend"
+          adjust-position="true"
+        />
+        <view
+          class="send-btn {{inputValue.trim() ? 'active' : ''}}"
+          bindtap="onSend"
+        >
+          <text class="send-icon">▲</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 历史抽屉 -->
+  <view class="history-drawer-mask" wx:if="{{showHistoryDrawer}}" bindtap="closeHistoryDrawer"></view>
+  <view class="history-drawer {{showHistoryDrawer ? 'show' : ''}}" catchtap="stopPropagation">
+    <view class="drawer-header">
+      <text class="drawer-title">历史主题</text>
+      <text class="drawer-close" bindtap="closeHistoryDrawer">✕</text>
+    </view>
+    <scroll-view class="drawer-content" scroll-y="true">
+      <view wx:if="{{topics.length === 0}}" class="empty-topics">
+        <text>暂无历史主题</text>
+      </view>
+      <view
+        wx:for="{{topics}}"
+        wx:key="id"
+        class="topic-item {{currentTopicId === item.id ? 'active' : ''}}"
+        data-topic-id="{{item.id}}"
+        bindtap="selectTopic"
+      >
+        <view class="topic-header">
+          <text class="topic-mode">{{item.mode}}</text>
+          <text class="topic-time">{{item.createTime}}</text>
+        </view>
+        <text class="topic-title">{{item.title}}</text>
+        <text class="topic-preview" wx:if="{{item.messages && item.messages.length > 0}}">
+          {{item.messages[0].content}}
+        </text>
+      </view>
+    </scroll-view>
+  </view>
+</view>

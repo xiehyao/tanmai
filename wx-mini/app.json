@@ -1,0 +1,74 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/map/map",
+    "pages/alumni-link/alumni-link",
+    "pages/assistant/assistant",
+    "pages/profile/profile",
+    "pages/card-entry/card-entry",
+    "pages/voice-input/voice-input",
+    "pages/intro-card/intro-card",
+    "pages/card/card",
+    "pages/meeting/meeting",
+    "pages/reminders/reminders",
+    "pages/updates/updates",
+    "pages/exchange/exchange",
+    "pages/match/match"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#667eea",
+    "navigationBarTitleText": "探脉",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#F8F8F8"
+  },
+  "tabBar": {
+    "color": "#7A7E83",
+    "selectedColor": "#667eea",
+    "borderStyle": "black",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "static/tab-home.png",
+        "selectedIconPath": "static/tab-home-current.png"
+      },
+      {
+        "pagePath": "pages/map/map",
+        "text": "地图",
+        "iconPath": "static/tab-map.png",
+        "selectedIconPath": "static/tab-map-current.png"
+      },
+      {
+        "pagePath": "pages/alumni-link/alumni-link",
+        "text": "校友连连看",
+        "iconPath": "static/tab-assistant.png",
+        "selectedIconPath": "static/tab-assistant-current.png"
+      },
+      {
+        "pagePath": "pages/assistant/assistant",
+        "text": "AI助手",
+        "iconPath": "static/tab-assistant.png",
+        "selectedIconPath": "static/tab-assistant-current.png"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的",
+        "iconPath": "static/tab-profile.png",
+        "selectedIconPath": "static/tab-profile-current.png"
+      }
+    ]
+  },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "你的位置信息将用于查看附近的朋友"
+    }
+  },
+  "requiredPrivateInfos": [
+    "getLocation"
+  ],
+  "subPackages": [],
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

@@ -1,0 +1,22 @@
+<!--pages/updates/updates.wxml-->
+<view class="updates-page">
+  <view class="header">
+    <text class="title">信息更新</text>
+  </view>
+  
+  <view class="updates-list">
+    <view 
+      wx:for="{{updates}}" 
+      wx:key="id"
+      class="update-item"
+    >
+      <text class="update-title">{{item.title}}</text>
+      <text class="update-time">{{item.update_time}}</text>
+    </view>
+  </view>
+  
+  <view class="empty" wx:if="{{updates.length === 0}}">
+    <text>暂无更新</text>
+  </view>
+</view>
+

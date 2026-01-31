@@ -1,0 +1,141 @@
+/* pages/intro-card/intro-card.wxss */
+.intro-card-page {
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
+.header {
+  padding: 40rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+}
+
+.title {
+  font-size: 40rpx;
+  font-weight: bold;
+}
+
+.card-list {
+  padding: 20rpx;
+}
+
+.card-item {
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+}
+
+.card-name {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  display: block;
+  margin-bottom: 10rpx;
+}
+
+.card-scene {
+  font-size: 24rpx;
+  color: #667eea;
+  display: block;
+  margin-bottom: 10rpx;
+}
+
+.card-content {
+  font-size: 28rpx;
+  color: #666;
+  line-height: 1.6;
+  display: block;
+}
+
+.actions {
+  padding: 40rpx;
+}
+
+.actions button {
+  background: #667eea;
+  color: #fff;
+  border: none;
+  border-radius: 8rpx;
+  padding: 24rpx;
+}
+
+.modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 40rpx;
+  width: 80%;
+  max-width: 600rpx;
+}
+
+.modal-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  margin-bottom: 30rpx;
+  text-align: center;
+}
+
+.form-item {
+  margin-bottom: 30rpx;
+}
+
+.form-item text {
+  font-size: 28rpx;
+  color: #333;
+  display: block;
+  margin-bottom: 10rpx;
+}
+
+.form-item input {
+  width: 100%;
+  padding: 20rpx;
+  border: 1rpx solid #ddd;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+}
+
+.picker {
+  padding: 20rpx;
+  border: 1rpx solid #ddd;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 40rpx;
+}
+
+.modal-actions button {
+  flex: 1;
+  padding: 24rpx;
+  border-radius: 8rpx;
+  border: none;
+}
+
+.modal-actions button:first-child {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.modal-actions button:last-child {
+  background: #667eea;
+  color: #fff;
+}
+

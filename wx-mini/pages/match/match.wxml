@@ -1,0 +1,14 @@
+<!--pages/match/match.wxml-->
+<view class="match-page">
+  <view class="header">
+    <text class="title">匹配结果</text>
+  </view>
+  
+  <view class="match-content">
+    <image src="{{match.avatar}}" class="match-avatar" />
+    <text class="match-name">{{match.nickname}}</text>
+    <text class="match-score">匹配度: {{match.match_score}}%</text>
+    <text class="match-reason">{{match.match_reason}}</text>
+  </view>
+</view>
+

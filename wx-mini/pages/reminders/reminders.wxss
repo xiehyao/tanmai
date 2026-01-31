@@ -1,0 +1,51 @@
+/* pages/reminders/reminders.wxss */
+.reminders-page {
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
+.header {
+  padding: 40rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+}
+
+.title {
+  font-size: 40rpx;
+  font-weight: bold;
+}
+
+.reminder-list {
+  padding: 20rpx;
+}
+
+.reminder-item {
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+}
+
+.reminder-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  display: block;
+  margin-bottom: 10rpx;
+}
+
+.reminder-time {
+  font-size: 28rpx;
+  color: #666;
+  display: block;
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 100rpx 40rpx;
+  color: #999;
+}
+

@@ -1,0 +1,12 @@
+<!--pages/exchange/exchange.wxml-->
+<view class="exchange-page">
+  <view class="header">
+    <text class="title">交换名片</text>
+  </view>
+  
+  <view class="exchange-content">
+    <text>扫描二维码或输入ID交换名片</text>
+    <button bindtap="scanQRCode">扫描二维码</button>
+  </view>
+</view>
+

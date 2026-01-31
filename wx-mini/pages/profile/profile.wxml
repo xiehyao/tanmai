@@ -1,0 +1,27 @@
+<!--pages/profile/profile.wxml-->
+<view class="profile-page">
+  <view class="user-header">
+    <image
+      class="avatar"
+      src="{{user.display_avatar || user.avatar || user.selected_avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
+      mode="aspectFill"
+    />
+    <text class="nickname">{{user.nickname || user.name || '未登录'}}</text>
+    <text class="work-wechat" wx:if="{{user.wechat_id}}">微信: {{user.wechat_id}}</text>
+  </view>
+
+  <view class="menu-list">
+    <view class="menu-item" bindtap="goToCardEntry">
+      <text>填写/编辑名片</text>
+      <text class="arrow">›</text>
+    </view>
+    <view class="menu-item" bindtap="goToCard">
+      <text>查看我的名片</text>
+      <text class="arrow">›</text>
+    </view>
+  </view>
+
+  <view class="actions">
+    <button class="logout-btn" bindtap="logout">退出登录</button>
+  </view>
+</view>

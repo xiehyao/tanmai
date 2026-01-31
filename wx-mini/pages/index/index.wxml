@@ -1,0 +1,163 @@
+<!--pages/index/index.wxml-->
+<view class="page">
+  <scroll-view scroll-y class="page-scroll">
+    <!-- 顶部品牌名称 -->
+    <view class="hero">
+      <text class="hero-title">大湾区校友会</text>
+      <text class="hero-subtitle">智能社交匹配平台</text>
+    </view>
+
+    <!-- 通告 -->
+    <view class="section">
+      <view class="section-card notice-card">
+
+        <view class="notice-block">
+          <text class="notice-text">校友，您好。为筹备校友会，更好服务校友。现征集您近况信息、为校友服务意愿及拟担任职务。</text>
+        </view>
+
+        <button class="primary-btn" bindtap="goToCardEntry">填写</button>
+      </view>
+    </view>
+
+    <!-- 校友会活动（无白底，与上方卡片左对齐） -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">校友会活动</text>
+      </view>
+      <view class="activities-wrap">
+        <scroll-view scroll-x class="activities-scroll" show-scrollbar="false">
+          <view class="activity-item" wx:for="{{activityList}}" wx:key="key">
+            <view class="activity-poster poster-{{item.key}}"></view>
+            <text class="activity-title">{{item.title}}</text>
+          </view>
+        </scroll-view>
+      </view>
+    </view>
+
+    <!-- 附近校友 -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">附近校友</text>
+      </view>
+      <view class="section-card nearby-card" bindtap="goToMap">
+        <text class="placeholder-text">填好地址后，地图上会出现您附近校友，可一起喝茶聊天。</text>
+          <view class="nearby-avatars">
+            <view class="nearby-item" wx:for="{{nearbyDisplay}}" wx:key="user_id">
+              <image
+                class="nearby-avatar"
+                src="{{item.avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
+                mode="aspectFill"
+              />
+              <text class="nearby-name">{{item.displayName || '校友'}}</text>
+            </view>
+          </view>
+        <button class="secondary-btn">打开周边朋友地图</button>
+      </view>
+    </view>
+
+    <!-- 校友连连看 -->
+    <view class="section">
+      <view class="section-header">
+        <text class="section-title">校友连连看</text>
+      </view>
+      <view class="section-card link-card" bindtap="goToAlumniLink">
+
+        <!-- 我的名片 -->
+        <view class="section">
+          <view class="subsection-header">
+            <text class="subsection-title">我的名片</text>
+          </view>
+          <view class="section-card my-card link-inner-card" bindtap="goToCardEntry">
+            <view class="my-card-main">
+              <image
+                class="avatar"
+                src="{{user.avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
+                mode="aspectFill"
+              ></image>
+              <view class="my-card-info">
+                <text class="my-name">{{user.name || '姓名'}}</text>
+                <text class="my-line company">{{(user.company || 'xxx科技有限公司') + ' ' + (user.title || '高级经理')}}</text>
+              </view>
+            </view>
+            <view class="my-card-extra">
+              <text class="my-line">{{user.phone ? ('+86 ' + user.phone) : '+86 138 1234 5678'}}</text>
+              <text class="my-line">{{user.email || 'juli@qq.com'}}</text>
+              <text class="my-line address">{{user.address || '广东省深圳市南山区某某园区 XX-1203'}}</text>
+            </view>
+            <view class="my-card-badge">
+              <text>填写后自动生成</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="link-avatars">
+          <view class="link-person">
+            <image
+              class="link-avatar"
+              src="{{user.avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
+              mode="aspectFill"
+            ></image>
+            <text class="link-label">我</text>
+          </view>
+          <view class="link-connector">
+            <view class="link-line"></view>
+            <view class="link-connector-badge">
+              <text class="link-connector-text">连</text>
+            </view>
+            <view class="link-line"></view>
+          </view>
+          <view class="link-person">
+            <image
+              class="link-avatar"
+              src="https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/female-young.png"
+              mode="aspectFill"
+            ></image>
+            <text class="link-label">湾区校友</text>
+          </view>
+        </view>
+
+        <view class="section-subcard alumni-subcard">
+          <view class="link-text-block">
+            <text class="placeholder-text link-desc">
+              往昔交集？于今共鸣？未来聚变？为你发现彼此。
+            </text>
+          </view>
+
+          <!-- 校友列表：6 tab，每 tab 下 2×4 校友网格 -->
+          <view class="alumni-list-wrap">
+            <view class="alumni-tabs">
+              <view
+                class="alumni-tab {{activeAlumniTab === item.key ? 'alumni-tab-active' : ''}}"
+                wx:for="{{alumniTabList}}"
+                wx:key="key"
+                data-key="{{item.key}}"
+                bindtap="onAlumniTabTap"
+              >{{item.label}}</view>
+            </view>
+            <view class="alumni-grid">
+              <view class="nearby-item" wx:for="{{currentAlumniList}}" wx:key="user_id">
+                <image
+                  class="nearby-avatar"
+                  src="{{item.avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
+                  mode="aspectFill"
+                />
+                <text class="nearby-name">{{item.displayName || '校友'}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+
+
+        <button class="primary-btn">帮我连连看</button>
+      </view>
+    </view>
+
+    <!-- AI 助手入口（保留） -->
+    <view class="section">
+      <view class="section-card tiny-card" bindtap="goToAssistant">
+        <text class="tiny-title">AI 助手</text>
+        <text class="tiny-subtitle">在匹配和填表过程中有任何问题，都可以随时问我</text>
+      </view>
+    </view>
+  </scroll-view>
+</view>

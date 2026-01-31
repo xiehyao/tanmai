@@ -1,0 +1,1391 @@
+<!--pages/card-entry/card-entry.wxml-->
+<view class="card-entry-page">
+  <!-- 工作人员模式切换 -->
+  <view class="staff-mode-bar">
+    <view class="staff-toggle-row">
+      <view class="staff-toggle" bindtap="toggleStaffMode">
+        <text class="toggle-label">{{isStaffMode ? '工作人员模式' : '普通模式'}}</text>
+        <switch checked="{{isStaffMode}}" color="#667eea" />
+      </view>
+      <!-- 模式切换标签（仅在工作人员模式下显示） -->
+      <view class="mode-tabs" wx:if="{{isStaffMode}}">
+        <text 
+          class="mode-tab {{!isInternalMode ? 'active' : ''}}" 
+          bindtap="switchToFillMode"
+        >代填信息</text>
+        <text class="mode-tab-separator">|</text>
+        <text 
+          class="mode-tab {{isInternalMode ? 'active' : ''}}" 
+          bindtap="switchToInternalMode"
+        >填写评价</text>
+      </view>
+    </view>
+    
+    <!-- 代填提醒说明（代填信息模式且未选择目标用户时显示） -->
+    <view class="staff-fill-notice" wx:if="{{isStaffMode && !isInternalMode && !targetUser}}">
+      <text class="notice-icon">⚠️</text>
+      <text class="notice-text">代填信息将被校友本人及他人看到，会显示「（校友会代填）」备注，系统会记录您的操作</text>
+    </view>
+    
+    <!-- 内部模式提示（填写评价模式且未选择目标用户时显示） -->
+    <view class="internal-mode-notice" wx:if="{{isInternalMode && !targetUser}}">
+      <text class="notice-icon">🔒</text>
+      <text class="notice-text">内部评价模式：您填写的信息仅用于匹配和风险控制，不会向校友本人或他人公开</text>
+    </view>
+    
+    <!-- 用户搜索（工作人员模式 或 内部辅证模式） -->
+    <view class="user-search-section" wx:if="{{isStaffMode || isInternalMode}}">
+      <!-- 已选择的目标用户 -->
+      <view class="selected-user" wx:if="{{targetUser && !showUserSearch}}">
+        <text class="selected-label">{{isInternalMode ? '评价对象：' : '正在为以下用户填写：'}}</text>
+        <view class="selected-user-info">
+          <text class="user-name">{{targetUser.name || targetUser.nickname}}</text>
+          <text class="user-info" wx:if="{{targetUser.company}}">{{targetUser.company}}</text>
+          <text class="clear-btn" bindtap="clearTargetUser">更换</text>
+        </view>
+        <!-- 代填提醒（工作人员模式且非内部辅证） -->
+        <view class="selected-user-notice" wx:if="{{isStaffMode && !isInternalMode}}">
+          <text class="notice-icon-small">⚠️</text>
+          <text class="notice-text-small">代填信息将被该校友本人及他人看到，会显示「（校友会代填）」备注，系统会记录您的操作</text>
+        </view>
+        <!-- 内部模式提示（场景三：不公开） -->
+        <view class="selected-user-notice internal-notice" wx:if="{{isInternalMode}}">
+          <text class="notice-icon-small">🔒</text>
+          <text class="notice-text-small">内部评价模式：此信息仅用于匹配和风险控制，不会向校友本人或他人公开</text>
+        </view>
+      </view>
+      
+      <!-- 用户搜索框 -->
+      <view class="search-box" wx:if="{{!targetUser || showUserSearch}}">
+        <input 
+          class="search-input" 
+          placeholder="搜索用户姓名或昵称..."
+          value="{{searchKeyword}}"
+          bindinput="onSearchInput"
+          confirm-type="search"
+          bindconfirm="searchUsers"
+        />
+        <text class="search-btn" bindtap="searchUsers">搜索</text>
+      </view>
+      
+      <!-- 搜索结果 -->
+      <view class="search-results" wx:if="{{searchResults.length > 0 && (!targetUser || showUserSearch)}}">
+        <view 
+          class="user-item" 
+          wx:for="{{searchResults}}" 
+          wx:key="id"
+          data-user-id="{{item.id}}"
+          data-user-name="{{item.name}}"
+          data-user-nickname="{{item.nickname}}"
+          data-user-company="{{item.company}}"
+          data-user-title="{{item.title}}"
+          bindtap="selectTargetUser"
+        >
+          <text class="user-name">{{item.name || item.nickname}}</text>
+          <text class="user-info" wx:if="{{item.company}}">{{item.company}}</text>
+          <text class="user-info" wx:if="{{item.title}}">{{item.title}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 步骤指示器（内部辅证模式须先选目标用户） -->
+  <view class="step-indicator" wx:if="{{!isInternalMode || (targetUser && targetUser.id)}}">
+    <view 
+      class="step-item {{index < currentStep ? 'completed' : ''}} {{currentStep === step ? 'current' : ''}}"
+      wx:for="{{[1,2,3,4,5,6]}}" 
+      wx:key="index"
+      wx:for-item="step"
+      wx:for-index="index"
+      data-step="{{step}}"
+      bindtap="goToStep"
+    >
+      <view class="step-number">{{step}}</view>
+      <view class="step-label">
+        <text wx:if="{{step === 1}}">基础</text>
+        <text wx:if="{{step === 2}}">教育</text>
+        <text wx:if="{{step === 3}}">需求</text>
+        <text wx:if="{{step === 4}}">资源</text>
+        <text wx:if="{{step === 5}}">校友会</text>
+        <text wx:if="{{step === 6}}">补充</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 表单内容（内部辅证模式须先选目标用户） -->
+  <scroll-view class="form-container" scroll-y wx:if="{{!isInternalMode || (targetUser && targetUser.id)}}">
+    <!-- 步骤1：基础与名片 + 位置信息 -->
+    <view class="step-content" wx:if="{{currentStep === 1}}">
+      <view class="step-title">基础信息与名片</view>
+      
+      <view class="form-group form-group-with-visibility" wx:if="{{!isInternalMode}}">
+        <text class="label">真实姓名 <text class="required">*</text><text class="fill-remark" wx:if="{{step1.field_source && step1.field_source.name === 'staff'}}">（校友会代填）</text><text class="fill-remark" wx:if="{{step1.field_source && step1.field_source.name === 'alumni'}}">（其它校友代填）</text></text>
+        <input class="input" placeholder="请输入真实姓名" value="{{step1.name}}" data-step="1" data-field="name" bindinput="onInputChange" />
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step1.field_visibility.name === 'private' ? 1 : (step1.field_visibility.name === 'masked' ? 2 : 0)}}" data-step="1" data-field="name" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step1.field_visibility.name === 'private' ? '不公开' : (step1.field_visibility.name === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+      </view>
+      <!-- 内部评价模式：显示原始数据和评价输入框 -->
+      <view class="form-group form-group-internal" wx:if="{{isInternalMode}}">
+        <text class="label">真实姓名 <text class="required">*</text></text>
+        <view class="internal-field-row">
+          <view class="original-value-inline">
+            <text class="original-text-inline">{{step1._original && step1._original.name ? step1._original.name : '（未填写）'}}</text>
+          </view>
+          <input class="input input-internal" placeholder="评价/备注" value="{{step1.name}}" data-step="1" data-field="name" bindinput="onInputChange" />
+        </view>
+      </view>
+      <view class="form-group form-group-with-visibility" wx:if="{{!isInternalMode}}">
+        <text class="label">微信昵称<text class="fill-remark" wx:if="{{step1.field_source && step1.field_source.nickname === 'staff'}}">（校友会代填）</text><text class="fill-remark" wx:if="{{step1.field_source && step1.field_source.nickname === 'alumni'}}">（其它校友代填）</text></text>
+        <input class="input" placeholder="请输入微信昵称" value="{{step1.nickname}}" data-step="1" data-field="nickname" bindinput="onInputChange" />
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step1.field_visibility.nickname === 'private' ? 1 : (step1.field_visibility.nickname === 'masked' ? 2 : 0)}}" data-step="1" data-field="nickname" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step1.field_visibility.nickname === 'private' ? '不公开' : (step1.field_visibility.nickname === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+      </view>
+      <!-- 内部评价模式：显示原始数据和评价输入框 -->
+      <view class="form-group form-group-internal" wx:if="{{isInternalMode}}">
+        <text class="label">微信昵称</text>
+        <view class="internal-field-row">
+          <view class="original-value-inline">
+            <text class="original-text-inline">{{step1._original && step1._original.nickname ? step1._original.nickname : '（未填写）'}}</text>
+          </view>
+          <input class="input input-internal" placeholder="评价/备注" value="{{step1.nickname}}" data-step="1" data-field="nickname" bindinput="onInputChange" />
+        </view>
+      </view>
+      <view class="form-group form-group-with-visibility" wx:if="{{!isInternalMode}}">
+        <text class="label">出生地<text class="fill-remark" wx:if="{{step1.field_source && step1.field_source.birth_place === 'staff'}}">（校友会代填）</text><text class="fill-remark" wx:if="{{step1.field_source && step1.field_source.birth_place === 'alumni'}}">（其它校友代填）</text></text>
+        <input class="input" placeholder="如：福建省泉州市惠安县" value="{{step1.birth_place}}" data-step="1" data-field="birth_place" bindinput="onInputChange" />
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step1.field_visibility.birth_place === 'private' ? 1 : (step1.field_visibility.birth_place === 'masked' ? 2 : 0)}}" data-step="1" data-field="birth_place" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step1.field_visibility.birth_place === 'private' ? '不公开' : (step1.field_visibility.birth_place === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+      </view>
+      <!-- 内部评价模式：显示原始数据和评价输入框 -->
+      <view class="form-group form-group-internal" wx:if="{{isInternalMode}}">
+        <text class="label">出生地</text>
+        <view class="internal-field-row">
+          <view class="original-value-inline">
+            <text class="original-text-inline">{{step1._original && step1._original.birth_place ? step1._original.birth_place : '（未填写）'}}</text>
+          </view>
+          <input class="input input-internal" placeholder="评价/备注" value="{{step1.birth_place}}" data-step="1" data-field="birth_place" bindinput="onInputChange" />
+        </view>
+      </view>
+      <view class="form-group" wx:if="{{!isInternalMode}}">
+        <text class="label">性别</text>
+        <picker mode="selector" range="{{genderOptions}}" range-key="label" value="{{step1._genderIndex}}" data-step="1" data-field="gender" bindchange="onGenderChange">
+          <view class="picker">{{step1._genderLabel || '请选择性别'}}</view>
+        </picker>
+      </view>
+      <view class="form-group" wx:if="{{!isInternalMode}}">
+        <text class="label">微信号</text>
+        <input class="input" placeholder="选填，用于校友加友" value="{{step1.wechat_id}}" data-step="1" data-field="wechat_id" bindinput="onInputChange" />
+      </view>
+      <view class="form-group" wx:if="{{!isInternalMode}}">
+        <text class="label">展示头像</text>
+        <text class="avatar-hint">根据性别仅显示对应头像；点击下方头像选择</text>
+        <view class="avatar-current-wrap">
+          <image class="avatar-current-img" src="{{step1.display_avatar || step1.selected_avatar || step1.avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}" mode="aspectFill" />
+          <text class="avatar-current-label">{{step1._selectedAvatarLabel || '使用微信头像'}}</text>
+        </view>
+        <scroll-view scroll-y class="avatar-select-scroll" style="max-height: 360rpx;">
+          <view class="avatar-select-grid">
+            <view class="avatar-option-wrap {{step1.selected_avatar === item.value ? 'avatar-option-selected' : ''}}" wx:for="{{filteredAvatarOptions}}" wx:key="value" data-value="{{item.value}}" data-label="{{item.label}}" bindtap="onAvatarImageTap">
+              <image class="avatar-option-img" src="{{item.value ? item.value : (step1.avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png')}}" mode="aspectFill" />
+            </view>
+          </view>
+        </scroll-view>
+      </view>
+      <view class="form-group" wx:if="{{!isInternalMode}}">
+        <text class="label">个人照片（可多张，上传后存服务器）</text>
+        <view class="personal-photos-row">
+          <view class="personal-photo-item" wx:for="{{step1.personal_photos}}" wx:key="*this">
+            <image class="personal-photo-img" src="{{item}}" mode="aspectFill" />
+            <text class="personal-photo-remove" data-index="{{index}}" bindtap="removePersonalPhoto">删除</text>
+          </view>
+          <view class="personal-photo-add" bindtap="addPersonalPhoto">
+            <text class="add-text">+ 添加照片</text>
+          </view>
+        </view>
+      </view>
+      <view class="form-group form-group-with-visibility" wx:if="{{!isInternalMode}}">
+        <text class="label">职位/头衔<text class="fill-remark" wx:if="{{step1.field_source && step1.field_source.title === 'staff'}}">（校友会代填）</text><text class="fill-remark" wx:if="{{step1.field_source && step1.field_source.title === 'alumni'}}">（其它校友代填）</text></text>
+        <input class="input" placeholder="如：产品专家、执行秘书长" value="{{step1.title}}" data-step="1" data-field="title" bindinput="onInputChange" />
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step1.field_visibility.title === 'private' ? 1 : (step1.field_visibility.title === 'masked' ? 2 : 0)}}" data-step="1" data-field="title" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step1.field_visibility.title === 'private' ? '不公开' : (step1.field_visibility.title === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+      </view>
+      <!-- 内部评价模式：显示原始数据和评价输入框 -->
+      <view class="form-group form-group-internal" wx:if="{{isInternalMode}}">
+        <text class="label">职位/头衔</text>
+        <view class="internal-field-row">
+          <view class="original-value-inline">
+            <text class="original-text-inline">{{step1._original && step1._original.title ? step1._original.title : '（未填写）'}}</text>
+          </view>
+          <input class="input input-internal" placeholder="评价/备注" value="{{step1.title}}" data-step="1" data-field="title" bindinput="onInputChange" />
+        </view>
+      </view>
+      <view class="form-group form-group-with-visibility" wx:if="{{!isInternalMode}}">
+        <text class="label">公司名称 <text class="required">*</text><text class="fill-remark" wx:if="{{step1.field_source && step1.field_source.company === 'staff'}}">（校友会代填）</text><text class="fill-remark" wx:if="{{step1.field_source && step1.field_source.company === 'alumni'}}">（其它校友代填）</text></text>
+        <input class="input" placeholder="请输入公司名称" value="{{step1.company}}" data-step="1" data-field="company" bindinput="onInputChange" />
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step1.field_visibility.company === 'private' ? 1 : (step1.field_visibility.company === 'masked' ? 2 : 0)}}" data-step="1" data-field="company" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step1.field_visibility.company === 'private' ? '不公开' : (step1.field_visibility.company === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+      </view>
+      <!-- 内部评价模式：显示原始数据和评价输入框 -->
+      <view class="form-group form-group-internal" wx:if="{{isInternalMode}}">
+        <text class="label">公司名称 <text class="required">*</text></text>
+        <view class="internal-field-row">
+          <view class="original-value-inline">
+            <text class="original-text-inline">{{step1._original && step1._original.company ? step1._original.company : '（未填写）'}}</text>
+          </view>
+          <input class="input input-internal" placeholder="评价/备注" value="{{step1.company}}" data-step="1" data-field="company" bindinput="onInputChange" />
+        </view>
+      </view>
+      <view class="form-group form-group-with-visibility" wx:if="{{!isInternalMode}}">
+        <text class="label">电话<text class="fill-remark" wx:if="{{step1.field_source && step1.field_source.phone === 'staff'}}">（校友会代填）</text><text class="fill-remark" wx:if="{{step1.field_source && step1.field_source.phone === 'alumni'}}">（其它校友代填）</text></text>
+        <input class="input" type="number" placeholder="请输入电话号码" value="{{step1.phone}}" data-step="1" data-field="phone" bindinput="onInputChange" />
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step1.field_visibility.phone === 'private' ? 1 : (step1.field_visibility.phone === 'masked' ? 2 : 0)}}" data-step="1" data-field="phone" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step1.field_visibility.phone === 'private' ? '不公开' : (step1.field_visibility.phone === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+      </view>
+      <!-- 内部评价模式：显示原始数据和评价输入框 -->
+      <view class="form-group form-group-internal" wx:if="{{isInternalMode}}">
+        <text class="label">电话</text>
+        <view class="internal-field-row">
+          <view class="original-value-inline">
+            <text class="original-text-inline">{{step1._original && step1._original.phone ? step1._original.phone : '（未填写）'}}</text>
+          </view>
+          <input class="input input-internal" type="number" placeholder="评价/备注" value="{{step1.phone}}" data-step="1" data-field="phone" bindinput="onInputChange" />
+        </view>
+      </view>
+      <view class="form-group form-group-with-visibility" wx:if="{{!isInternalMode}}">
+        <text class="label">邮箱<text class="fill-remark" wx:if="{{step1.field_source && step1.field_source.email === 'staff'}}">（校友会代填）</text><text class="fill-remark" wx:if="{{step1.field_source && step1.field_source.email === 'alumni'}}">（其它校友代填）</text></text>
+        <input class="input" type="text" placeholder="请输入邮箱地址" value="{{step1.email}}" data-step="1" data-field="email" bindinput="onInputChange" />
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step1.field_visibility.email === 'private' ? 1 : (step1.field_visibility.email === 'masked' ? 2 : 0)}}" data-step="1" data-field="email" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step1.field_visibility.email === 'private' ? '不公开' : (step1.field_visibility.email === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+      </view>
+      <!-- 内部评价模式：显示原始数据和评价输入框 -->
+      <view class="form-group form-group-internal" wx:if="{{isInternalMode}}">
+        <text class="label">邮箱</text>
+        <view class="internal-field-row">
+          <view class="original-value-inline">
+            <text class="original-text-inline">{{step1._original && step1._original.email ? step1._original.email : '（未填写）'}}</text>
+          </view>
+          <input class="input input-internal" placeholder="评价/备注" value="{{step1.email}}" data-step="1" data-field="email" bindinput="onInputChange" />
+        </view>
+      </view>
+      <view class="form-group form-group-with-visibility" wx:if="{{!isInternalMode}}">
+        <text class="label">个人简介<text class="fill-remark" wx:if="{{step1.field_source && step1.field_source.bio === 'staff'}}">（校友会代填）</text><text class="fill-remark" wx:if="{{step1.field_source && step1.field_source.bio === 'alumni'}}">（其它校友代填）</text></text>
+        <textarea class="textarea" placeholder="简单介绍一下自己..." value="{{step1.bio}}" data-step="1" data-field="bio" bindinput="onInputChange" maxlength="500" />
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step1.field_visibility.bio === 'private' ? 1 : (step1.field_visibility.bio === 'masked' ? 2 : 0)}}" data-step="1" data-field="bio" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step1.field_visibility.bio === 'private' ? '不公开' : (step1.field_visibility.bio === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+      </view>
+      <!-- 内部评价模式：显示原始数据和评价输入框 -->
+      <view class="form-group form-group-internal" wx:if="{{isInternalMode}}">
+        <text class="label">个人简介</text>
+        <view class="internal-field-row internal-field-row-textarea">
+          <view class="original-value-inline">
+            <text class="original-text-inline">{{step1._original && step1._original.bio ? step1._original.bio : '（未填写）'}}</text>
+          </view>
+          <textarea class="textarea textarea-internal" placeholder="评价/备注" value="{{step1.bio}}" data-step="1" data-field="bio" bindinput="onInputChange" maxlength="500" />
+        </view>
+      </view>
+
+      <view class="section-title">位置信息</view>
+      <view class="form-group" wx:for="{{step1.locations}}" wx:key="index" wx:for-item="loc" wx:for-index="locIndex">
+        <view class="item-header">
+          <text class="item-title">位置 {{locIndex + 1}}<text class="fill-remark" wx:if="{{!isInternalMode && loc.source === 'staff'}}">（校友会代填）</text><text class="fill-remark" wx:if="{{!isInternalMode && loc.source === 'alumni'}}">（其它校友代填）</text></text>
+          <text class="btn-remove" data-index="{{locIndex}}" bindtap="removeLocation">删除</text>
+        </view>
+        <picker mode="selector" range="{{locationTypeOptions}}" range-key="label" value="{{loc._typeIndex >= 0 ? loc._typeIndex : 0}}" data-step="1" data-field="location_type" data-loc-index="{{locIndex}}" bindchange="onLocationTypeChange">
+          <view class="picker">{{loc._typeLabel || '请选择位置类型'}}</view>
+        </picker>
+        <view class="address-input-wrapper">
+          <input 
+            class="input" 
+            placeholder="详细地址（输入小区/大厦名称可智能提示）" 
+            value="{{loc.address}}" 
+            data-step="1" 
+            data-field="address" 
+            data-loc-index="{{locIndex}}" 
+            bindinput="onLocationInputChange"
+            bindfocus="onLocationInputFocus"
+            bindblur="onLocationInputBlur"
+          />
+          <!-- 地址智能建议列表 -->
+          <view 
+            class="address-suggestions" 
+            wx:if="{{showAddressSuggestions[locIndex] && addressSuggestions[locIndex] && addressSuggestions[locIndex].length > 0}}"
+          >
+            <view 
+              class="suggestion-item" 
+              wx:for="{{addressSuggestions[locIndex]}}" 
+              wx:key="index"
+              wx:for-index="sugIndex"
+              data-loc-index="{{locIndex}}"
+              data-index="{{sugIndex}}"
+              bindtap="onSelectAddressSuggestion"
+            >
+              <view class="suggestion-title">{{item.title}}</view>
+              <view class="suggestion-address">{{item.address}}</view>
+            </view>
+          </view>
+        </view>
+        <view class="visibility-row">
+          <text class="visibility-label">可见性</text>
+          <picker mode="selector" range="{{locationVisibilityOptions}}" range-key="label" value="{{loc._visibilityIndex >= 0 ? loc._visibilityIndex : 0}}" data-loc-index="{{locIndex}}" bindchange="onLocationVisibilityChange">
+            <view class="picker">{{loc._visibilityLabel || '公开'}}</view>
+          </picker>
+        </view>
+      </view>
+      <button class="btn-add" bindtap="addLocation">+ 添加位置</button>
+
+      <view class="voice-btn-wrapper">
+        <button class="btn-voice" bindtap="goToVoiceInput">🎤 语音补充</button>
+      </view>
+    </view>
+
+    <!-- 步骤2：教育经历 -->
+    <view class="step-content" wx:if="{{currentStep === 2}}">
+      <view class="step-title">教育经历</view>
+      
+      <!-- 非内部评价：直接编辑校友自己的小学信息 -->
+      <view class="form-group form-group-with-visibility" wx:if="{{!isInternalMode}}">
+        <text class="label">小学</text>
+        <input 
+          class="input" 
+          placeholder="请输入小学学校名称"
+          value="{{step2.primary_school}}"
+          data-step="2"
+          data-field="primary_school"
+          bindinput="onInputChange"
+        />
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step2.field_visibility.primary_school === 'private' ? 1 : (step2.field_visibility.primary_school === 'masked' ? 2 : 0)}}" data-step="2" data-field="primary_school" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step2.field_visibility.primary_school === 'private' ? '不公开' : (step2.field_visibility.primary_school === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+        <input 
+          class="input input-year" 
+          type="number"
+          placeholder="毕业年份"
+          value="{{step2.primary_graduation_year}}"
+          data-step="2"
+          data-field="primary_graduation_year"
+          bindinput="onInputChange"
+        />
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step2.field_visibility.primary_graduation_year === 'private' ? 1 : (step2.field_visibility.primary_graduation_year === 'masked' ? 2 : 0)}}" data-step="2" data-field="primary_graduation_year" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step2.field_visibility.primary_graduation_year === 'private' ? '不公开' : (step2.field_visibility.primary_graduation_year === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+      </view>
+
+      <!-- 内部评价：左侧为校友原始小学信息，右侧为工作人员评价/备注 -->
+      <view class="form-group form-group-internal" wx:if="{{isInternalMode}}">
+        <text class="label">小学</text>
+        <view class="internal-field-row">
+          <view class="original-value-inline">
+            <text class="original-text-inline">
+              {{step2._original && step2._original.primary_school ? step2._original.primary_school : '（未填写）'}}
+              <block wx:if="{{step2._original && step2._original.primary_graduation_year}}">（{{step2._original.primary_graduation_year}} 年毕业）</block>
+            </text>
+          </view>
+          <view class="internal-field-column">
+            <input 
+              class="input input-internal" 
+              placeholder="评价/备注或修正后的小学名称"
+              value="{{step2.primary_school}}"
+              data-step="2"
+              data-field="primary_school"
+              bindinput="onInputChange"
+            />
+            <input 
+              class="input input-internal input-year" 
+              type="number"
+              placeholder="评价中的毕业年份"
+              value="{{step2.primary_graduation_year}}"
+              data-step="2"
+              data-field="primary_graduation_year"
+              bindinput="onInputChange"
+            />
+          </view>
+        </view>
+      </view>
+
+      <view class="form-group form-group-with-visibility" wx:if="{{!isInternalMode}}">
+        <text class="label">初中</text>
+        <input 
+          class="input" 
+          placeholder="请输入初中学校名称"
+          value="{{step2.middle_school}}"
+          data-step="2"
+          data-field="middle_school"
+          bindinput="onInputChange"
+        />
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step2.field_visibility.middle_school === 'private' ? 1 : (step2.field_visibility.middle_school === 'masked' ? 2 : 0)}}" data-step="2" data-field="middle_school" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step2.field_visibility.middle_school === 'private' ? '不公开' : (step2.field_visibility.middle_school === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+        <input 
+          class="input input-year" 
+          type="number"
+          placeholder="毕业年份"
+          value="{{step2.middle_graduation_year}}"
+          data-step="2"
+          data-field="middle_graduation_year"
+          bindinput="onInputChange"
+        />
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step2.field_visibility.middle_graduation_year === 'private' ? 1 : (step2.field_visibility.middle_graduation_year === 'masked' ? 2 : 0)}}" data-step="2" data-field="middle_graduation_year" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step2.field_visibility.middle_graduation_year === 'private' ? '不公开' : (step2.field_visibility.middle_graduation_year === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+      </view>
+
+      <!-- 内部评价：初中 -->
+      <view class="form-group form-group-internal" wx:if="{{isInternalMode}}">
+        <text class="label">初中</text>
+        <view class="internal-field-row">
+          <view class="original-value-inline">
+            <text class="original-text-inline">
+              {{step2._original && step2._original.middle_school ? step2._original.middle_school : '（未填写）'}}
+              <block wx:if="{{step2._original && step2._original.middle_graduation_year}}">（{{step2._original.middle_graduation_year}} 年毕业）</block>
+            </text>
+          </view>
+          <view class="internal-field-column">
+            <input 
+              class="input input-internal" 
+              placeholder="评价/备注或修正后的初中名称"
+              value="{{step2.middle_school}}"
+              data-step="2"
+              data-field="middle_school"
+              bindinput="onInputChange"
+            />
+            <input 
+              class="input input-internal input-year" 
+              type="number"
+              placeholder="评价中的毕业年份"
+              value="{{step2.middle_graduation_year}}"
+              data-step="2"
+              data-field="middle_graduation_year"
+              bindinput="onInputChange"
+            />
+          </view>
+        </view>
+      </view>
+
+      <view class="form-group form-group-with-visibility" wx:if="{{!isInternalMode}}">
+        <text class="label">高中 <text class="recommended">推荐</text><text class="fill-remark" wx:if="{{!isInternalMode && step2.field_source && step2.field_source.high_school === 'staff'}}">（校友会代填）</text><text class="fill-remark" wx:if="{{!isInternalMode && step2.field_source && step2.field_source.high_school === 'alumni'}}">（其它校友代填）</text></text>
+        <input 
+          class="input" 
+          placeholder="请输入高中学校名称"
+          value="{{step2.high_school}}"
+          data-step="2"
+          data-field="high_school"
+          bindinput="onInputChange"
+        />
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step2.field_visibility.high_school === 'private' ? 1 : (step2.field_visibility.high_school === 'masked' ? 2 : 0)}}" data-step="2" data-field="high_school" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step2.field_visibility.high_school === 'private' ? '不公开' : (step2.field_visibility.high_school === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+        <input 
+          class="input input-year" 
+          type="number"
+          placeholder="毕业年份"
+          value="{{step2.high_graduation_year}}"
+          data-step="2"
+          data-field="high_graduation_year"
+          bindinput="onInputChange"
+        />
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step2.field_visibility.high_graduation_year === 'private' ? 1 : (step2.field_visibility.high_graduation_year === 'masked' ? 2 : 0)}}" data-step="2" data-field="high_graduation_year" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step2.field_visibility.high_graduation_year === 'private' ? '不公开' : (step2.field_visibility.high_graduation_year === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+      </view>
+
+      <!-- 内部评价：高中 -->
+      <view class="form-group form-group-internal" wx:if="{{isInternalMode}}">
+        <text class="label">高中 <text class="recommended">推荐</text></text>
+        <view class="internal-field-row">
+          <view class="original-value-inline">
+            <text class="original-text-inline">
+              {{step2._original && step2._original.high_school ? step2._original.high_school : '（未填写）'}}
+              <block wx:if="{{step2._original && step2._original.high_graduation_year}}">（{{step2._original.high_graduation_year}} 年毕业）</block>
+            </text>
+          </view>
+          <view class="internal-field-column">
+            <input 
+              class="input input-internal" 
+              placeholder="评价/备注或修正后的高中名称"
+              value="{{step2.high_school}}"
+              data-step="2"
+              data-field="high_school"
+              bindinput="onInputChange"
+            />
+            <input 
+              class="input input-internal input-year" 
+              type="number"
+              placeholder="评价中的毕业年份"
+              value="{{step2.high_graduation_year}}"
+              data-step="2"
+              data-field="high_graduation_year"
+              bindinput="onInputChange"
+            />
+          </view>
+        </view>
+      </view>
+
+      <view class="form-group form-group-with-visibility" wx:if="{{!isInternalMode}}">
+        <text class="label">本科</text>
+        <input 
+          class="input" 
+          placeholder="请输入大学名称"
+          value="{{step2.bachelor_university}}"
+          data-step="2"
+          data-field="bachelor_university"
+          bindinput="onInputChange"
+        />
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step2.field_visibility.bachelor_university === 'private' ? 1 : (step2.field_visibility.bachelor_university === 'masked' ? 2 : 0)}}" data-step="2" data-field="bachelor_university" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step2.field_visibility.bachelor_university === 'private' ? '不公开' : (step2.field_visibility.bachelor_university === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+        <input 
+          class="input" 
+          placeholder="专业"
+          value="{{step2.bachelor_major}}"
+          data-step="2"
+          data-field="bachelor_major"
+          bindinput="onInputChange"
+        />
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step2.field_visibility.bachelor_major === 'private' ? 1 : (step2.field_visibility.bachelor_major === 'masked' ? 2 : 0)}}" data-step="2" data-field="bachelor_major" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step2.field_visibility.bachelor_major === 'private' ? '不公开' : (step2.field_visibility.bachelor_major === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+        <input 
+          class="input input-year" 
+          type="number"
+          placeholder="毕业年份"
+          value="{{step2.bachelor_graduation_year}}"
+          data-step="2"
+          data-field="bachelor_graduation_year"
+          bindinput="onInputChange"
+        />
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step2.field_visibility.bachelor_graduation_year === 'private' ? 1 : (step2.field_visibility.bachelor_graduation_year === 'masked' ? 2 : 0)}}" data-step="2" data-field="bachelor_graduation_year" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step2.field_visibility.bachelor_graduation_year === 'private' ? '不公开' : (step2.field_visibility.bachelor_graduation_year === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+      </view>
+
+      <!-- 内部评价：本科 -->
+      <view class="form-group form-group-internal" wx:if="{{isInternalMode}}">
+        <text class="label">本科</text>
+        <view class="internal-field-row">
+          <view class="original-value-inline">
+            <text class="original-text-inline">
+              {{step2._original && step2._original.bachelor_university ? step2._original.bachelor_university : '（未填写学校）'}}
+              <block wx:if="{{step2._original && step2._original.bachelor_major}}"> · {{step2._original.bachelor_major}}</block>
+              <block wx:if="{{step2._original && step2._original.bachelor_graduation_year}}">（{{step2._original.bachelor_graduation_year}} 年毕业）</block>
+            </text>
+          </view>
+          <view class="internal-field-column">
+            <input 
+              class="input input-internal" 
+              placeholder="评价/备注或修正后的大学名称"
+              value="{{step2.bachelor_university}}"
+              data-step="2"
+              data-field="bachelor_university"
+              bindinput="onInputChange"
+            />
+            <input 
+              class="input input-internal" 
+              placeholder="评价中的专业"
+              value="{{step2.bachelor_major}}"
+              data-step="2"
+              data-field="bachelor_major"
+              bindinput="onInputChange"
+            />
+            <input 
+              class="input input-internal input-year" 
+              type="number"
+              placeholder="评价中的毕业年份"
+              value="{{step2.bachelor_graduation_year}}"
+              data-step="2"
+              data-field="bachelor_graduation_year"
+              bindinput="onInputChange"
+            />
+          </view>
+        </view>
+      </view>
+
+      <view class="form-group form-group-with-visibility" wx:if="{{!isInternalMode}}">
+        <text class="label">硕士</text>
+        <input 
+          class="input" 
+          placeholder="请输入大学名称"
+          value="{{step2.master_university}}"
+          data-step="2"
+          data-field="master_university"
+          bindinput="onInputChange"
+        />
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step2.field_visibility.master_university === 'private' ? 1 : (step2.field_visibility.master_university === 'masked' ? 2 : 0)}}" data-step="2" data-field="master_university" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step2.field_visibility.master_university === 'private' ? '不公开' : (step2.field_visibility.master_university === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+        <input 
+          class="input" 
+          placeholder="专业"
+          value="{{step2.master_major}}"
+          data-step="2"
+          data-field="master_major"
+          bindinput="onInputChange"
+        />
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step2.field_visibility.master_major === 'private' ? 1 : (step2.field_visibility.master_major === 'masked' ? 2 : 0)}}" data-step="2" data-field="master_major" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step2.field_visibility.master_major === 'private' ? '不公开' : (step2.field_visibility.master_major === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+        <input 
+          class="input input-year" 
+          type="number"
+          placeholder="毕业年份"
+          value="{{step2.master_graduation_year}}"
+          data-step="2"
+          data-field="master_graduation_year"
+          bindinput="onInputChange"
+        />
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step2.field_visibility.master_graduation_year === 'private' ? 1 : (step2.field_visibility.master_graduation_year === 'masked' ? 2 : 0)}}" data-step="2" data-field="master_graduation_year" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step2.field_visibility.master_graduation_year === 'private' ? '不公开' : (step2.field_visibility.master_graduation_year === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+      </view>
+
+      <!-- 内部评价：硕士 -->
+      <view class="form-group form-group-internal" wx:if="{{isInternalMode}}">
+        <text class="label">硕士</text>
+        <view class="internal-field-row">
+          <view class="original-value-inline">
+            <text class="original-text-inline">
+              {{step2._original && step2._original.master_university ? step2._original.master_university : '（未填写学校）'}}
+              <block wx:if="{{step2._original && step2._original.master_major}}"> · {{step2._original.master_major}}</block>
+              <block wx:if="{{step2._original && step2._original.master_graduation_year}}">（{{step2._original.master_graduation_year}} 年毕业）</block>
+            </text>
+          </view>
+          <view class="internal-field-column">
+            <input 
+              class="input input-internal" 
+              placeholder="评价/备注或修正后的大学名称"
+              value="{{step2.master_university}}"
+              data-step="2"
+              data-field="master_university"
+              bindinput="onInputChange"
+            />
+            <input 
+              class="input input-internal" 
+              placeholder="评价中的专业"
+              value="{{step2.master_major}}"
+              data-step="2"
+              data-field="master_major"
+              bindinput="onInputChange"
+            />
+            <input 
+              class="input input-internal input-year" 
+              type="number"
+              placeholder="评价中的毕业年份"
+              value="{{step2.master_graduation_year}}"
+              data-step="2"
+              data-field="master_graduation_year"
+              bindinput="onInputChange"
+            />
+          </view>
+        </view>
+      </view>
+
+      <view class="form-group form-group-with-visibility" wx:if="{{!isInternalMode}}">
+        <text class="label">博士</text>
+        <input 
+          class="input" 
+          placeholder="请输入大学名称"
+          value="{{step2.doctor_university}}"
+          data-step="2"
+          data-field="doctor_university"
+          bindinput="onInputChange"
+        />
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step2.field_visibility.doctor_university === 'private' ? 1 : (step2.field_visibility.doctor_university === 'masked' ? 2 : 0)}}" data-step="2" data-field="doctor_university" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step2.field_visibility.doctor_university === 'private' ? '不公开' : (step2.field_visibility.doctor_university === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+        <input 
+          class="input" 
+          placeholder="专业"
+          value="{{step2.doctor_major}}"
+          data-step="2"
+          data-field="doctor_major"
+          bindinput="onInputChange"
+        />
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step2.field_visibility.doctor_major === 'private' ? 1 : (step2.field_visibility.doctor_major === 'masked' ? 2 : 0)}}" data-step="2" data-field="doctor_major" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step2.field_visibility.doctor_major === 'private' ? '不公开' : (step2.field_visibility.doctor_major === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+        <input 
+          class="input input-year" 
+          type="number"
+          placeholder="毕业年份"
+          value="{{step2.doctor_graduation_year}}"
+          data-step="2"
+          data-field="doctor_graduation_year"
+          bindinput="onInputChange"
+        />
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step2.field_visibility.doctor_graduation_year === 'private' ? 1 : (step2.field_visibility.doctor_graduation_year === 'masked' ? 2 : 0)}}" data-step="2" data-field="doctor_graduation_year" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step2.field_visibility.doctor_graduation_year === 'private' ? '不公开' : (step2.field_visibility.doctor_graduation_year === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+      </view>
+
+      <view class="form-group form-group-with-visibility" wx:if="{{!isInternalMode}}">
+        <text class="label">最高学历 <text class="recommended">推荐</text></text>
+        <picker 
+          mode="selector" 
+          range="{{degreeOptions}}"
+          value="{{pickerIndexes.highestDegree >= 0 ? pickerIndexes.highestDegree : 0}}"
+          data-step="2"
+          data-field="highest_degree"
+          bindchange="onPickerChange"
+        >
+          <view class="picker">
+            {{pickerIndexes.highestDegreeLabel}}
+          </view>
+        </picker>
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step2.field_visibility.highest_degree === 'private' ? 1 : (step2.field_visibility.highest_degree === 'masked' ? 2 : 0)}}" data-step="2" data-field="highest_degree" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step2.field_visibility.highest_degree === 'private' ? '不公开' : (step2.field_visibility.highest_degree === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+      </view>
+
+      <!-- 内部评价：最高学历 -->
+      <view class="form-group form-group-internal" wx:if="{{isInternalMode}}">
+        <text class="label">最高学历 <text class="recommended">推荐</text></text>
+        <view class="internal-field-row">
+          <view class="original-value-inline">
+            <text class="original-text-inline">
+              {{step2._original && step2._original.highest_degree ? step2._original.highest_degree : '（未填写）'}}
+            </text>
+          </view>
+          <view class="internal-field-column">
+            <picker 
+              mode="selector" 
+              range="{{degreeOptions}}"
+              value="{{pickerIndexes.highestDegree >= 0 ? pickerIndexes.highestDegree : 0}}"
+              data-step="2"
+              data-field="highest_degree"
+              bindchange="onPickerChange"
+            >
+              <view class="picker">
+                {{pickerIndexes.highestDegreeLabel}}
+              </view>
+            </picker>
+          </view>
+        </view>
+      </view>
+
+      <view class="voice-btn-wrapper">
+        <button class="btn-voice" bindtap="goToVoiceInput">🎤 语音补充</button>
+      </view>
+    </view>
+
+    <!-- 步骤3：需求与状态 -->
+    <view class="step-content" wx:if="{{currentStep === 3}}">
+      <view class="step-title">需求与状态</view>
+      
+      <view class="form-group form-group-with-visibility" wx:if="{{!isInternalMode}}">
+        <text class="label">婚姻状况<text class="fill-remark" wx:if="{{!isInternalMode && step3.field_source && step3.field_source.marital_status === 'staff'}}">（校友会代填）</text><text class="fill-remark" wx:if="{{!isInternalMode && step3.field_source && step3.field_source.marital_status === 'alumni'}}">（其它校友代填）</text></text>
+        <picker 
+          mode="selector" 
+          range="{{maritalOptions}}"
+          range-key="label"
+          value="{{pickerIndexes.maritalStatus >= 0 ? pickerIndexes.maritalStatus : 0}}"
+          data-step="3"
+          data-field="marital_status"
+          data-options="maritalOptions"
+          bindchange="onPickerChange"
+        >
+          <view class="picker">
+            {{pickerIndexes.maritalStatusLabel}}
+          </view>
+        </picker>
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step3.field_visibility.marital_status === 'private' ? 1 : (step3.field_visibility.marital_status === 'masked' ? 2 : 0)}}" data-step="3" data-field="marital_status" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step3.field_visibility.marital_status === 'private' ? '不公开' : (step3.field_visibility.marital_status === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+      </view>
+
+      <!-- 内部评价：婚姻状况 -->
+      <view class="form-group form-group-internal" wx:if="{{isInternalMode}}">
+        <text class="label">婚姻状况</text>
+        <view class="internal-field-row">
+          <view class="original-value-inline">
+            <text class="original-text-inline">
+              {{step3._original && step3._original.marital_status_label ? step3._original.marital_status_label : (step3._original && step3._original.marital_status ? step3._original.marital_status : '（未填写）')}}
+            </text>
+          </view>
+          <view class="internal-field-column">
+            <picker 
+              mode="selector" 
+              range="{{maritalOptions}}"
+              range-key="label"
+              value="{{pickerIndexes.maritalStatus >= 0 ? pickerIndexes.maritalStatus : 0}}"
+              data-step="3"
+              data-field="marital_status"
+              data-options="maritalOptions"
+              bindchange="onPickerChange"
+            >
+              <view class="picker">
+                {{pickerIndexes.maritalStatusLabel}}
+              </view>
+            </picker>
+          </view>
+        </view>
+      </view>
+
+      <view class="form-group form-group-with-visibility" wx:if="{{!isInternalMode}}">
+        <view class="switch-row">
+          <text class="label">是否有相亲需求</text>
+          <switch 
+            checked="{{step3.dating_need}}"
+            data-step="3"
+            data-field="dating_need"
+            bindchange="onSwitchChange"
+          />
+        </view>
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step3.field_visibility.dating_need === 'private' ? 1 : (step3.field_visibility.dating_need === 'masked' ? 2 : 0)}}" data-step="3" data-field="dating_need" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step3.field_visibility.dating_need === 'private' ? '不公开' : (step3.field_visibility.dating_need === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+        <textarea 
+          wx:if="{{step3.dating_need}}"
+          class="textarea" 
+          placeholder="请描述您的相亲偏好..."
+          value="{{step3.dating_preferences}}"
+          data-step="3"
+          data-field="dating_preferences"
+          bindinput="onInputChange"
+        />
+        <picker wx:if="{{step3.dating_need}}" mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step3.field_visibility.dating_preferences === 'private' ? 1 : (step3.field_visibility.dating_preferences === 'masked' ? 2 : 0)}}" data-step="3" data-field="dating_preferences" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step3.field_visibility.dating_preferences === 'private' ? '不公开' : (step3.field_visibility.dating_preferences === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+      </view>
+
+      <!-- 内部评价：相亲需求 -->
+      <view class="form-group form-group-internal" wx:if="{{isInternalMode}}">
+        <text class="label">是否有相亲需求</text>
+        <view class="internal-field-row internal-field-row-textarea">
+          <view class="original-value-inline">
+            <text class="original-text-inline">
+              {{step3._original && step3._original.dating_need ? '有相亲需求' : '无相亲需求或未填写'}}
+            </text>
+            <text class="original-text-inline" wx:if="{{step3._original && step3._original.dating_preferences}}">
+              偏好：{{step3._original.dating_preferences}}
+            </text>
+          </view>
+          <view class="internal-field-column">
+            <view class="switch-row">
+              <text class="label">评价中的相亲需求</text>
+              <switch 
+                checked="{{step3.dating_need}}"
+                data-step="3"
+                data-field="dating_need"
+                bindchange="onSwitchChange"
+              />
+            </view>
+            <textarea 
+              class="textarea textarea-internal" 
+              placeholder="工作人员对相亲需求的备注/补充"
+              value="{{step3.dating_preferences}}"
+              data-step="3"
+              data-field="dating_preferences"
+              bindinput="onInputChange"
+            />
+          </view>
+        </view>
+      </view>
+
+      <view class="form-group form-group-with-visibility" wx:if="{{!isInternalMode}}">
+        <view class="switch-row">
+          <text class="label">是否在找工作</text>
+          <switch 
+            checked="{{step3.job_seeking}}"
+            data-step="3"
+            data-field="job_seeking"
+            bindchange="onSwitchChange"
+          />
+        </view>
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step3.field_visibility.job_seeking === 'private' ? 1 : (step3.field_visibility.job_seeking === 'masked' ? 2 : 0)}}" data-step="3" data-field="job_seeking" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step3.field_visibility.job_seeking === 'private' ? '不公开' : (step3.field_visibility.job_seeking === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+        <input 
+          wx:if="{{step3.job_seeking}}"
+          class="input" 
+          placeholder="目标职位"
+          value="{{step3.job_target_position}}"
+          data-step="3"
+          data-field="job_target_position"
+          bindinput="onInputChange"
+        />
+        <picker wx:if="{{step3.job_seeking}}" mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step3.field_visibility.job_target_position === 'private' ? 1 : (step3.field_visibility.job_target_position === 'masked' ? 2 : 0)}}" data-step="3" data-field="job_target_position" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step3.field_visibility.job_target_position === 'private' ? '不公开' : (step3.field_visibility.job_target_position === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+        <input 
+          wx:if="{{step3.job_seeking}}"
+          class="input" 
+          placeholder="目标行业"
+          value="{{step3.job_target_industry}}"
+          data-step="3"
+          data-field="job_target_industry"
+          bindinput="onInputChange"
+        />
+        <picker wx:if="{{step3.job_seeking}}" mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step3.field_visibility.job_target_industry === 'private' ? 1 : (step3.field_visibility.job_target_industry === 'masked' ? 2 : 0)}}" data-step="3" data-field="job_target_industry" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step3.field_visibility.job_target_industry === 'private' ? '不公开' : (step3.field_visibility.job_target_industry === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+        <textarea 
+          wx:if="{{step3.job_seeking}}"
+          class="textarea" 
+          placeholder="工作偏好"
+          value="{{step3.job_preferences}}"
+          data-step="3"
+          data-field="job_preferences"
+          bindinput="onInputChange"
+        />
+        <picker wx:if="{{step3.job_seeking}}" mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step3.field_visibility.job_preferences === 'private' ? 1 : (step3.field_visibility.job_preferences === 'masked' ? 2 : 0)}}" data-step="3" data-field="job_preferences" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step3.field_visibility.job_preferences === 'private' ? '不公开' : (step3.field_visibility.job_preferences === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+      </view>
+
+      <!-- 内部评价：找工作 -->
+      <view class="form-group form-group-internal" wx:if="{{isInternalMode}}">
+        <text class="label">是否在找工作</text>
+        <view class="internal-field-row internal-field-row-textarea">
+          <view class="original-value-inline">
+            <text class="original-text-inline">
+              {{step3._original && step3._original.job_seeking ? '在找工作' : '未在找工作或未填写'}}
+            </text>
+            <text class="original-text-inline" wx:if="{{step3._original && (step3._original.job_target_position || step3._original.job_target_industry || step3._original.job_preferences)}}">
+              目标：{{step3._original.job_target_position || '（职位未填）'}}，行业：{{step3._original.job_target_industry || '（行业未填）'}}
+            </text>
+          </view>
+          <view class="internal-field-column">
+            <view class="switch-row">
+              <text class="label">评价中的找工作状态</text>
+              <switch 
+                checked="{{step3.job_seeking}}"
+                data-step="3"
+                data-field="job_seeking"
+                bindchange="onSwitchChange"
+              />
+            </view>
+            <input 
+              wx:if="{{step3.job_seeking}}"
+              class="input input-internal" 
+              placeholder="评价中的目标职位"
+              value="{{step3.job_target_position}}"
+              data-step="3"
+              data-field="job_target_position"
+              bindinput="onInputChange"
+            />
+            <input 
+              wx:if="{{step3.job_seeking}}"
+              class="input input-internal" 
+              placeholder="评价中的目标行业"
+              value="{{step3.job_target_industry}}"
+              data-step="3"
+              data-field="job_target_industry"
+              bindinput="onInputChange"
+            />
+            <textarea 
+              wx:if="{{step3.job_seeking}}"
+              class="textarea textarea-internal" 
+              placeholder="工作人员对其求职情况的备注/补充"
+              value="{{step3.job_preferences}}"
+              data-step="3"
+              data-field="job_preferences"
+              bindinput="onInputChange"
+            />
+          </view>
+        </view>
+      </view>
+
+      <view class="form-group form-group-with-visibility" wx:if="{{!isInternalMode}}">
+        <view class="switch-row">
+          <text class="label">是否有创业需求</text>
+          <switch 
+            checked="{{step3.entrepreneurship_need}}"
+            data-step="3"
+            data-field="entrepreneurship_need"
+            bindchange="onSwitchChange"
+          />
+        </view>
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step3.field_visibility.entrepreneurship_need === 'private' ? 1 : (step3.field_visibility.entrepreneurship_need === 'masked' ? 2 : 0)}}" data-step="3" data-field="entrepreneurship_need" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step3.field_visibility.entrepreneurship_need === 'private' ? '不公开' : (step3.field_visibility.entrepreneurship_need === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+        <picker 
+          wx:if="{{step3.entrepreneurship_need}}"
+          mode="selector" 
+          range="{{entrepreneurshipTypeOptions}}"
+          range-key="label"
+          value="{{pickerIndexes.entrepreneurshipType >= 0 ? pickerIndexes.entrepreneurshipType : 0}}"
+          data-step="3"
+          data-field="entrepreneurship_type"
+          data-options="entrepreneurshipTypeOptions"
+          bindchange="onPickerChange"
+        >
+          <view class="picker">
+            {{pickerIndexes.entrepreneurshipTypeLabel}}
+          </view>
+        </picker>
+        <picker wx:if="{{step3.entrepreneurship_need}}" mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step3.field_visibility.entrepreneurship_type === 'private' ? 1 : (step3.field_visibility.entrepreneurship_type === 'masked' ? 2 : 0)}}" data-step="3" data-field="entrepreneurship_type" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step3.field_visibility.entrepreneurship_type === 'private' ? '不公开' : (step3.field_visibility.entrepreneurship_type === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+        <textarea 
+          wx:if="{{step3.entrepreneurship_need}}"
+          class="textarea" 
+          placeholder="请描述您的创业需求..."
+          value="{{step3.entrepreneurship_description}}"
+          data-step="3"
+          data-field="entrepreneurship_description"
+          bindinput="onInputChange"
+        />
+        <picker wx:if="{{step3.entrepreneurship_need}}" mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step3.field_visibility.entrepreneurship_description === 'private' ? 1 : (step3.field_visibility.entrepreneurship_description === 'masked' ? 2 : 0)}}" data-step="3" data-field="entrepreneurship_description" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step3.field_visibility.entrepreneurship_description === 'private' ? '不公开' : (step3.field_visibility.entrepreneurship_description === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+      </view>
+
+      <!-- 内部评价：创业需求 -->
+      <view class="form-group form-group-internal" wx:if="{{isInternalMode}}">
+        <text class="label">是否有创业需求</text>
+        <view class="internal-field-row internal-field-row-textarea">
+          <view class="original-value-inline">
+            <text class="original-text-inline">
+              {{step3._original && step3._original.entrepreneurship_need ? '有创业需求' : '无创业需求或未填写'}}
+            </text>
+            <text class="original-text-inline" wx:if="{{step3._original && (step3._original.entrepreneurship_type || step3._original.entrepreneurship_description)}}">
+              类型：{{step3._original.entrepreneurship_type || '（类型未填）'}}
+            </text>
+          </view>
+          <view class="internal-field-column">
+            <view class="switch-row">
+              <text class="label">评价中的创业需求</text>
+              <switch 
+                checked="{{step3.entrepreneurship_need}}"
+                data-step="3"
+                data-field="entrepreneurship_need"
+                bindchange="onSwitchChange"
+              />
+            </view>
+            <picker 
+              wx:if="{{step3.entrepreneurship_need}}"
+              mode="selector" 
+              range="{{entrepreneurshipTypeOptions}}"
+              range-key="label"
+              value="{{pickerIndexes.entrepreneurshipType >= 0 ? pickerIndexes.entrepreneurshipType : 0}}"
+              data-step="3"
+              data-field="entrepreneurship_type"
+              data-options="entrepreneurshipTypeOptions"
+              bindchange="onPickerChange"
+            >
+              <view class="picker">
+                {{pickerIndexes.entrepreneurshipTypeLabel}}
+              </view>
+            </picker>
+            <textarea 
+              wx:if="{{step3.entrepreneurship_need}}"
+              class="textarea textarea-internal" 
+              placeholder="工作人员对创业需求的备注/补充"
+              value="{{step3.entrepreneurship_description}}"
+              data-step="3"
+              data-field="entrepreneurship_description"
+              bindinput="onInputChange"
+            />
+          </view>
+        </view>
+      </view>
+
+      <view class="voice-btn-wrapper">
+        <button class="btn-voice" bindtap="goToVoiceInput">🎤 语音补充</button>
+      </view>
+    </view>
+
+    <!-- 步骤4：资源分享 -->
+    <view class="step-content" wx:if="{{currentStep === 4}}">
+      <view class="step-title">资源分享</view>
+      <view class="section-title">资源分享</view>
+
+      <!-- 非内部评价：直接编辑资源 -->
+      <view class="form-group form-group-with-visibility" wx:if="{{!isInternalMode}}" wx:for="{{step4.resources}}" wx:key="index" wx:for-item="res" wx:for-index="resIndex">
+        <view class="item-header">
+          <text class="item-title">资源 {{resIndex + 1}}<text class="fill-remark" wx:if="{{!isInternalMode && res.source === 'staff'}}">（校友会代填）</text><text class="fill-remark" wx:if="{{!isInternalMode && res.source === 'alumni'}}">（其它校友代填）</text></text>
+          <text class="btn-remove" data-index="{{resIndex}}" bindtap="removeResource">删除</text>
+        </view>
+        <picker mode="selector" range="{{resourceTypeOptions}}" range-key="label" value="{{res._typeIndex >= 0 ? res._typeIndex : 0}}" data-step="4" data-field="resource_type" data-res-index="{{resIndex}}" bindchange="onResourceTypeChange">
+          <view class="picker">{{res._typeLabel || '请选择资源类型'}}</view>
+        </picker>
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{res.field_visibility && res.field_visibility.resource_type === 'private' ? 1 : (res.field_visibility && res.field_visibility.resource_type === 'masked' ? 2 : 0)}}" data-step="4" data-field="resource_type" data-res-index="{{resIndex}}" bindchange="onResourceFieldVisibilityChange">
+          <view class="visibility-picker">{{res.field_visibility && res.field_visibility.resource_type === 'private' ? '不公开' : (res.field_visibility && res.field_visibility.resource_type === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+        <input class="input" placeholder="资源标题" value="{{res.resource_title}}" data-step="4" data-field="resource_title" data-res-index="{{resIndex}}" bindinput="onResourceInputChange" />
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{res.field_visibility && res.field_visibility.resource_title === 'private' ? 1 : (res.field_visibility && res.field_visibility.resource_title === 'masked' ? 2 : 0)}}" data-step="4" data-field="resource_title" data-res-index="{{resIndex}}" bindchange="onResourceFieldVisibilityChange">
+          <view class="visibility-picker">{{res.field_visibility && res.field_visibility.resource_title === 'private' ? '不公开' : (res.field_visibility && res.field_visibility.resource_title === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+        <textarea class="textarea" placeholder="资源描述" value="{{res.resource_description}}" data-step="4" data-field="resource_description" data-res-index="{{resIndex}}" bindinput="onResourceInputChange" />
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{res.field_visibility && res.field_visibility.resource_description === 'private' ? 1 : (res.field_visibility && res.field_visibility.resource_description === 'masked' ? 2 : 0)}}" data-step="4" data-field="resource_description" data-res-index="{{resIndex}}" bindchange="onResourceFieldVisibilityChange">
+          <view class="visibility-picker">{{res.field_visibility && res.field_visibility.resource_description === 'private' ? '不公开' : (res.field_visibility && res.field_visibility.resource_description === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+        <picker mode="selector" range="{{sharingModeOptions}}" range-key="label" value="{{res._modeIndex >= 0 ? res._modeIndex : 0}}" data-step="4" data-field="sharing_mode" data-res-index="{{resIndex}}" bindchange="onResourceTypeChange">
+          <view class="picker">{{res._modeLabel || '请选择分享方式'}}</view>
+        </picker>
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{res.field_visibility && res.field_visibility.sharing_mode === 'private' ? 1 : (res.field_visibility && res.field_visibility.sharing_mode === 'masked' ? 2 : 0)}}" data-step="4" data-field="sharing_mode" data-res-index="{{resIndex}}" bindchange="onResourceFieldVisibilityChange">
+          <view class="visibility-picker">{{res.field_visibility && res.field_visibility.sharing_mode === 'private' ? '不公开' : (res.field_visibility && res.field_visibility.sharing_mode === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+      </view>
+
+      <!-- 内部评价：资源 -->
+      <view class="form-group form-group-internal" wx:if="{{isInternalMode}}" wx:for="{{step4.resources}}" wx:key="index" wx:for-item="res" wx:for-index="resIndex">
+        <view class="item-header">
+          <text class="item-title">资源 {{resIndex + 1}}</text>
+        </view>
+        <view class="internal-field-row internal-field-row-textarea">
+          <view class="original-value-inline">
+            <text class="original-text-inline">
+              {{(res._original && res._original.resource_title) || res.resource_title || '（未填写标题）'}}
+            </text>
+            <text class="original-text-inline" wx:if="{{(res._original && res._original.resource_description) || res.resource_description}}">
+              {{(res._original && res._original.resource_description) || res.resource_description}}
+            </text>
+          </view>
+          <view class="internal-field-column">
+            <textarea 
+              class="textarea textarea-internal" 
+              placeholder="工作人员对该资源的评价/备注"
+              value="{{res.staff_comment || ''}}"
+              data-step="4"
+              data-field="staff_comment"
+              data-res-index="{{resIndex}}"
+              bindinput="onResourceInputChange"
+            />
+          </view>
+        </view>
+      </view>
+
+      <button class="btn-add" bindtap="addResource">+ 添加资源</button>
+      <view class="voice-btn-wrapper">
+        <button class="btn-voice" bindtap="goToVoiceInput">🎤 语音补充</button>
+      </view>
+    </view>
+
+    <!-- 步骤5：校友会 -->
+    <view class="step-content" wx:if="{{currentStep === 5}}">
+      <view class="step-title">校友会参与</view>
+
+      <!-- 非内部评价：直接编辑 -->
+      <view class="form-group form-group-with-visibility" wx:if="{{!isInternalMode}}">
+        <view class="switch-row">
+          <text class="label">是否愿意为校友会做工作<text class="fill-remark" wx:if="{{!isInternalMode && step5.field_source && step5.field_source.willing_to_serve === 'staff'}}">（校友会代填）</text><text class="fill-remark" wx:if="{{!isInternalMode && step5.field_source && step5.field_source.willing_to_serve === 'alumni'}}">（其它校友代填）</text></text>
+          <switch checked="{{step5.willing_to_serve}}" data-step="5" data-field="willing_to_serve" bindchange="onSwitchChange" />
+        </view>
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step5.field_visibility.willing_to_serve === 'private' ? 1 : (step5.field_visibility.willing_to_serve === 'masked' ? 2 : 0)}}" data-step="5" data-field="willing_to_serve" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step5.field_visibility.willing_to_serve === 'private' ? '不公开' : (step5.field_visibility.willing_to_serve === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+      </view>
+
+      <!-- 内部评价：是否愿意为校友会做工作 -->
+      <view class="form-group form-group-internal" wx:if="{{isInternalMode}}">
+        <text class="label">是否愿意为校友会做工作</text>
+        <view class="internal-field-row">
+          <view class="original-value-inline">
+            <text class="original-text-inline">
+              {{step5._original && step5._original.willing_to_serve ? '愿意' : '不愿意或未填写'}}
+            </text>
+          </view>
+          <view class="internal-field-column">
+            <view class="switch-row">
+              <text class="label">评价中的意愿</text>
+              <switch checked="{{step5.willing_to_serve}}" data-step="5" data-field="willing_to_serve" bindchange="onSwitchChange" />
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <block wx:if="{{step5.willing_to_serve}}">
+        <view class="section-title">惠安一中校董会职务（单选）<text class="fill-remark" wx:if="{{!isInternalMode && step5.field_source && step5.field_source.board_position === 'staff'}}">（校友会代填）</text><text class="fill-remark" wx:if="{{!isInternalMode && step5.field_source && step5.field_source.board_position === 'alumni'}}">（其它校友代填）</text></view>
+        <view class="form-group form-group-with-visibility" wx:if="{{!isInternalMode}}">
+          <picker mode="selector" range="{{boardPositionOptions}}" range-key="label" value="{{pickerIndexes.boardPosition >= 0 ? pickerIndexes.boardPosition : 0}}" data-step="5" data-field="board_position" data-options="boardPositionOptions" bindchange="onBoardPositionChange">
+            <view class="picker">{{pickerIndexes.boardPositionLabel || '请选择'}}</view>
+          </picker>
+          <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step5.field_visibility.board_position === 'private' ? 1 : (step5.field_visibility.board_position === 'masked' ? 2 : 0)}}" data-step="5" data-field="board_position" bindchange="onFieldVisibilityChange">
+            <view class="visibility-picker">{{step5.field_visibility.board_position === 'private' ? '不公开' : (step5.field_visibility.board_position === 'masked' ? '部分打码' : '公开')}}</view>
+          </picker>
+        </view>
+
+        <!-- 内部评价：校董会职务 -->
+        <view class="form-group form-group-internal" wx:if="{{isInternalMode}}">
+          <text class="label">惠安一中校董会职务</text>
+          <view class="internal-field-row">
+            <view class="original-value-inline">
+              <text class="original-text-inline">
+                {{step5._original && step5._original.board_position_label ? step5._original.board_position_label : (pickerIndexes.boardPositionLabel || '（未选择）')}}
+              </text>
+            </view>
+            <view class="internal-field-column">
+              <picker mode="selector" range="{{boardPositionOptions}}" range-key="label" value="{{pickerIndexes.boardPosition >= 0 ? pickerIndexes.boardPosition : 0}}" data-step="5" data-field="board_position" data-options="boardPositionOptions" bindchange="onBoardPositionChange">
+                <view class="picker">{{pickerIndexes.boardPositionLabel || '请选择'}}</view>
+              </picker>
+            </view>
+          </view>
+        </view>
+
+        <view class="section-title">惠安一中大湾区校友会职务（可多选）</view>
+        <view class="form-group checkbox-group">
+          <view class="checkbox-item" wx:for="{{pickerIndexes.associationPositionsWithChecked}}" wx:key="value" wx:for-item="opt">
+            <checkbox value="{{opt.value}}" checked="{{opt.checked}}" bindtap="onAssociationPositionTap" data-value="{{opt.value}}" />
+            <text>{{opt.label}}</text>
+          </view>
+        </view>
+        <view class="form-group form-group-with-visibility">
+          <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step5.field_visibility.association_positions === 'private' ? 1 : (step5.field_visibility.association_positions === 'masked' ? 2 : 0)}}" data-step="5" data-field="association_positions" bindchange="onFieldVisibilityChange">
+            <view class="visibility-picker">{{step5.field_visibility.association_positions === 'private' ? '不公开' : (step5.field_visibility.association_positions === 'masked' ? '部分打码' : '公开')}}</view>
+          </picker>
+        </view>
+        <view class="section-title">可为校友会提供的支持（可多选，可填详细）</view>
+        <view class="form-group checkbox-group">
+          <view class="checkbox-item" wx:for="{{pickerIndexes.supportTypesWithChecked}}" wx:key="value" wx:for-item="opt">
+            <checkbox value="{{opt.value}}" checked="{{opt.checked}}" bindtap="onSupportTypeTap" data-value="{{opt.value}}" />
+            <text>{{opt.label}}</text>
+          </view>
+        </view>
+        <view class="form-group form-group-with-visibility" wx:if="{{!isInternalMode}}">
+          <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step5.field_visibility.support_offerings === 'private' ? 1 : (step5.field_visibility.support_offerings === 'masked' ? 2 : 0)}}" data-step="5" data-field="support_offerings" bindchange="onFieldVisibilityChange">
+            <view class="visibility-picker">{{step5.field_visibility.support_offerings === 'private' ? '不公开' : (step5.field_visibility.support_offerings === 'masked' ? '部分打码' : '公开')}}</view>
+          </picker>
+        </view>
+
+        <!-- 内部评价：能为校友会做什么 -->
+        <view class="form-group form-group-internal" wx:if="{{isInternalMode}}">
+          <text class="label">能为校友会做什么（原始）</text>
+          <view class="internal-field-row internal-field-row-textarea">
+            <view class="original-value-inline">
+              <text class="original-text-inline">
+                {{step5._original && step5._original.contribution_types ? step5._original.contribution_types : (step5.contribution_types || '（未填写）')}}
+              </text>
+            </view>
+            <view class="internal-field-column">
+              <input class="input input-internal" placeholder="工作人员评价中的贡献类型" value="{{step5.contribution_types}}" data-step="5" data-field="contribution_types" bindinput="onInputChange" />
+            </view>
+          </view>
+        </view>
+
+        <view class="form-group form-group-with-visibility" wx:if="{{!isInternalMode}}">
+          <text class="label">能为校友会做什么（用逗号分隔）</text>
+          <input class="input" placeholder="如：出场地、出经费" value="{{step5.contribution_types}}" data-step="5" data-field="contribution_types" bindinput="onInputChange" />
+          <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step5.field_visibility.contribution_types === 'private' ? 1 : (step5.field_visibility.contribution_types === 'masked' ? 2 : 0)}}" data-step="5" data-field="contribution_types" bindchange="onFieldVisibilityChange">
+            <view class="visibility-picker">{{step5.field_visibility.contribution_types === 'private' ? '不公开' : (step5.field_visibility.contribution_types === 'masked' ? '部分打码' : '公开')}}</view>
+          </picker>
+        </view>
+
+        <!-- 内部评价：具体贡献能力描述 -->
+        <view class="form-group form-group-internal" wx:if="{{isInternalMode}}">
+          <text class="label">具体贡献能力描述</text>
+          <view class="internal-field-row internal-field-row-textarea">
+            <view class="original-value-inline">
+              <text class="original-text-inline">
+                {{step5._original && step5._original.contribution_description ? step5._original.contribution_description : (step5.contribution_description || '（未填写）')}}
+              </text>
+            </view>
+            <view class="internal-field-column">
+              <textarea class="textarea textarea-internal" placeholder="工作人员对贡献能力的评价/备注" value="{{step5.contribution_description}}" data-step="5" data-field="contribution_description" bindinput="onInputChange" />
+            </view>
+          </view>
+        </view>
+
+        <view class="form-group form-group-with-visibility" wx:if="{{!isInternalMode}}">
+          <text class="label">具体贡献能力描述</text>
+          <textarea class="textarea" placeholder="具体描述" value="{{step5.contribution_description}}" data-step="5" data-field="contribution_description" bindinput="onInputChange" />
+          <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step5.field_visibility.contribution_description === 'private' ? 1 : (step5.field_visibility.contribution_description === 'masked' ? 2 : 0)}}" data-step="5" data-field="contribution_description" bindchange="onFieldVisibilityChange">
+            <view class="visibility-picker">{{step5.field_visibility.contribution_description === 'private' ? '不公开' : (step5.field_visibility.contribution_description === 'masked' ? '部分打码' : '公开')}}</view>
+          </picker>
+        </view>
+        <view class="section-title">对校友会的需求（可多选）</view>
+        <view class="form-group checkbox-group">
+          <view class="checkbox-item" wx:for="{{pickerIndexes.associationNeedsWithChecked}}" wx:key="value" wx:for-item="opt">
+            <checkbox value="{{opt.value}}" checked="{{opt.checked}}" bindtap="onAssociationNeedTap" data-value="{{opt.value}}" />
+            <text>{{opt.label}}</text>
+          </view>
+        </view>
+
+        <!-- 非内部评价：对校友会需求可见性 -->
+        <view class="form-group form-group-with-visibility" wx:if="{{!isInternalMode}}">
+          <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step5.field_visibility.association_needs_detail === 'private' ? 1 : (step5.field_visibility.association_needs_detail === 'masked' ? 2 : 0)}}" data-step="5" data-field="association_needs_detail" bindchange="onFieldVisibilityChange">
+            <view class="visibility-picker">{{step5.field_visibility.association_needs_detail === 'private' ? '不公开' : (step5.field_visibility.association_needs_detail === 'masked' ? '部分打码' : '公开')}}</view>
+          </picker>
+        </view>
+
+        <!-- 内部评价：其它需求 -->
+        <view class="form-group form-group-internal" wx:if="{{isInternalMode}}">
+          <text class="label">其它需求（原始）</text>
+          <view class="internal-field-row internal-field-row-textarea">
+            <view class="original-value-inline">
+              <text class="original-text-inline">
+                {{step5._original && step5._original.association_needs_detail && step5._original.association_needs_detail.other ? step5._original.association_needs_detail.other : (step5.association_needs_detail && step5.association_needs_detail.other) || '（未填写）'}}
+              </text>
+            </view>
+            <view class="internal-field-column">
+              <textarea class="textarea textarea-internal" placeholder="工作人员对其它需求的评价/备注" value="{{step5.association_needs_detail && step5.association_needs_detail.other || ''}}" data-step="5" data-field="association_needs_detail.other" bindinput="onInputChange" />
+            </view>
+          </view>
+        </view>
+        <view class="form-group form-group-with-visibility">
+          <text class="label">其它需求（请填写）</text>
+          <textarea class="textarea" placeholder="其它说明" value="{{step5.association_needs_detail && step5.association_needs_detail.other || ''}}" data-step="5" data-field="association_needs_detail.other" bindinput="onInputChange" />
+          <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step5.field_visibility.association_needs_detail_other === 'private' ? 1 : (step5.field_visibility.association_needs_detail_other === 'masked' ? 2 : 0)}}" data-step="5" data-field="association_needs_detail.other" bindchange="onFieldVisibilityChange">
+            <view class="visibility-picker">{{step5.field_visibility.association_needs_detail_other === 'private' ? '不公开' : (step5.field_visibility.association_needs_detail_other === 'masked' ? '部分打码' : '公开')}}</view>
+          </picker>
+        </view>
+      </block>
+      <view class="voice-btn-wrapper">
+        <button class="btn-voice" bindtap="goToVoiceInput">🎤 语音补充</button>
+      </view>
+    </view>
+
+    <!-- 步骤6：补充（隐藏匹配信息） -->
+    <view class="step-content" wx:if="{{currentStep === 6}}">
+      <view class="step-title">
+        <text>补充</text>
+        <text class="privacy-note">🔒 仅用于匹配，不对外展示</text>
+      </view>
+
+      <!-- 非内部评价：直接填写隐藏信息 -->
+      <view class="form-group form-group-with-visibility" wx:if="{{!isInternalMode}}">
+        <text class="label">补充说明</text>
+        <textarea class="textarea" placeholder="可以填写一些不希望公开但希望用于匹配的信息，如性格特点、兴趣爱好、特殊经历等..." value="{{step6.hidden_info.description || ''}}" data-step="6" data-field="hidden_info.description" bindinput="onInputChange" maxlength="1000" />
+        <picker mode="selector" range="{{fieldVisibilityOptions}}" range-key="label" value="{{step6.field_visibility.hidden_info_description === 'private' ? 1 : (step6.field_visibility.hidden_info_description === 'masked' ? 2 : 0)}}" data-step="6" data-field="hidden_info.description" bindchange="onFieldVisibilityChange">
+          <view class="visibility-picker">{{step6.field_visibility.hidden_info_description === 'private' ? '不公开' : (step6.field_visibility.hidden_info_description === 'masked' ? '部分打码' : '公开')}}</view>
+        </picker>
+      </view>
+
+      <!-- 内部评价：隐藏信息 -->
+      <view class="form-group form-group-internal" wx:if="{{isInternalMode}}">
+        <text class="label">补充说明</text>
+        <view class="internal-field-row internal-field-row-textarea">
+          <view class="original-value-inline">
+            <text class="original-text-inline">
+              {{step6._original && step6._original.hidden_info && step6._original.hidden_info.description ? step6._original.hidden_info.description : (step6.hidden_info.description || '（未填写）')}}
+            </text>
+          </view>
+          <view class="internal-field-column">
+            <textarea class="textarea textarea-internal" placeholder="工作人员对补充信息的评价/备注" value="{{step6.hidden_info.description || ''}}" data-step="6" data-field="hidden_info.description" bindinput="onInputChange" maxlength="1000" />
+          </view>
+        </view>
+      </view>
+
+      <view class="privacy-tip">
+        <text>💡 这些信息将加密存储，仅用于AI匹配算法，不会在您的公开名片中显示</text>
+      </view>
+      <view class="voice-btn-wrapper">
+        <button class="btn-voice" bindtap="goToVoiceInput">🎤 语音补充</button>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 导航按钮 -->
+  <view class="nav-buttons">
+    <button 
+      class="btn-nav btn-prev" 
+      wx:if="{{currentStep > 1}}"
+      bindtap="prevStep"
+    >
+      上一步
+    </button>
+    <button 
+      class="btn-nav btn-next" 
+      bindtap="nextStep"
+    >
+      {{currentStep < totalSteps ? '下一步' : '完成'}}
+    </button>
+  </view>
+</view>

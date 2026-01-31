@@ -1,0 +1,481 @@
+.alumni-link-page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  position: relative;
+}
+
+/* 顶部栏 */
+.header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 30rpx;
+  background: #667eea;
+  color: #ffffff;
+  position: relative;
+  z-index: 100;
+}
+
+.header-left,
+.header-right {
+  width: 60rpx;
+  height: 60rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menu-icon,
+.new-topic-icon {
+  font-size: 36rpx;
+  color: #ffffff;
+}
+
+.header-title {
+  flex: 1;
+  text-align: center;
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+/* 对话容器（全宽） */
+.chat-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  overflow: hidden;
+  position: relative;
+  height: calc(100vh - 100rpx); /* 减去header高度 */
+}
+
+/* 顶部问候语（现在在滚动区域内） */
+.greeting-section {
+  padding: 40rpx 40rpx 20rpx;
+  border-bottom: 1rpx solid #f5f5f5;
+  background: #ffffff;
+}
+
+.greeting-text {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+/* 场景卡片区域 */
+.mode-cards-section {
+  padding: 30rpx 20rpx;
+  background: #ffffff;
+}
+
+.mode-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20rpx;
+}
+
+.mode-card {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  border-radius: 20rpx;
+  border: 2rpx solid #e0e0e0;
+  transition: all 0.3s;
+}
+
+.mode-card.active {
+  background: #f3f4ff;
+  border-color: #667eea;
+}
+
+.mode-card-text {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.mode-card.active .mode-card-text {
+  color: #667eea;
+  font-weight: 600;
+}
+
+/* 对话历史 */
+.chat-history {
+  flex: 1;
+  padding: 20rpx 0; /* 左右无padding，让内容顶格 */
+  background: #ffffff;
+  height: 0; /* 让flex布局生效，scroll-view会自动处理滚动 */
+}
+
+.empty-message {
+  padding: 40rpx 0;
+  text-align: center;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: #999;
+  line-height: 1.8;
+}
+
+.msg-item {
+  margin-bottom: 24rpx;
+  display: flex;
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.msg-item.assistant {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.msg-item.user {
+  justify-content: flex-end;
+  padding: 0 40rpx; /* 左右对称padding */
+  box-sizing: border-box;
+}
+
+/* 助手消息包装器 */
+.assistant-msg-wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  padding: 0 40rpx; /* 左右对称padding */
+  box-sizing: border-box;
+}
+
+/* 思考过程区域 */
+.thinking-section {
+  width: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+.thinking-text {
+  font-size: 24rpx; /* 小一号字体 */
+  line-height: 1.8;
+  color: #999; /* 灰色 */
+  display: block;
+  word-wrap: break-word;
+  word-break: break-all;
+}
+
+/* 正式答案区域 */
+.answer-bubble {
+  width: 100%;
+  padding: 20rpx 24rpx;
+  background: #f5f5f5;
+  border-radius: 20rpx 20rpx 20rpx 4rpx;
+  word-wrap: break-word;
+  word-break: break-all;
+  box-sizing: border-box;
+}
+
+.answer-text {
+  font-size: 28rpx; /* 正常字体大小 */
+  line-height: 1.8;
+  color: #333; /* 正常字体颜色 */
+  display: block;
+}
+
+/* 用户消息气泡 */
+.msg-item.user .msg-bubble {
+  max-width: 75%;
+  padding: 20rpx 24rpx;
+  background: #667eea;
+  border-radius: 20rpx 20rpx 4rpx 20rpx;
+  word-wrap: break-word;
+  word-break: break-all;
+}
+
+.msg-text {
+  font-size: 28rpx;
+  line-height: 1.8;
+  color: #333;
+}
+
+.msg-item.user .msg-text {
+  color: #ffffff;
+}
+
+/* 底部操作区（固定在底部，真正贴底） */
+.chat-controls {
+  padding: 20rpx 40rpx 0; /* 顶部padding，底部为0 */
+  padding-bottom: env(safe-area-inset-bottom); /* 仅适配安全区域，无额外留白 */
+  background: #ffffff;
+  border-top: 1rpx solid #f5f5f5;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+/* 控制行：模式选择器 + 策略按钮 */
+.controls-row {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  margin-bottom: 16rpx; /* 减少底部间距 */
+  padding-bottom: 16rpx; /* 添加padding作为间距 */
+}
+
+/* 模式选择滚动框 */
+.mode-selector {
+  width: 100%;
+  white-space: nowrap;
+}
+
+.mode-selector-content {
+  display: inline-flex;
+  gap: 12rpx;
+  padding: 8rpx 0;
+}
+
+.mode-selector-item {
+  flex-shrink: 0;
+  padding: 12rpx 24rpx;
+  background: #f5f5f5;
+  border-radius: 24rpx;
+  font-size: 24rpx;
+  color: #666;
+  transition: all 0.2s;
+}
+
+.mode-selector-item.active {
+  background: #667eea;
+  color: #ffffff;
+}
+
+/* 策略按钮 */
+.strategy-buttons {
+  display: flex;
+  gap: 16rpx;
+}
+
+.strategy-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  padding: 16rpx 0;
+  border-radius: 12rpx;
+  border: 1rpx solid #e0e0e0;
+  background: #ffffff;
+  transition: all 0.2s;
+}
+
+.strategy-btn.active {
+  border-color: #667eea;
+  background: #f3f4ff;
+}
+
+.strategy-icon {
+  font-size: 28rpx;
+}
+
+.strategy-text {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.strategy-btn.active .strategy-text {
+  color: #667eea;
+  font-weight: 500;
+}
+
+/* 输入框和发送按钮（包成一整行，圆角） */
+.input-container {
+  display: flex;
+  align-items: center;
+  padding: 12rpx 20rpx;
+  background: #f5f5f5;
+  border-radius: 48rpx;
+  gap: 12rpx;
+  box-sizing: border-box;
+}
+
+.mode-toggle-btn {
+  flex-shrink: 0;
+  padding: 8rpx 16rpx;
+  background: #667eea;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  color: #ffffff;
+}
+
+.chat-input {
+  flex: 1;
+  min-height: 60rpx;
+  max-height: 200rpx;
+  padding: 0 16rpx;
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.5;
+  background: transparent;
+}
+
+.send-btn {
+  flex-shrink: 0;
+  width: 60rpx;
+  height: 60rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #e0e0e0;
+  transition: all 0.2s;
+}
+
+.send-btn.active {
+  background: #667eea;
+}
+
+.send-icon {
+  font-size: 28rpx;
+  color: #999;
+  transform: rotate(0deg);
+}
+
+.send-btn.active .send-icon {
+  color: #ffffff;
+}
+
+/* 历史抽屉 */
+.history-drawer-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 998;
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.history-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 80%;
+  max-width: 600rpx;
+  height: 100vh;
+  background: #ffffff;
+  z-index: 999;
+  transform: translateX(-100%);
+  transition: transform 0.3s ease-out;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 4rpx 0 20rpx rgba(0, 0, 0, 0.1);
+}
+
+.history-drawer.show {
+  transform: translateX(0);
+}
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 40rpx 30rpx 20rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+  background: #667eea;
+  color: #ffffff;
+}
+
+.drawer-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.drawer-close {
+  font-size: 40rpx;
+  color: #ffffff;
+  width: 60rpx;
+  height: 60rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.drawer-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.empty-topics {
+  padding: 80rpx 40rpx;
+  text-align: center;
+  color: #999;
+  font-size: 28rpx;
+}
+
+.topic-item {
+  padding: 30rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+  transition: background 0.2s;
+}
+
+.topic-item.active {
+  background: #f3f4ff;
+}
+
+.topic-item:active {
+  background: #f0f0f0;
+}
+
+.topic-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+}
+
+.topic-mode {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #667eea;
+}
+
+.topic-time {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.topic-title {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 8rpx;
+  display: block;
+}
+
+.topic-preview {
+  font-size: 26rpx;
+  color: #666;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

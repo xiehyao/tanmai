@@ -1,0 +1,36 @@
+/* pages/exchange/exchange.wxss */
+.exchange-page {
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
+.header {
+  padding: 40rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+}
+
+.title {
+  font-size: 40rpx;
+  font-weight: bold;
+}
+
+.exchange-content {
+  padding: 100rpx 40rpx;
+  text-align: center;
+  color: #999;
+}
+
+.exchange-content text {
+  display: block;
+  margin-bottom: 40rpx;
+}
+
+.exchange-content button {
+  background: #667eea;
+  color: #fff;
+  border: none;
+  border-radius: 8rpx;
+  padding: 24rpx 48rpx;
+}
+

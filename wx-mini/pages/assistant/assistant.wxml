@@ -1,0 +1,30 @@
+<!--pages/assistant/assistant.wxml-->
+<view class="assistant-page">
+  <view class="header">
+    <text class="title">AI助手</text>
+    <text class="subtitle">智能匹配推荐</text>
+  </view>
+  
+  <view class="matches" wx:if="{{matches.length > 0}}">
+    <view 
+      wx:for="{{matches}}" 
+      wx:key="id"
+      class="match-item"
+      bindtap="viewMatch"
+      data-match="{{item}}"
+    >
+      <image src="{{item.avatar || item.display_avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}" class="match-avatar" mode="aspectFill" />
+      <view class="match-info">
+        <text class="match-name">{{item.displayName || item.nickname || item.name || '校友'}}</text>
+        <text class="match-reason">{{item.match_reason}}</text>
+        <text class="match-score">匹配度: {{item.match_score}}%</text>
+      </view>
+    </view>
+  </view>
+  
+  <view class="empty" wx:else>
+    <text>暂无匹配推荐</text>
+    <button bindtap="refreshMatches">刷新匹配</button>
+  </view>
+</view>
+

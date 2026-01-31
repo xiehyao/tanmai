@@ -1,0 +1,48 @@
+<!--pages/intro-card/intro-card.wxml-->
+<view class="intro-card-page">
+  <view class="header">
+    <text class="title">自我简介卡片</text>
+  </view>
+  
+  <view class="card-list">
+    <view 
+      wx:for="{{cards}}" 
+      wx:key="id" 
+      class="card-item"
+      bindtap="editCard"
+      data-card="{{item}}"
+    >
+      <text class="card-name">{{item.card_name}}</text>
+      <text class="card-scene">{{getSceneName(item.scene_type)}}</text>
+      <text class="card-content">{{item.content}}</text>
+    </view>
+  </view>
+  
+  <view class="actions">
+    <button bindtap="showGenerateModal">生成新卡片</button>
+  </view>
+  
+  <view wx:if="{{showGenerateModal}}" class="modal-mask" bindtap="hideGenerateModal">
+    <view class="modal-content" catchtap="stopPropagation">
+      <view class="modal-title">生成简介卡片</view>
+      
+      <view class="form-item">
+        <text>卡片名称</text>
+        <input value="{{newCardName}}" placeholder="输入卡片名称" bindinput="onCardNameInput" />
+      </view>
+      
+      <view class="form-item">
+        <text>场景类型</text>
+        <picker value="{{sceneIndex}}" range="{{sceneTypes}}" bindchange="onSceneChange">
+          <view class="picker">{{sceneTypes[sceneIndex]}}</view>
+        </picker>
+      </view>
+      
+      <view class="modal-actions">
+        <button bindtap="hideGenerateModal">取消</button>
+        <button bindtap="generateCard">生成</button>
+      </view>
+    </view>
+  </view>
+</view>
+

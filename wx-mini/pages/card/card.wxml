@@ -1,0 +1,44 @@
+<!--pages/card/card.wxml-->
+<view class="card-page">
+  <view class="card-header">
+    <image
+      src="{{card.display_avatar || card.avatar || card.selected_avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
+      class="avatar"
+      mode="aspectFill"
+    />
+    <text class="name">{{card.name || card.nickname || '未设置'}}</text>
+    <text class="nickname" wx:if="{{card.nickname && card.name && card.name !== card.nickname}}">（{{card.nickname}}）</text>
+    <text class="work-wechat" wx:if="{{card.wechat_id}}">微信: {{card.wechat_id}}</text>
+  </view>
+  
+  <view class="card-content">
+    <view class="info-item">
+      <text class="label">姓名</text>
+      <text class="value">{{card.name || '未设置'}}</text>
+    </view>
+    <view class="info-item">
+      <text class="label">职位</text>
+      <text class="value">{{card.title || '未设置'}}</text>
+    </view>
+    <view class="info-item">
+      <text class="label">公司</text>
+      <text class="value">{{card.company || '未设置'}}</text>
+    </view>
+    <view class="info-item" wx:if="{{card.phone}}">
+      <text class="label">电话</text>
+      <text class="value">{{card.phone}}</text>
+    </view>
+    <view class="info-item" wx:if="{{card.email}}">
+      <text class="label">邮箱</text>
+      <text class="value">{{card.email}}</text>
+    </view>
+    <view class="info-item">
+      <text class="label">简介</text>
+      <text class="value">{{card.bio || '未设置'}}</text>
+    </view>
+  </view>
+  
+  <view class="actions" wx:if="{{isOwnCard}}">
+    <button class="primary-btn" bindtap="editCard">编辑名片</button>
+  </view>
+</view>

@@ -1,0 +1,54 @@
+<!--pages/voice-input/voice-input.wxml-->
+<view class="voice-input-page">
+  <view class="header">
+    <text class="title">AI语音录入</text>
+    <text class="subtitle">通过语音对话录入您的信息</text>
+  </view>
+  
+  <view class="mode-selector">
+    <view 
+      class="mode-btn {{mode === 'guided' ? 'active' : ''}}"
+      bindtap="setMode"
+      data-mode="guided"
+    >
+      对话式引导
+    </view>
+    <view 
+      class="mode-btn {{mode === 'free' ? 'active' : ''}}"
+      bindtap="setMode"
+      data-mode="free"
+    >
+      自由输入
+    </view>
+  </view>
+  
+  <scroll-view class="chat-container" scroll-y scroll-into-view="{{lastMsgId}}">
+    <view wx:for="{{messages}}" wx:key="index" class="message {{item.type}}" id="msg-{{index}}">
+      <text>{{item.content}}</text>
+    </view>
+  </scroll-view>
+  
+  <view class="input-area">
+    <view class="voice-btn">
+      <button bindtap="startRecord" disabled="{{isRecording}}">
+        <text>{{isRecording ? '录音中...' : '按住说话'}}</text>
+      </button>
+    </view>
+    
+    <view class="text-input-area">
+      <input 
+        value="{{inputText}}" 
+        placeholder="也可以直接输入文字..."
+        bindinput="onInput"
+        bindconfirm="sendMessage"
+      />
+      <button bindtap="sendMessage">发送</button>
+    </view>
+  </view>
+  
+  <view wx:if="{{matchFeedback}}" class="match-feedback">
+    <text class="feedback-title">匹配反馈</text>
+    <text>{{matchFeedback}}</text>
+  </view>
+</view>
+

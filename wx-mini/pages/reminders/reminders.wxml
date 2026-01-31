@@ -1,0 +1,22 @@
+<!--pages/reminders/reminders.wxml-->
+<view class="reminders-page">
+  <view class="header">
+    <text class="title">提醒管理</text>
+  </view>
+  
+  <view class="reminder-list">
+    <view 
+      wx:for="{{reminders}}" 
+      wx:key="id"
+      class="reminder-item"
+    >
+      <text class="reminder-title">{{item.title}}</text>
+      <text class="reminder-time">{{item.remind_time}}</text>
+    </view>
+  </view>
+  
+  <view class="empty" wx:if="{{reminders.length === 0}}">
+    <text>暂无提醒</text>
+  </view>
+</view>
+

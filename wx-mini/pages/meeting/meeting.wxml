@@ -1,0 +1,23 @@
+<!--pages/meeting/meeting.wxml-->
+<view class="meeting-page">
+  <view class="header">
+    <text class="title">约见管理</text>
+  </view>
+  
+  <view class="meeting-list">
+    <view 
+      wx:for="{{meetings}}" 
+      wx:key="id"
+      class="meeting-item"
+    >
+      <text class="meeting-title">{{item.title}}</text>
+      <text class="meeting-time">{{item.meeting_time}}</text>
+      <text class="meeting-status">{{getStatusText(item.status)}}</text>
+    </view>
+  </view>
+  
+  <view class="empty" wx:if="{{meetings.length === 0}}">
+    <text>暂无约见记录</text>
+  </view>
+</view>
+
