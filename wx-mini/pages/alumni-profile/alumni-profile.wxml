@@ -1,0 +1,79 @@
+<!--pages/alumni-profile/alumni-profile.wxml-->
+<view class="profile-page" wx:if="{{user}}">
+  <scroll-view scroll-y class="profile-scroll">
+    <!-- 名片卡 -->
+    <view class="section">
+      <view class="section-title">我的名片</view>
+      <view class="card-card my-card-style">
+        <view class="my-card-main">
+          <image
+            class="avatar"
+            src="{{user.display_avatar || user.avatar || user.selected_avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
+            mode="aspectFill"
+          />
+          <view class="my-card-info">
+            <text class="my-name">{{user.name || user.nickname || '未设置'}}</text>
+            <text class="my-line company">{{(user.company || '') + ' ' + (user.title || '')}}</text>
+          </view>
+        </view>
+        <view class="my-card-extra">
+          <text class="my-line">{{user.phone ? ('+86 ' + user.phone) : ''}}</text>
+          <text class="my-line">{{user.email || ''}}</text>
+          <text class="my-line address">{{user.address || ''}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 校友简介卡 -->
+    <view class="section">
+      <view class="section-title">我的简介</view>
+      <view class="card-card intro-card-style">
+        <text class="intro-text">{{user.bio || '暂无简介'}}</text>
+      </view>
+    </view>
+
+    <!-- 校友连连看（我与该校友的 AI 匹配） -->
+    <view class="section">
+      <view class="section-title">校友连连看</view>
+      <view class="card-card match-card-style">
+        <text class="match-text">{{matchContent}}</text>
+      </view>
+    </view>
+
+    <view class="scroll-bottom-pad"></view>
+  </scroll-view>
+
+  <!-- 固定置底 bar -->
+  <view class="fixed-bottom-bar">
+    <view class="bar-left">
+      <image
+        class="bar-avatar"
+        src="{{user.display_avatar || user.avatar || user.selected_avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
+        mode="aspectFill"
+      />
+      <view class="bar-info">
+        <text class="bar-name">{{user.name || user.nickname || '校友'}}</text>
+        <text class="bar-follow">10个朋友关注</text>
+      </view>
+    </view>
+    <button class="bar-follow-btn" bindtap="onFollowTap">+关注</button>
+    <view class="bar-icons">
+      <view class="bar-icon-item">
+        <text class="bar-icon">👍</text>
+        <text class="bar-num">42</text>
+      </view>
+      <view class="bar-icon-item">
+        <text class="bar-icon">↗</text>
+        <text class="bar-num">42</text>
+      </view>
+      <view class="bar-icon-item">
+        <text class="bar-icon">♥</text>
+        <text class="bar-num">42</text>
+      </view>
+      <view class="bar-icon-item">
+        <text class="bar-icon">💬</text>
+        <text class="bar-num">168</text>
+      </view>
+    </view>
+  </view>
+</view>

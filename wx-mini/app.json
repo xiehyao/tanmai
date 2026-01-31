@@ -9,6 +9,7 @@
     "pages/voice-input/voice-input",
     "pages/intro-card/intro-card",
     "pages/card/card",
+    "pages/alumni-profile/alumni-profile",
     "pages/meeting/meeting",
     "pages/reminders/reminders",
     "pages/updates/updates",

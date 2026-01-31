@@ -47,52 +47,60 @@
     </view>
   </view>
 
-  <!-- 名片浮层 -->
+  <!-- 旧版名片浮层（注释保留，可随时回退）
   <view class="card-modal-mask" wx:if="{{showCardModal}}" bindtap="closeCardModal">
-    <view class="card-modal-content" catchtap="stopPropagation">
+    <view class="card-modal-content card-modal-content-old" catchtap="stopPropagation">
       <view class="card-modal-header">
         <text class="card-modal-title">名片</text>
         <text class="card-modal-close" bindtap="closeCardModal">×</text>
       </view>
-      
       <view class="card-modal-body">
         <view class="card-header">
-          <image
-            class="avatar"
-            src="{{cardData.avatar || cardData.display_avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
-            mode="aspectFill"
-          />
+          <image class="avatar" src="{{cardData.avatar || cardData.display_avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}" mode="aspectFill" />
           <text class="name">{{cardData.name || cardData.nickname || '未设置'}}</text>
           <text class="nickname" wx:if="{{cardData.nickname && cardData.name && cardData.name !== cardData.nickname}}">（{{cardData.nickname}}）</text>
           <text class="work-wechat" wx:if="{{cardData.wechat_id}}">微信: {{cardData.wechat_id}}</text>
         </view>
-        
         <view class="card-content">
-          <view class="info-item" wx:if="{{cardData.address}}">
-            <text class="label">地址</text>
-            <text class="value">{{cardData.address}}</text>
-          </view>
-          <view class="info-item">
-            <text class="label">职位</text>
-            <text class="value">{{cardData.title || '未设置'}}</text>
-          </view>
-          <view class="info-item">
-            <text class="label">公司</text>
-            <text class="value">{{cardData.company || '未设置'}}</text>
-          </view>
-          <view class="info-item" wx:if="{{cardData.phone}}">
-            <text class="label">电话</text>
-            <text class="value">{{cardData.phone}}</text>
-          </view>
-          <view class="info-item" wx:if="{{cardData.email}}">
-            <text class="label">邮箱</text>
-            <text class="value">{{cardData.email}}</text>
-          </view>
-          <view class="info-item">
-            <text class="label">简介</text>
-            <text class="value">{{cardData.bio || '未设置'}}</text>
+          <view class="info-item" wx:if="{{cardData.address}}"><text class="label">地址</text><text class="value">{{cardData.address}}</text></view>
+          <view class="info-item"><text class="label">职位</text><text class="value">{{cardData.title || '未设置'}}</text></view>
+          <view class="info-item"><text class="label">公司</text><text class="value">{{cardData.company || '未设置'}}</text></view>
+          <view class="info-item" wx:if="{{cardData.phone}}"><text class="label">电话</text><text class="value">{{cardData.phone}}</text></view>
+          <view class="info-item" wx:if="{{cardData.email}}"><text class="label">邮箱</text><text class="value">{{cardData.email}}</text></view>
+          <view class="info-item"><text class="label">简介</text><text class="value">{{cardData.bio || '未设置'}}</text></view>
+        </view>
+      </view>
+    </view>
+  </view>
+  旧版结束 -->
+
+  <!-- 新版名片浮层：40%高度 + 我的名片样式 + 查看详情 -->
+  <view class="card-modal-mask" wx:if="{{showCardModal}}" bindtap="closeCardModal">
+    <view class="card-modal-content card-modal-new" catchtap="stopPropagation">
+      <view class="card-modal-header">
+        <text class="card-modal-title">名片</text>
+        <text class="card-modal-close" bindtap="closeCardModal">×</text>
+      </view>
+      <view class="card-modal-body card-modal-body-new">
+        <view class="my-card-main">
+          <image
+            class="avatar"
+            src="{{cardData.display_avatar || cardData.avatar || cardData.selected_avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
+            mode="aspectFill"
+          />
+          <view class="my-card-info">
+            <text class="my-name">{{cardData.name || cardData.nickname || '未设置'}}</text>
+            <text class="my-line company">{{(cardData.company || '') + ' ' + (cardData.title || '')}}</text>
           </view>
         </view>
+        <view class="my-card-extra">
+          <text class="my-line">{{cardData.phone ? ('+86 ' + cardData.phone) : ''}}</text>
+          <text class="my-line">{{cardData.email || ''}}</text>
+          <text class="my-line address">{{cardData.address || ''}}</text>
+        </view>
+      </view>
+      <view class="card-modal-footer">
+        <button class="detail-btn" bindtap="goToAlumniProfile">查看详情</button>
       </view>
     </view>
   </view>

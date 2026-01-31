@@ -263,6 +263,14 @@ Page({
     this.setData({ showCardModal: false, cardData: {} })
   },
 
+  goToAlumniProfile() {
+    const d = this.data.cardData
+    const uid = d && (d.id || d.user_id)
+    if (!uid) return
+    this.closeCardModal()
+    wx.navigateTo({ url: `/pages/alumni-profile/alumni-profile?user_id=${uid}` })
+  },
+
   stopPropagation() {},
 
   showFilterModal() {

@@ -87,7 +87,7 @@
 
 .card-modal-content {
   width: 100%;
-  max-height: 80vh;
+  max-height: 80vh; /* 旧版 */
   background: #fff;
   border-radius: 30rpx 30rpx 0 0;
   animation: slideUp 0.3s ease;
@@ -189,3 +189,38 @@
   color: #333;
   word-break: break-all;
 }
+
+/* 新版弹窗 40% 高度 + 我的名片样式 */
+.card-modal-new {
+  max-height: 40vh;
+  height: 40vh;
+}
+.card-modal-body-new {
+  padding: 24rpx 28rpx;
+  flex: 1;
+  overflow: hidden;
+}
+.card-modal-body-new .my-card-main { display: flex; }
+.card-modal-body-new .avatar {
+  width: 120rpx; height: 120rpx; border-radius: 20rpx;
+  margin-right: 24rpx; background-color: #e5e7eb; flex-shrink: 0;
+}
+.card-modal-body-new .my-card-info { flex: 1; min-width: 0; }
+.card-modal-body-new .my-name {
+  font-size: 30rpx; font-weight: 700; color: #111827;
+  margin-bottom: 6rpx; display: block;
+}
+.card-modal-body-new .my-line {
+  font-size: 22rpx; color: #4b5563; line-height: 1.5; display: block;
+}
+.card-modal-body-new .my-card-extra { margin-top: 12rpx; }
+.card-modal-footer {
+  padding: 20rpx 28rpx 32rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+.detail-btn {
+  width: 100%; height: 80rpx; line-height: 80rpx;
+  background: linear-gradient(135deg, #667eea 0%, #7f5af0 100%);
+  color: #fff; border: none; border-radius: 12rpx; font-size: 28rpx;
+}
+.detail-btn::after { border: none; }
