@@ -77,29 +77,35 @@ Page({
     }
   },
 
-  // 用 canvas 生成圆形头像临时图，供地图标注使用
+  // 用 canvas 生成圆形头像，地图 marker 需本地路径（先下载网络图）
   createRoundedAvatar(imgUrl) {
-    const size = 60
-    return new Promise((resolve, reject) => {
-      const ctx = wx.createCanvasContext('roundedMarkerCanvas', this)
-      ctx.clearRect(0, 0, size, size)
-      ctx.save()
-      ctx.beginPath()
-      ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2)
-      ctx.clip()
-      ctx.drawImage(imgUrl, 0, 0, size, size)
-      ctx.restore()
-      ctx.draw(false, () => {
-        wx.canvasToTempFilePath({
-          canvasId: 'roundedMarkerCanvas',
-          destWidth: size,
-          destHeight: size,
-          success: (res) => resolve(res.tempFilePath),
-          fail: (err) => {
-            console.warn('圆角头像生成失败，使用原图:', err)
+    const size = 64
+    return new Promise((resolve) => {
+      wx.downloadFile({
+        url: imgUrl,
+        success: (dl) => {
+          if (dl.statusCode !== 200) {
             resolve(imgUrl)
+            return
           }
-        }, this)
+          const localPath = dl.tempFilePath
+          const ctx = wx.createCanvasContext('roundedMarkerCanvas', this)
+          ctx.clearRect(0, 0, size, size)
+          ctx.beginPath()
+          ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2)
+          ctx.clip()
+          ctx.drawImage(localPath, 0, 0, size, size)
+          ctx.draw(false, () => {
+            wx.canvasToTempFilePath({
+              canvasId: 'roundedMarkerCanvas',
+              destWidth: size,
+              destHeight: size,
+              success: (res) => resolve(res.tempFilePath),
+              fail: () => resolve(imgUrl)
+            }, this)
+          })
+        },
+        fail: () => resolve(imgUrl)
       })
     })
   },
@@ -163,14 +169,14 @@ Page({
         latitude,
         longitude,
         title: displayName,
-        width: 36,
-        height: 36,
+        width: 44,
+        height: 44,
         callout: {
           content: displayName,
-          color: '#333',
+          color: '#ffffff',
           fontSize: 12,
           borderRadius: 6,
-          bgColor: '#fff',
+          bgColor: '#667eea',
           padding: 4,
           display: 'ALWAYS'
         }

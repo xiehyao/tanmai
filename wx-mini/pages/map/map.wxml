@@ -3,7 +3,7 @@
   <!-- 隐藏 canvas 用于生成圆角头像 -->
   <canvas
     canvas-id="roundedMarkerCanvas"
-    style="position: fixed; left: -9999px; width: 60px; height: 60px;"
+    style="position: fixed; left: -9999px; width: 64px; height: 64px;"
   />
   <map
     id="mainMap"
