@@ -9,7 +9,12 @@ function getAppInstance() {
 
 function getApiBase() {
   const app = getAppInstance()
-  return app?.globalData?.apiBase || 'https://www.pengyoo.com'
+  if (app?.globalData?.apiBase) return app.globalData.apiBase
+  try {
+    return require('../config.js').apiBase || 'https://www.pengyoo.com'
+  } catch (e) {
+    return 'https://www.pengyoo.com'
+  }
 }
 
 // 请求方法

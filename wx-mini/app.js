@@ -1,9 +1,11 @@
 // app.js - 微信小程序主入口
+const config = require('./config.js')
+
 App({
   globalData: {
     user: null,
     token: null,
-    apiBase: 'https://www.pengyoo.com'
+    apiBase: config.apiBase
   },
 
   onLaunch() {
