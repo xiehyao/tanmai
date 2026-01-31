@@ -63,7 +63,7 @@ Page({
           return { ...f, name, nickname, displayName }
         })
         this.setData({ nearbyFriends: friends })
-        this.updateMarkers()
+        await this.updateMarkers()
       } else {
         this.setData({ nearbyFriends: [], markers: [] })
       }
@@ -77,7 +77,34 @@ Page({
     }
   },
 
-  updateMarkers() {
+  // 用 canvas 生成圆形头像临时图，供地图标注使用
+  createRoundedAvatar(imgUrl) {
+    const size = 60
+    return new Promise((resolve, reject) => {
+      const ctx = wx.createCanvasContext('roundedMarkerCanvas', this)
+      ctx.clearRect(0, 0, size, size)
+      ctx.save()
+      ctx.beginPath()
+      ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2)
+      ctx.clip()
+      ctx.drawImage(imgUrl, 0, 0, size, size)
+      ctx.restore()
+      ctx.draw(false, () => {
+        wx.canvasToTempFilePath({
+          canvasId: 'roundedMarkerCanvas',
+          destWidth: size,
+          destHeight: size,
+          success: (res) => resolve(res.tempFilePath),
+          fail: (err) => {
+            console.warn('圆角头像生成失败，使用原图:', err)
+            resolve(imgUrl)
+          }
+        }, this)
+      })
+    })
+  },
+
+  async updateMarkers() {
     const friends = this.data.nearbyFriends || []
     if (friends.length === 0) {
       this.setData({ markers: [] })
@@ -94,7 +121,7 @@ Page({
       groups[key].push(friend)
     })
 
-    const markers = []
+    const flatList = []
     Object.keys(groups).forEach((key) => {
       const group = groups[key]
       const count = group.length
@@ -107,39 +134,62 @@ Page({
           latitude += radius * Math.cos(angle)
           longitude += radius * Math.sin(angle)
         }
-        const marker = {
-          id: friend.user_id || `${key}_${index}`,
+        flatList.push({
+          friend,
+          key,
+          index,
           latitude,
           longitude,
-          title: displayName,
-          width: 30,
-          height: 30,
-          callout: {
-            content: displayName,
-            color: '#333',
-            fontSize: 12,
-            borderRadius: 4,
-            bgColor: '#fff',
-            padding: 5,
-            display: 'BYCLICK'
-          }
-        }
-        if (friend.avatar) {
-          marker.iconPath = friend.avatar
-        } else {
-          marker.label = {
-            content: displayName,
-            color: '#fff',
-            fontSize: 12,
-            bgColor: '#667eea',
-            borderRadius: 15,
-            padding: 5,
-            anchorX: 0,
-            anchorY: 0
-          }
-        }
-        markers.push(marker)
+          displayName
+        })
       })
+    })
+
+    const avatarCache = {}
+    for (const item of flatList) {
+      if (item.friend.avatar && !avatarCache[item.friend.avatar]) {
+        try {
+          avatarCache[item.friend.avatar] = await this.createRoundedAvatar(item.friend.avatar)
+        } catch (e) {
+          avatarCache[item.friend.avatar] = item.friend.avatar
+        }
+      }
+    }
+
+    const markers = flatList.map((item) => {
+      const { friend, key, index, latitude, longitude, displayName } = item
+      const marker = {
+        id: friend.user_id || `${key}_${index}`,
+        latitude,
+        longitude,
+        title: displayName,
+        width: 36,
+        height: 36,
+        callout: {
+          content: displayName,
+          color: '#333',
+          fontSize: 12,
+          borderRadius: 6,
+          bgColor: '#fff',
+          padding: 4,
+          display: 'ALWAYS'
+        }
+      }
+      if (friend.avatar) {
+        marker.iconPath = avatarCache[friend.avatar] || friend.avatar
+      } else {
+        marker.label = {
+          content: displayName,
+          color: '#fff',
+          fontSize: 12,
+          bgColor: '#667eea',
+          borderRadius: 15,
+          padding: 5,
+          anchorX: 0,
+          anchorY: 0
+        }
+      }
+      return marker
     })
 
     this.setData({ markers })
