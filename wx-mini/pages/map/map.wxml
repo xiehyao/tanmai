@@ -10,7 +10,7 @@
     latitude="{{centerLat}}"
     longitude="{{centerLng}}"
     markers="{{markers}}"
-    scale="14"
+    scale="{{scale}}"
     class="map-container"
     bindmarkertap="onMarkerTap"
     show-location="{{true}}"

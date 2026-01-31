@@ -5,6 +5,7 @@ Page({
   data: {
     centerLat: 22.5431,
     centerLng: 113.9344,
+    scale: 14,
     markers: [],
     nearbyFriends: [],
     showCardModal: false,
@@ -231,13 +232,11 @@ Page({
     if (!friend) return
 
     if (friend.latitude && friend.longitude) {
-      this.setData({ centerLat: friend.latitude, centerLng: friend.longitude })
-      if (this.mapCtx) {
-        this.mapCtx.includePoints({
-          points: [{ latitude: friend.latitude, longitude: friend.longitude }],
-          padding: [80, 80, 80, 80]
-        })
-      }
+      this.setData({
+        centerLat: friend.latitude,
+        centerLng: friend.longitude,
+        scale: 14
+      })
     }
     await this.loadCardData(friend.user_id, friend.address)
   },
