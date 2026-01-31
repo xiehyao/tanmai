@@ -74,7 +74,7 @@
   </view>
   旧版结束 -->
 
-  <!-- 新版名片浮层：40%高度 + 我的名片样式 + 查看详情 -->
+  <!-- 新版名片浮层：50%高度 + 我的名片样式 + 查看详情 -->
   <view class="card-modal-mask" wx:if="{{showCardModal}}" bindtap="closeCardModal">
     <view class="card-modal-content card-modal-new" catchtap="stopPropagation">
       <text class="card-modal-close-icon" catchtap="closeCardModal">×</text>
@@ -87,15 +87,17 @@
               mode="aspectFill"
             />
             <view class="my-card-info">
-              <text class="my-name">{{cardData.name || cardData.nickname || '未设置'}}</text>
-              <text class="my-line nickname-line" wx:if="{{cardData.nickname}}">微信昵称：{{cardData.nickname}}</text>
-              <text class="my-line wechat-line" wx:if="{{cardData.wechat_id}}">微信ID：{{cardData.wechat_id}}</text>
+              <text class="my-name">{{cardData.name || cardData.nickname || '未设置'}}</text><text class="my-name-nickname" wx:if="{{cardData.nickname && cardData.name && cardData.name !== cardData.nickname}}">({{cardData.nickname}})</text>
               <text class="my-line company">{{(cardData.company || '') + (cardData.company && cardData.title ? ' ' : '') + (cardData.title || '')}}</text>
             </view>
           </view>
           <view class="my-card-extra">
             <text class="my-line">{{cardData.phone ? ('+86 ' + cardData.phone) : ''}}</text>
-            <text class="my-line">{{cardData.email || ''}}</text>
+            <view class="my-line my-line-row" wx:if="{{cardData.wechat_id || cardData.email}}">
+              <text wx:if="{{cardData.wechat_id}}">微信ID: {{cardData.wechat_id}}</text>
+              <text class="line-sep" wx:if="{{cardData.wechat_id && cardData.email}}">    </text>
+              <text wx:if="{{cardData.email}}">电子邮件: {{cardData.email}}</text>
+            </view>
             <text class="my-line address">{{cardData.address || ''}}</text>
           </view>
         </view>
