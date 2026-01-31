@@ -77,26 +77,30 @@
   <!-- 新版名片浮层：40%高度 + 我的名片样式 + 查看详情 -->
   <view class="card-modal-mask" wx:if="{{showCardModal}}" bindtap="closeCardModal">
     <view class="card-modal-content card-modal-new" catchtap="stopPropagation">
-      <view class="card-modal-header">
-        <text class="card-modal-title">名片</text>
-        <text class="card-modal-close" bindtap="closeCardModal">×</text>
-      </view>
+      <text class="card-modal-close-icon" catchtap="closeCardModal">×</text>
       <view class="card-modal-body card-modal-body-new">
-        <view class="my-card-main">
-          <image
-            class="avatar"
-            src="{{cardData.display_avatar || cardData.avatar || cardData.selected_avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
-            mode="aspectFill"
-          />
-          <view class="my-card-info">
-            <text class="my-name">{{cardData.name || cardData.nickname || '未设置'}}</text>
-            <text class="my-line company">{{(cardData.company || '') + ' ' + (cardData.title || '')}}</text>
+        <view class="map-card-inner link-inner-card-style">
+          <view class="my-card-main">
+            <image
+              class="avatar"
+              src="{{cardData.display_avatar || cardData.avatar || cardData.selected_avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
+              mode="aspectFill"
+            />
+            <view class="my-card-info">
+              <text class="my-name">{{cardData.name || cardData.nickname || '未设置'}}</text>
+              <text class="my-line nickname-line" wx:if="{{cardData.nickname}}">微信昵称：{{cardData.nickname}}</text>
+              <text class="my-line wechat-line" wx:if="{{cardData.wechat_id}}">微信ID：{{cardData.wechat_id}}</text>
+              <text class="my-line company">{{(cardData.company || '') + (cardData.company && cardData.title ? ' ' : '') + (cardData.title || '')}}</text>
+            </view>
+          </view>
+          <view class="my-card-extra">
+            <text class="my-line">{{cardData.phone ? ('+86 ' + cardData.phone) : ''}}</text>
+            <text class="my-line">{{cardData.email || ''}}</text>
+            <text class="my-line address">{{cardData.address || ''}}</text>
           </view>
         </view>
-        <view class="my-card-extra">
-          <text class="my-line">{{cardData.phone ? ('+86 ' + cardData.phone) : ''}}</text>
-          <text class="my-line">{{cardData.email || ''}}</text>
-          <text class="my-line address">{{cardData.address || ''}}</text>
+        <view class="map-card-bio" wx:if="{{cardData.bio}}">
+          <text class="bio-text">{{cardData.bio}}</text>
         </view>
       </view>
       <view class="card-modal-footer">

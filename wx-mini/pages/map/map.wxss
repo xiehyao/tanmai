@@ -194,11 +194,27 @@
 .card-modal-new {
   max-height: 40vh;
   height: 40vh;
+  position: relative;
+}
+.card-modal-close-icon {
+  position: absolute;
+  top: 20rpx;
+  right: 28rpx;
+  font-size: 48rpx;
+  color: #999;
+  line-height: 1;
+  z-index: 1;
 }
 .card-modal-body-new {
-  padding: 24rpx 28rpx;
+  padding: 56rpx 28rpx 20rpx;
   flex: 1;
-  overflow: hidden;
+  overflow-y: auto;
+}
+.link-inner-card-style {
+  background-color: #f9fafb;
+  box-shadow: 0 6rpx 24rpx rgba(148, 163, 184, 0.35);
+  border-radius: 20rpx;
+  padding: 28rpx;
 }
 .card-modal-body-new .my-card-main { display: flex; }
 .card-modal-body-new .avatar {
@@ -213,13 +229,25 @@
 .card-modal-body-new .my-line {
   font-size: 22rpx; color: #4b5563; line-height: 1.5; display: block;
 }
+.card-modal-body-new .nickname-line,
+.card-modal-body-new .wechat-line { margin-top: 4rpx; }
 .card-modal-body-new .my-card-extra { margin-top: 12rpx; }
+.map-card-bio {
+  margin-top: 20rpx;
+  padding: 16rpx 20rpx;
+  background: #f5f5f5;
+  border-radius: 12rpx;
+}
+.map-card-bio .bio-text {
+  font-size: 24rpx; color: #6b7280; line-height: 1.6;
+}
 .card-modal-footer {
   padding: 20rpx 28rpx 32rpx;
   border-top: 1rpx solid #f0f0f0;
 }
 .detail-btn {
-  width: 100%; height: 80rpx; line-height: 80rpx;
+  width: 100%; height: 80rpx;
+  display: flex; align-items: center; justify-content: center;
   background: linear-gradient(135deg, #667eea 0%, #7f5af0 100%);
   color: #fff; border: none; border-radius: 12rpx; font-size: 28rpx;
 }
