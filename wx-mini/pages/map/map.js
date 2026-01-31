@@ -77,36 +77,47 @@ Page({
     }
   },
 
-  // 用 canvas 生成圆形头像，地图 marker 需本地路径（先下载网络图）
+  // 用 canvas 生成圆形头像（save/restore 确保真机 clip 生效）
   createRoundedAvatar(imgUrl) {
     const size = 64
     return new Promise((resolve) => {
+      const doDraw = (localPath) => this._drawRoundedFromLocal(localPath, size, resolve, imgUrl)
       wx.downloadFile({
         url: imgUrl,
         success: (dl) => {
-          if (dl.statusCode !== 200) {
-            resolve(imgUrl)
-            return
-          }
-          const localPath = dl.tempFilePath
-          const ctx = wx.createCanvasContext('roundedMarkerCanvas', this)
-          ctx.clearRect(0, 0, size, size)
-          ctx.beginPath()
-          ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2)
-          ctx.clip()
-          ctx.drawImage(localPath, 0, 0, size, size)
-          ctx.draw(false, () => {
-            wx.canvasToTempFilePath({
-              canvasId: 'roundedMarkerCanvas',
-              destWidth: size,
-              destHeight: size,
-              success: (res) => resolve(res.tempFilePath),
-              fail: () => resolve(imgUrl)
-            }, this)
-          })
+          if (dl.statusCode === 200) doDraw(dl.tempFilePath)
+          else resolve(imgUrl)
         },
-        fail: () => resolve(imgUrl)
+        fail: () => {
+          wx.getImageInfo({
+            src: imgUrl,
+            success: (info) => doDraw(info.path),
+            fail: () => resolve(imgUrl)
+          })
+        }
       })
+    })
+  },
+
+  _drawRoundedFromLocal(localPath, size, resolve, fallbackUrl) {
+    const ctx = wx.createCanvasContext('roundedMarkerCanvas', this)
+    const r = size / 2
+    ctx.save()
+    ctx.beginPath()
+    ctx.arc(r, r, r, 0, Math.PI * 2)
+    ctx.clip()
+    ctx.drawImage(localPath, 0, 0, size, size)
+    ctx.draw(false, () => {
+      ctx.restore()
+      setTimeout(() => {
+        wx.canvasToTempFilePath({
+          canvasId: 'roundedMarkerCanvas',
+          destWidth: size,
+          destHeight: size,
+          success: (res) => resolve(res.tempFilePath),
+          fail: () => resolve(fallbackUrl)
+        }, this)
+      }, 50)
     })
   },
 
@@ -257,5 +268,8 @@ Page({
 
   showFilterModal() {
     wx.showToast({ title: '筛选功能开发中', icon: 'none' })
+  }
+})
+��中', icon: 'none' })
   }
 })
