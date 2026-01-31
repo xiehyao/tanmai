@@ -270,6 +270,3 @@ Page({
     wx.showToast({ title: '筛选功能开发中', icon: 'none' })
   }
 })
-��中', icon: 'none' })
-  }
-})
