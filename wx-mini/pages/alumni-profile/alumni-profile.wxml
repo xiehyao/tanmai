@@ -55,18 +55,20 @@
 
   <!-- 固定置底 bar -->
   <view class="fixed-bottom-bar">
-    <view class="bar-left">
-      <image
-        class="bar-avatar"
-        src="{{user.display_avatar || user.avatar || user.selected_avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
-        mode="aspectFill"
-      />
-      <view class="bar-info">
-        <text class="bar-name">{{user.name || user.nickname || '校友'}}</text>
-        <text class="bar-follow">10个朋友关注</text>
+    <view class="bar-left-group">
+      <view class="bar-left">
+        <image
+          class="bar-avatar"
+          src="{{user.display_avatar || user.avatar || user.selected_avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
+          mode="aspectFill"
+        />
+        <view class="bar-info">
+          <text class="bar-name">{{user.name || user.nickname || '校友'}}</text>
+          <text class="bar-follow">10个朋友关注</text>
+        </view>
       </view>
+      <view class="bar-follow-btn" bindtap="onFollowTap">+关注</view>
     </view>
-    <view class="bar-follow-btn" bindtap="onFollowTap">+关注</view>
     <view class="bar-icons">
       <view class="bar-icon-item">
         <text class="bar-icon">👍</text>

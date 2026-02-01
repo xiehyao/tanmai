@@ -86,7 +86,7 @@
   height: 40rpx;
 }
 
-/* 固定置底 bar - 通盘规划：头像80 | 姓名区弹性 | 关注按钮120 | 4图标区固定 */
+/* 固定置底 bar - 左组(头像+姓名+按钮)紧凑 | 右组4图标留足空间 */
 .fixed-bottom-bar {
   position: fixed;
   bottom: 0;
@@ -100,15 +100,22 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16rpx;
+}
+
+.bar-left-group {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  flex-shrink: 0;
+  min-width: 0;
 }
 
 .bar-left {
   display: flex;
   align-items: center;
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
-  flex-shrink: 1;
+  max-width: 240rpx;
   overflow: hidden;
 }
 
@@ -164,7 +171,9 @@
 .bar-icons {
   display: flex;
   align-items: center;
-  gap: 12rpx;
+  gap: 20rpx;
+  flex: 1;
+  justify-content: flex-end;
   flex-shrink: 0;
 }
 
@@ -173,15 +182,21 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 44rpx;
+  min-width: 40rpx;
+  height: 56rpx;
 }
 
 .bar-icon {
   font-size: 28rpx;
+  line-height: 32rpx;
+  height: 32rpx;
+  display: block;
+  text-align: center;
 }
 
 .bar-num {
   font-size: 20rpx;
   color: #9ca3af;
-  margin-top: 2rpx;
+  margin-top: 4rpx;
+  line-height: 1;
 }
