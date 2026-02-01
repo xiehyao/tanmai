@@ -28,17 +28,57 @@
     <view class="section">
       <view class="section-title">我的简介</view>
       <view class="card-card intro-card-style">
-        <text>姓名</text>
-        <text>自己上传的照片（无则不显示）</text>
-        <text>星座</text>
-        <text>中学信息（如 惠安一中 初97届 高00届）</text>
-        <text>大学信息（如 北邮00级本 04级硕 通信工程）</text>
-        <text>现在公司及职位（如 腾讯公司xx部门xx总监）</text>
-        <text>现担任社会职位（如 北邮深港澳校友会执行秘书长 北邮新加坡校友会副秘书长）</text>
-        <text>兴趣爱好</text>
-        <text>对校友会的需求</text>
-        <text>联系方式</text>
-        <text class="intro-text">{{user.bio || '暂无简介'}}</text>
+        <view class="intro-info-item" wx:if="{{displayName}}">
+          <text class="intro-label">姓名</text>
+          <text class="intro-value">{{displayName}}</text>
+        </view>
+        <view class="intro-photos" wx:if="{{displayPhotos && displayPhotos.length > 0}}">
+          <image
+            wx:for="{{displayPhotos}}"
+            wx:key="*this"
+            class="intro-photo"
+            src="{{item}}"
+            mode="aspectFill"
+          />
+        </view>
+        <view class="intro-info-item" wx:if="{{displayConstellation}}">
+          <text class="intro-label">星座</text>
+          <text class="intro-value">{{displayConstellation}}</text>
+        </view>
+        <view class="intro-info-item" wx:if="{{displayMiddleSchool}}">
+          <text class="intro-label">中学</text>
+          <text class="intro-value">{{displayMiddleSchool}}</text>
+        </view>
+        <view class="intro-info-item" wx:if="{{displayUniversity}}">
+          <text class="intro-label">大学</text>
+          <text class="intro-value">{{displayUniversity}}</text>
+        </view>
+        <view class="intro-info-item" wx:if="{{displayCompanyTitle}}">
+          <text class="intro-label">公司及职位</text>
+          <text class="intro-value">{{displayCompanyTitle}}</text>
+        </view>
+        <view class="intro-info-item" wx:if="{{displaySocialPositions}}">
+          <text class="intro-label">社会职位</text>
+          <text class="intro-value">{{displaySocialPositions}}</text>
+        </view>
+        <view class="intro-info-item" wx:if="{{displayInterests}}">
+          <text class="intro-label">兴趣爱好</text>
+          <text class="intro-value">{{displayInterests}}</text>
+        </view>
+        <view class="intro-info-item" wx:if="{{displayAssociationNeeds}}">
+          <text class="intro-label">对校友会的需求</text>
+          <text class="intro-value">{{displayAssociationNeeds}}</text>
+        </view>
+        <view class="intro-info-item" wx:if="{{displayContact}}">
+          <text class="intro-label">联系方式</text>
+          <text class="intro-value">{{displayContact}}</text>
+        </view>
+        <view class="intro-bio" wx:if="{{user.bio}}">
+          <text class="intro-text">{{user.bio}}</text>
+        </view>
+        <view class="intro-bio intro-bio-empty" wx:elif="{{!displayName && (!displayPhotos || !displayPhotos.length) && !displayConstellation && !displayMiddleSchool && !displayUniversity && !displayCompanyTitle && !displaySocialPositions && !displayInterests && !displayAssociationNeeds && !displayContact && !user.bio}}">
+          <text class="intro-text">暂无简介</text>
+        </view>
       </view>
     </view>
 
