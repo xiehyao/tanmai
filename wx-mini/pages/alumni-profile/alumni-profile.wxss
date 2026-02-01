@@ -30,6 +30,7 @@
 
 .my-card-style {
   background: #f9fafb;
+  min-height: 400rpx;
 }
 
 .my-card-main {
@@ -37,8 +38,8 @@
 }
 
 .my-card-style .avatar {
-  width: 140rpx;
-  height: 140rpx;
+  width: 180rpx;
+  height: 180rpx;
   border-radius: 20rpx;
   margin-right: 24rpx;
   background-color: #e5e7eb;
@@ -51,7 +52,7 @@
 }
 
 .my-name {
-  font-size: 32rpx;
+  font-size: 40rpx;
   font-weight: 700;
   color: #111827;
   margin-bottom: 6rpx;
@@ -59,14 +60,14 @@
 }
 
 .my-line {
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: #4b5563;
   line-height: 1.5;
   display: block;
 }
 
 .my-card-extra {
-  margin-top: 16rpx;
+  margin-top: 26rpx;
 }
 
 .intro-card-style .intro-text,
@@ -74,6 +75,11 @@
   font-size: 28rpx;
   color: #374151;
   line-height: 1.7;
+}
+
+.intro-card-style {
+  background: #f9fafb;
+  min-height: 800rpx;
 }
 
 .scroll-bottom-pad {
@@ -128,15 +134,17 @@
 }
 
 .bar-follow-btn {
-  margin: 0 24rpx;
-  padding: 0 36rpx;
+  margin: 0 20rpx;
+  padding: 0 24rpx;
   height: 60rpx;
   line-height: 60rpx;
+  min-width: auto;
+  flex-shrink: 0;
   background: #22c55e;
   color: #fff;
   font-size: 26rpx;
   border: none;
-  border-radius: 999rpx;
+  border-radius: 9rpx;
 }
 
 .bar-follow-btn::after {
