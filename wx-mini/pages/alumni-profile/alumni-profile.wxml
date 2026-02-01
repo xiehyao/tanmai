@@ -17,7 +17,7 @@
           </view>
         </view>
         <view class="my-card-extra">
-          <text class="my-line">{{user.phone ? ('+86 ' + user.phone) : ''}}</text>
+          <text class="my-line">{{user.phone ? (user.phone) : ''}}</text>
           <text class="my-line">{{user.email || ''}}</text>
           <text class="my-line address">{{user.address || ''}}</text>
         </view>
@@ -28,6 +28,16 @@
     <view class="section">
       <view class="section-title">我的简介</view>
       <view class="card-card intro-card-style">
+        <text>姓名</text>
+        <text>自己上传的照片（无则不显示）</text>
+        <text>星座</text>
+        <text>中学信息（如 惠安一中 初97届 高00届）</text>
+        <text>大学信息（如 北邮00级本 04级硕 通信工程）</text>
+        <text>现在公司及职位（如 腾讯公司xx部门xx总监）</text>
+        <text>现担任社会职位（如 北邮深港澳校友会执行秘书长 北邮新加坡校友会副秘书长）</text>
+        <text>兴趣爱好</text>
+        <text>对校友会的需求</text>
+        <text>联系方式</text>
         <text class="intro-text">{{user.bio || '暂无简介'}}</text>
       </view>
     </view>
@@ -56,7 +66,7 @@
         <text class="bar-follow">10个朋友关注</text>
       </view>
     </view>
-    <button class="bar-follow-btn" bindtap="onFollowTap">+关注</button>
+    <view class="bar-follow-btn" bindtap="onFollowTap">+关注</view>
     <view class="bar-icons">
       <view class="bar-icon-item">
         <text class="bar-icon">👍</text>
