@@ -100,6 +100,7 @@
             </view>
             <text class="my-line address">{{cardData.address || ''}}</text>
           </view>
+          <view class="map-card-placeholder"></view>
         </view>
         <view class="map-card-bio" wx:if="{{cardData.bio}}">
           <text class="bio-text">{{cardData.bio}}</text>
