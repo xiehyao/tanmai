@@ -234,7 +234,11 @@
   font-size: 32rpx;
   font-weight: 700;
   color: #111827;
-  margin-bottom: 6rpx;
+  margin-bottom: 24rpx;
+}
+.card-modal-body-new .wechat-id-line {
+  margin-bottom: 24rpx;
+  display: block;
 }
 .card-modal-body-new .my-name-nickname {
   font-size: 24rpx;
@@ -249,12 +253,6 @@
   display: block;
 }
 .card-modal-body-new .my-line.address { margin-top: 4rpx; }
-.card-modal-body-new .my-line-row {
-  display: flex;
-  flex-wrap: wrap;
-  flex-direction: row;
-}
-.card-modal-body-new .my-line-row text { font-size: 24rpx; color: #4b5563; }
 .card-modal-body-new .my-card-extra { margin-top: 16rpx; }
 .map-card-bio {
   margin-top: 20rpx;
@@ -272,14 +270,22 @@
   margin-top: 16rpx;
   min-height: 48rpx;
 }
-.card-modal-footer {
-  padding: 20rpx 28rpx 32rpx;
-  border-top: 1rpx solid #f0f0f0;
+.map-card-detail-btn-wrap {
+  margin-top: 28rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
-.detail-btn {
-  width: 100%; height: 80rpx;
-  display: flex; align-items: center; justify-content: center;
+.map-card-detail-btn-wrap .detail-btn {
+  min-width: 320rpx;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: linear-gradient(135deg, #667eea 0%, #7f5af0 100%);
-  color: #fff; border: none; border-radius: 12rpx; font-size: 28rpx;
+  color: #fff;
+  border: none;
+  border-radius: 12rpx;
+  font-size: 28rpx;
 }
-.detail-btn::after { border: none; }
+.map-card-detail-btn-wrap .detail-btn::after { border: none; }

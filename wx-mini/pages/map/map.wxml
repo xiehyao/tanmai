@@ -88,16 +88,13 @@
             />
             <view class="my-card-info">
               <text class="my-name">{{cardData.name || cardData.nickname || '未设置'}}</text><text class="my-name-nickname" wx:if="{{cardData.nickname && cardData.name && cardData.name !== cardData.nickname}}">({{cardData.nickname}})</text>
+              <text class="my-line wechat-id-line" wx:if="{{cardData.wechat_id}}">微信ID: {{cardData.wechat_id}}</text>
               <text class="my-line company">{{(cardData.company || '') + (cardData.company && cardData.title ? ' ' : '') + (cardData.title || '')}}</text>
             </view>
           </view>
           <view class="my-card-extra">
             <text class="my-line">{{cardData.phone ? ('+86 ' + cardData.phone) : ''}}</text>
-            <view class="my-line my-line-row" wx:if="{{cardData.wechat_id || cardData.email}}">
-              <text wx:if="{{cardData.wechat_id}}">微信ID: {{cardData.wechat_id}}</text>
-              <text class="line-sep" wx:if="{{cardData.wechat_id && cardData.email}}">    </text>
-              <text wx:if="{{cardData.email}}">电子邮件: {{cardData.email}}</text>
-            </view>
+            <text class="my-line" wx:if="{{cardData.email}}">电子邮件: {{cardData.email}}</text>
             <text class="my-line address">{{cardData.address || ''}}</text>
           </view>
           <view class="map-card-placeholder"></view>
@@ -105,9 +102,9 @@
         <view class="map-card-bio" wx:if="{{cardData.bio}}">
           <text class="bio-text">{{cardData.bio}}</text>
         </view>
-      </view>
-      <view class="card-modal-footer">
-        <button class="detail-btn" bindtap="goToAlumniProfile">查看详情</button>
+        <view class="map-card-detail-btn-wrap">
+          <button class="detail-btn" bindtap="goToAlumniProfile">查看详情</button>
+        </view>
       </view>
     </view>
   </view>
