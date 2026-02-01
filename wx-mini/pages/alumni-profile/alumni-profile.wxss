@@ -105,7 +105,7 @@
 .bar-left-group {
   display: flex;
   align-items: center;
-  gap: 12rpx;
+  gap: 10rpx;
   flex-shrink: 0;
   min-width: 0;
 }
@@ -171,10 +171,10 @@
 .bar-icons {
   display: flex;
   align-items: center;
-  gap: 20rpx;
+  justify-content: space-between;
   flex: 1;
-  justify-content: flex-end;
-  flex-shrink: 0;
+  margin-left: 40rpx;
+  min-width: 0;
 }
 
 .bar-icon-item {
@@ -182,21 +182,22 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 40rpx;
-  height: 56rpx;
+  min-width: 56rpx;
+  height: 64rpx;
+  flex: 1;
 }
 
 .bar-icon {
-  font-size: 28rpx;
-  line-height: 32rpx;
-  height: 32rpx;
+  font-size: 36rpx;
+  line-height: 40rpx;
+  height: 40rpx;
   display: block;
   text-align: center;
 }
 
 .bar-num {
-  font-size: 20rpx;
+  font-size: 22rpx;
   color: #9ca3af;
-  margin-top: 4rpx;
+  margin-top: 6rpx;
   line-height: 1;
 }
