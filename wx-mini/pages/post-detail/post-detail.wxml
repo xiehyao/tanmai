@@ -137,9 +137,7 @@
           <text class="bar-name">{{post.author.name}}</text>
           <text class="bar-follow">{{post.author.followerCount || 10}}个朋友关注</text>
         </view>
-      </view>
-      <view class="bar-signup-btn {{signupStatus === 'confirmed' ? 'bar-signup-done' : ''}}" bindtap="onSignupTap">{{signupStatus === 'confirmed' ? '已报名' : signupStatus === 'pending' ? '待定' : '报名'}}</view>
-      <view class="bar-follow-btn" bindtap="onFollowTap">+关注</view>
+      </view>      <view class="bar-follow-btn" bindtap="onFollowTap">+关注</view>
     </view>
     <view class="bar-icons">
       <view class="bar-icon-item" bindtap="onLikeTap">
