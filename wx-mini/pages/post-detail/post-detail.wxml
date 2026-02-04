@@ -31,6 +31,35 @@
       </view>
     </view>
 
+    <!-- 活动参与区 -->
+    <view class="participation-section">
+      <view class="signup-btn-wrap">
+        <view
+          class="signup-btn {{signupStatus === 'confirmed' ? 'signup-btn-done' : ''}} {{signupStatus === 'pending' ? 'signup-btn-pending' : ''}}"
+          bindtap="onSignupTap"
+        >{{signupStatus === 'confirmed' ? '已报名' : signupStatus === 'pending' ? '待定' : '报名'}}</view>
+      </view>
+      <view class="participation-stats">
+        <text class="stat-item" bindtap="showParticipantList">{{signups.confirmed.length}}人已报名</text>
+        <text class="stat-dot">·</text>
+        <text class="stat-item" bindtap="showParticipantList">{{signups.pending.length}}人待定</text>
+        <text class="stat-dot">·</text>
+        <text class="stat-item">{{post.likeCount}}人点赞</text>
+      </view>
+      <view class="avatar-row" wx:if="{{signups.confirmed.length > 0 || signups.pending.length > 0}}" bindtap="showParticipantList">
+        <image
+          wx:for="{{signups.confirmed}}"
+          wx:key="id"
+          wx:if="{{index < avatarDisplayCount}}"
+          class="participation-avatar"
+          src="{{item.avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
+          mode="aspectFill"
+        />
+        <view wx:if="{{signups.confirmed.length > avatarDisplayCount}}" class="avatar-more">+{{signups.confirmed.length - avatarDisplayCount}}</view>
+        <view class="avatar-view-all">查看全部 ›</view>
+      </view>
+    </view>
+
     <!-- 评论区域 -->
     <view class="comments-section">
       <view class="comments-header">
@@ -109,6 +138,7 @@
           <text class="bar-follow">{{post.author.followerCount || 10}}个朋友关注</text>
         </view>
       </view>
+      <view class="bar-signup-btn {{signupStatus === 'confirmed' ? 'bar-signup-done' : ''}}" bindtap="onSignupTap">{{signupStatus === 'confirmed' ? '已报名' : signupStatus === 'pending' ? '待定' : '报名'}}</view>
       <view class="bar-follow-btn" bindtap="onFollowTap">+关注</view>
     </view>
     <view class="bar-icons">
@@ -128,6 +158,36 @@
         <text class="bar-icon">💬</text>
         <text class="bar-num">{{post.commentCount}}</text>
       </view>
+    </view>
+  </view>
+
+  <!-- 参与人列表半屏弹窗（70vh，便于浏览较多报名人） -->
+  <view class="participant-modal-mask" wx:if="{{showParticipantModal}}" bindtap="closeParticipantModal">
+    <view class="participant-modal-content" catchtap="stopPropagation">
+      <text class="participant-modal-close" catchtap="closeParticipantModal">×</text>
+      <view class="participant-modal-header">
+        <view
+          class="participant-tab {{participantTab === 'confirmed' ? 'participant-tab-active' : ''}}"
+          data-tab="confirmed"
+          bindtap="onParticipantTabTap"
+        >已报名({{signups.confirmed.length}})</view>
+        <view
+          class="participant-tab {{participantTab === 'pending' ? 'participant-tab-active' : ''}}"
+          data-tab="pending"
+          bindtap="onParticipantTabTap"
+        >待定({{signups.pending.length}})</view>
+      </view>
+      <scroll-view scroll-y class="participant-scroll">
+        <view
+          wx:for="{{participantTab === 'confirmed' ? signups.confirmed : signups.pending}}"
+          wx:key="id"
+          class="participant-row"
+        >
+          <image class="participant-avatar" src="{{item.avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}" mode="aspectFill" />
+          <text class="participant-name">{{item.name}}</text>
+          <text class="participant-status">{{participantTab === 'confirmed' ? '已报名' : '待定'}}</text>
+        </view>
+      </scroll-view>
     </view>
   </view>
 </view>

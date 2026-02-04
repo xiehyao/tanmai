@@ -43,6 +43,29 @@ function mockPost(id) {
   return posts[id] || posts['food-1']
 }
 
+const AVATAR_BASE = 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/'
+
+function mockSignups(postId) {
+  const confirmed = [
+    { id: 1, name: '张三', avatar: AVATAR_BASE + 'male-young-1.png', status: 'confirmed' },
+    { id: 2, name: '李四', avatar: AVATAR_BASE + 'male-young-2.jpeg', status: 'confirmed' },
+    { id: 3, name: '王五', avatar: AVATAR_BASE + 'male-middle.png', status: 'confirmed' },
+    { id: 4, name: '赵六', avatar: AVATAR_BASE + 'female-young.png', status: 'confirmed' },
+    { id: 5, name: '钱七', avatar: AVATAR_BASE + 'female-young-10.jpeg', status: 'confirmed' },
+    { id: 6, name: '孙八', avatar: AVATAR_BASE + 'male-old-2.jpeg', status: 'confirmed' },
+    { id: 7, name: '周九', avatar: AVATAR_BASE + 'female-middle-1.png', status: 'confirmed' },
+    { id: 8, name: '吴十', avatar: AVATAR_BASE + 'male-young-3.jpeg', status: 'confirmed' },
+    { id: 9, name: '郑十一', avatar: AVATAR_BASE + 'female-young-11.jpeg', status: 'confirmed' },
+    { id: 10, name: '陈十二', avatar: AVATAR_BASE + 'male-young-4.jpeg', status: 'confirmed' }
+  ]
+  const pending = [
+    { id: 11, name: '林待定', avatar: AVATAR_BASE + 'male-young-5.jpeg', status: 'pending' },
+    { id: 12, name: '黄待定', avatar: AVATAR_BASE + 'female-young-12.jpeg', status: 'pending' },
+    { id: 13, name: '刘待定', avatar: AVATAR_BASE + 'male-middle-2.png', status: 'pending' }
+  ]
+  return { confirmed, pending }
+}
+
 function mockComments(postId) {
   return [
     {
@@ -80,7 +103,12 @@ Page({
     post: null,
     comments: [],
     commentTotal: 0,
-    liked: false
+    liked: false,
+    signups: { confirmed: [], pending: [] },
+    signupStatus: 'none',  // none | confirmed | pending
+    showParticipantModal: false,
+    participantTab: 'confirmed',  // confirmed | pending
+    avatarDisplayCount: 5
   },
 
   onLoad(options) {
@@ -96,9 +124,57 @@ Page({
   loadPost(postId) {
     const post = mockPost(postId)
     const comments = mockComments(postId)
+    const signups = mockSignups(postId)
     const commentTotal = post.commentCount || comments.length
     wx.setNavigationBarTitle({ title: post.author ? `${post.author.subtitle}-${post.author.name}` : '帖子详情' })
-    this.setData({ post, comments, commentTotal })
+    this.setData({ post, comments, commentTotal, signups })
+  },
+
+  onSignupTap() {
+    if (this.data.signupStatus === 'none') {
+      wx.showActionSheet({
+        itemList: ['确定参加', '待定'],
+        success: (res) => {
+          const status = res.tapIndex === 0 ? 'confirmed' : 'pending'
+          this.setData({ signupStatus: status })
+          const signups = { ...this.data.signups }
+          const me = { id: 0, name: '我', avatar: 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png', status }
+          if (status === 'confirmed') {
+            signups.confirmed = [me, ...signups.confirmed]
+          } else {
+            signups.pending = [me, ...signups.pending]
+          }
+          this.setData({ signups })
+          wx.showToast({ title: status === 'confirmed' ? '已报名' : '已标记待定', icon: 'success' })
+        }
+      })
+    } else {
+      wx.showModal({
+        title: '取消报名',
+        content: '确定要取消报名吗？',
+        success: (res) => {
+          if (res.confirm) {
+            this.setData({ signupStatus: 'none' })
+            wx.showToast({ title: '已取消', icon: 'success' })
+          }
+        }
+      })
+    }
+  },
+
+  showParticipantList() {
+    this.setData({ showParticipantModal: true })
+  },
+
+  closeParticipantModal() {
+    this.setData({ showParticipantModal: false })
+  },
+
+  stopPropagation() {},
+
+  onParticipantTabTap(e) {
+    const tab = e.currentTarget.dataset.tab
+    if (tab) this.setData({ participantTab: tab })
   },
 
   onFollowTap() {
