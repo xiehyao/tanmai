@@ -1,0 +1,63 @@
+<!--pages/activity-feed/activity-feed.wxml - 活动贴子聚合页 -->
+<view class="feed-page">
+  <view class="feed-header">
+    <view class="search-bar">
+      <text class="search-icon">🔍</text>
+      <input
+        class="search-input"
+        placeholder="搜索"
+        value="{{searchKeyword}}"
+        bindinput="onSearchInput"
+      />
+    </view>
+    <view class="feed-tabs">
+      <view
+        wx:for="{{tabs}}"
+        wx:key="key"
+        class="feed-tab {{activeTab === item.key ? 'feed-tab-active' : ''}}"
+        data-key="{{item.key}}"
+        bindtap="onTabTap"
+      >{{item.label}}</view>
+    </view>
+  </view>
+
+  <scroll-view scroll-y class="feed-scroll" enable-back-to-top>
+    <view class="post-list">
+      <view
+        wx:for="{{posts}}"
+        wx:key="id"
+        class="post-card"
+        data-id="{{item.id}}"
+        bindtap="goToPostDetail"
+      >
+        <view class="post-header">
+          <image
+            class="post-avatar"
+            src="{{item.author.avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
+            mode="aspectFill"
+          />
+          <view class="post-meta">
+            <text class="post-author">{{item.author.subtitle}}-{{item.author.name}}</text>
+            <text class="post-content">{{item.content}}</text>
+            <view class="post-media" wx:if="{{item.images && item.images.length > 0}}">
+              <image
+                wx:for="{{item.images}}"
+                wx:for-item="img"
+                wx:key="*this"
+                class="post-image"
+                src="{{img}}"
+                mode="aspectFill"
+              />
+            </view>
+            <view class="post-footer">
+              <text class="post-location" wx:if="{{item.location}}">{{item.location}}</text>
+              <text class="post-time">{{item.timeText}}</text>
+            </view>
+          </view>
+          <text class="post-more">⋯</text>
+        </view>
+      </view>
+    </view>
+    <view class="feed-bottom-pad"></view>
+  </scroll-view>
+</view>

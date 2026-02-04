@@ -21,12 +21,18 @@
 
     <!-- 校友会活动（无白底，与上方卡片左对齐） -->
     <view class="section">
-      <view class="section-header">
+      <view class="section-header" bindtap="goToActivityFeed">
         <text class="section-title">校友会活动</text>
       </view>
       <view class="activities-wrap">
         <scroll-view scroll-x class="activities-scroll" show-scrollbar="false">
-          <view class="activity-item" wx:for="{{activityList}}" wx:key="key">
+          <view
+            class="activity-item"
+            wx:for="{{activityList}}"
+            wx:key="key"
+            data-post-id="{{item.postId}}"
+            bindtap="goToPostDetail"
+          >
             <view class="activity-poster poster-{{item.key}}"></view>
             <text class="activity-title">{{item.title}}</text>
           </view>

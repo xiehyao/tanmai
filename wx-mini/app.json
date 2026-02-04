@@ -14,7 +14,9 @@
     "pages/reminders/reminders",
     "pages/updates/updates",
     "pages/exchange/exchange",
-    "pages/match/match"
+    "pages/match/match",
+    "pages/activity-feed/activity-feed",
+    "pages/post-detail/post-detail"
   ],
   "window": {
     "backgroundTextStyle": "light",

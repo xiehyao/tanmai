@@ -1,0 +1,133 @@
+<!--pages/post-detail/post-detail.wxml - 帖子详情页（朋友圈阅读评论体验）-->
+<view class="detail-page" wx:if="{{post}}">
+  <scroll-view scroll-y class="detail-scroll">
+    <!-- 主贴卡片 -->
+    <view class="post-card main-post">
+      <view class="post-header">
+        <image
+          class="post-avatar"
+          src="{{post.author.avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
+          mode="aspectFill"
+        />
+        <view class="post-meta">
+          <text class="post-author">{{post.author.subtitle}}-{{post.author.name}}</text>
+          <text class="post-content">{{post.content}}</text>
+          <view class="post-media" wx:if="{{post.images && post.images.length > 0}}">
+            <image
+              wx:for="{{post.images}}"
+              wx:for-item="img"
+              wx:key="*this"
+              class="post-image"
+              src="{{img}}"
+              mode="widthFix"
+            />
+          </view>
+          <view class="post-footer">
+            <text class="post-location" wx:if="{{post.location}}">{{post.location}}</text>
+            <text class="post-time">{{post.timeText}}</text>
+          </view>
+        </view>
+        <text class="post-more">⋯</text>
+      </view>
+    </view>
+
+    <!-- 评论区域 -->
+    <view class="comments-section">
+      <view class="comments-header">
+        <text class="comments-title">× 全部 {{commentTotal}} 条评论</text>
+        <text class="comments-sort">≡</text>
+      </view>
+      <view class="comments-label">评论({{commentTotal}})</view>
+      <view class="comment-list">
+        <block wx:for="{{comments}}" wx:key="id">
+          <view class="comment-item">
+            <image class="comment-avatar" src="{{item.author.avatar}}" mode="aspectFill" />
+            <view class="comment-body">
+              <text class="comment-author">{{item.author.name}}</text>
+              <text class="comment-content">{{item.content}}</text>
+              <view class="comment-footer">
+                <text class="comment-time">{{item.timeText}}</text>
+                <view class="comment-actions">
+                  <text class="comment-like">{{item.likeCount}}</text>
+                  <text class="comment-like-icon">👍</text>
+                  <text class="comment-reply-icon">💬</text>
+                </view>
+              </view>
+            </view>
+          </view>
+          <block wx:for="{{item.replies}}" wx:for-item="reply" wx:key="id">
+            <view class="comment-item comment-reply">
+              <image class="comment-avatar" src="{{reply.author.avatar}}" mode="aspectFill" />
+              <view class="comment-body">
+                <text class="comment-author">{{reply.author.name}} ▶ {{reply.replyTo}}</text>
+                <text class="comment-content">{{reply.content}}</text>
+                <view class="comment-footer">
+                  <text class="comment-time">{{reply.timeText}}</text>
+                  <view class="comment-actions">
+                    <text class="comment-like">{{reply.likeCount}}</text>
+                    <text class="comment-like-icon">👍</text>
+                    <text class="comment-reply-icon">💬</text>
+                  </view>
+                </view>
+                <!-- 二级回复 -->
+                <block wx:for="{{reply.replies || []}}" wx:for-item="r2" wx:key="id">
+                  <view class="comment-item comment-reply-2">
+                    <image class="comment-avatar" src="{{r2.author.avatar}}" mode="aspectFill" />
+                    <view class="comment-body">
+                      <text class="comment-author">{{r2.author.name}} {{r2.replyTo}}</text>
+                      <text class="comment-content">{{r2.content}}</text>
+                      <view class="comment-footer">
+                        <text class="comment-time">{{r2.timeText}}</text>
+                        <view class="comment-actions">
+                          <text class="comment-like">{{r2.likeCount}}</text>
+                          <text class="comment-like-icon">👍</text>
+                          <text class="comment-reply-icon">💬</text>
+                        </view>
+                      </view>
+                    </view>
+                  </view>
+                </block>
+              </view>
+            </view>
+          </block>
+        </block>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 固定底部操作栏 -->
+  <view class="fixed-bottom-bar">
+    <view class="bar-left-group">
+      <view class="bar-left">
+        <image
+          class="bar-avatar"
+          src="{{post.author.avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
+          mode="aspectFill"
+        />
+        <view class="bar-info">
+          <text class="bar-name">{{post.author.name}}</text>
+          <text class="bar-follow">{{post.author.followerCount || 10}}个朋友关注</text>
+        </view>
+      </view>
+      <view class="bar-follow-btn" bindtap="onFollowTap">+关注</view>
+    </view>
+    <view class="bar-icons">
+      <view class="bar-icon-item" bindtap="onLikeTap">
+        <text class="bar-icon">👍</text>
+        <text class="bar-num">{{post.likeCount}}</text>
+      </view>
+      <view class="bar-icon-item" bindtap="onShareTap">
+        <text class="bar-icon">↗</text>
+        <text class="bar-num">{{post.shareCount || 0}}</text>
+      </view>
+      <view class="bar-icon-item" bindtap="onHeartTap">
+        <text class="bar-icon">♥</text>
+        <text class="bar-num">42</text>
+      </view>
+      <view class="bar-icon-item" bindtap="onCommentTap">
+        <text class="bar-icon">💬</text>
+        <text class="bar-num">{{post.commentCount}}</text>
+      </view>
+    </view>
+  </view>
+</view>
