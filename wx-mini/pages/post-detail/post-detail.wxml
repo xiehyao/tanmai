@@ -186,6 +186,14 @@
           <text class="participant-status">{{participantTab === 'confirmed' ? '已报名' : '待定'}}</text>
         </view>
       </scroll-view>
+      <view class="participant-footer">
+        <view
+          class="participant-footer-btn {{signupStatus === 'confirmed' ? 'participant-footer-btn-done' : (signupStatus === 'pending' ? 'participant-footer-btn-pending' : '')}}"
+          bindtap="onSignupTap"
+        >
+          {{signupStatus === 'confirmed' ? '已报名' : (signupStatus === 'pending' ? '待定' : '报名')}}
+        </view>
+      </view>
     </view>
   </view>
 </view>
