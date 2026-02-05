@@ -1,0 +1,65 @@
+<!--pages/contacts/contacts.wxml 通讯录-->
+<view class="contacts-page">
+  <view class="search-bar">
+    <text class="search-icon">🔍</text>
+    <input class="search-input" placeholder="搜索" value="{{searchKeyword}}" bindinput="onSearchInput" />
+  </view>
+
+  <view class="tabs">
+    <view
+      wx:for="{{tabs}}"
+      wx:key="key"
+      class="tab {{activeTab === item.key ? 'tab-active' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="onTabTap"
+    >{{item.label}}({{item.count}})</view>
+  </view>
+
+  <scroll-view scroll-x class="cards-scroll" show-scrollbar="false">
+    <view
+      wx:for="{{cards}}"
+      wx:key="id"
+      class="card-item {{item.type === 'map' ? 'card-map' : ''}}"
+      data-item="{{item}}"
+      bindtap="onCardTap"
+    >
+      <block wx:if="{{item.type === 'map'}}">
+        <view class="card-map-title">{{item.title}}</view>
+        <view class="card-map-placeholder">地图示意</view>
+        <view class="card-action">{{item.action}}</view>
+      </block>
+      <block wx:else>
+        <text class="card-name">{{item.name}}</text>
+        <image class="card-avatar" src="{{item.avatar}}" mode="aspectFill" />
+        <view class="card-desc">{{item.school}}</view>
+        <view class="card-desc">{{item.work}}</view>
+        <view class="card-desc">{{item.hobby}}</view>
+        <view class="card-phone">{{item.phone}}</view>
+        <view class="card-action">{{item.action}}</view>
+      </block>
+    </view>
+  </scroll-view>
+
+  <view class="bottom-list">
+    <view class="bottom-item" bindtap="goToCardFolder">
+      <view class="bottom-icon bottom-icon-grid">九宫格</view>
+      <text>我的名片夹</text>
+      <text class="arrow">›</text>
+    </view>
+    <view class="bottom-item">
+      <view class="bottom-icon">新</view>
+      <text>新的朋友</text>
+      <text class="arrow">›</text>
+    </view>
+    <view class="bottom-item">
+      <view class="bottom-icon">校</view>
+      <text>所有校友</text>
+      <text class="arrow">›</text>
+    </view>
+    <view class="bottom-item">
+      <view class="bottom-icon">标</view>
+      <text>标签分组</text>
+      <text class="arrow">›</text>
+    </view>
+  </view>
+</view>

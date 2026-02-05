@@ -40,6 +40,26 @@ Page({
     wx.navigateTo({ url: '/pages/card/card' })
   },
 
+  goToMap() {
+    wx.switchTab({ url: '/pages/map/map' })
+  },
+
+  goToAlumniLink() {
+    wx.switchTab({ url: '/pages/alumni-link/alumni-link' })
+  },
+
+  goToContacts() {
+    wx.navigateTo({ url: '/pages/contacts/contacts' })
+  },
+
+  goToActivityFeed() {
+    wx.navigateTo({ url: '/pages/activity-feed/activity-feed' })
+  },
+
+  goToCardFolder() {
+    wx.navigateTo({ url: '/pages/card-folder/card-folder' })
+  },
+
   logout() {
     wx.showModal({
       title: '确认退出',

@@ -1,0 +1,45 @@
+<!--pages/card-folder/card-folder.wxml 我的名片夹-->
+<view class="card-folder-page">
+  <view class="search-bar">
+    <text class="search-icon">Q</text>
+    <input class="search-input" placeholder="搜索" value="{{searchKeyword}}" bindinput="onSearchInput" />
+  </view>
+
+  <view class="tabs">
+    <view
+      wx:for="{{tabs}}"
+      wx:key="key"
+      class="tab {{activeTab === item.key ? 'tab-active' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="onTabTap"
+    >{{item.label}}({{item.count}})</view>
+  </view>
+
+  <scroll-view scroll-y class="scroll-area">
+    <block wx:if="{{activeTab === 'card'}}">
+      <view wx:for="{{cards}}" wx:key="id" class="card-block">
+        <view class="card-row">
+          <image class="card-avatar" src="{{item.avatar}}" mode="aspectFill" />
+          <view class="card-main">
+            <text class="card-name">{{item.name}}</text>
+            <text class="card-company">{{item.company}}</text>
+            <text class="card-phone">{{item.phone}}</text>
+            <text class="card-email">{{item.email}}</text>
+            <text class="card-address">{{item.address}}</text>
+            <view class="card-exchange" bindtap="onExchangeTap">交换名片</view>
+          </view>
+        </view>
+      </view>
+    </block>
+    <block wx:else>
+      <view wx:for="{{cards}}" wx:key="id" class="text-row">
+        <image class="text-avatar" src="{{item.avatar}}" mode="aspectFill" />
+        <view class="text-main">
+          <text class="text-name">{{item.name}}</text>
+          <text class="text-company">{{item.company}}</text>
+        </view>
+        <text class="text-time">{{item.time}}</text>
+      </view>
+    </block>
+  </scroll-view>
+</view>

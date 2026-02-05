@@ -16,7 +16,9 @@
     "pages/exchange/exchange",
     "pages/match/match",
     "pages/activity-feed/activity-feed",
-    "pages/post-detail/post-detail"
+    "pages/post-detail/post-detail",
+    "pages/contacts/contacts",
+    "pages/card-folder/card-folder"
   ],
   "window": {
     "backgroundTextStyle": "light",

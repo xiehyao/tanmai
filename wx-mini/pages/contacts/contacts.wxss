@@ -1,0 +1,167 @@
+/* pages/contacts/contacts.wxss */
+.contacts-page {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding-bottom: 40rpx;
+}
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  height: 72rpx;
+  margin: 20rpx 24rpx;
+  padding: 0 24rpx;
+  background: #f3f4f6;
+  border-radius: 36rpx;
+}
+
+.search-icon {
+  font-size: 28rpx;
+  margin-right: 12rpx;
+  color: #9ca3af;
+}
+
+.search-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #374151;
+}
+
+.tabs {
+  display: flex;
+  padding: 0 24rpx 20rpx;
+  gap: 24rpx;
+}
+
+.tab {
+  font-size: 28rpx;
+  color: #6b7280;
+}
+
+.tab-active {
+  font-weight: 700;
+  color: #111827;
+}
+
+.cards-scroll {
+  white-space: nowrap;
+  padding: 0 24rpx 24rpx;
+}
+
+.card-item {
+  display: inline-block;
+  width: 480rpx;
+  margin-right: 24rpx;
+  padding: 24rpx;
+  background: #fff;
+  border-radius: 20rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.06);
+  vertical-align: top;
+}
+
+.card-name {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 16rpx;
+}
+
+.card-avatar {
+  width: 100%;
+  height: 280rpx;
+  border-radius: 12rpx;
+  background: #e5e7eb;
+  margin-bottom: 16rpx;
+}
+
+.card-desc, .card-phone {
+  font-size: 24rpx;
+  color: #6b7280;
+  line-height: 1.5;
+  margin-bottom: 8rpx;
+}
+
+.card-action {
+  margin-top: 20rpx;
+  padding: 12rpx 32rpx;
+  background: #e5e7eb;
+  color: #6b7280;
+  font-size: 26rpx;
+  text-align: center;
+  border-radius: 999rpx;
+  display: inline-block;
+}
+
+.card-map {
+  min-height: 360rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-map-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 20rpx;
+}
+
+.card-map-placeholder {
+  width: 100%;
+  height: 200rpx;
+  background: #e5e7eb;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+  color: #9ca3af;
+  margin-bottom: 20rpx;
+}
+
+.bottom-list {
+  margin: 0 24rpx;
+  background: #fff;
+  border-radius: 20rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.06);
+}
+
+.bottom-item {
+  display: flex;
+  align-items: center;
+  padding: 28rpx 24rpx;
+  border-bottom: 1rpx solid #f3f4f6;
+  font-size: 30rpx;
+  color: #111827;
+}
+
+.bottom-item:last-child {
+  border-bottom: none;
+}
+
+.bottom-icon {
+  width: 64rpx;
+  height: 64rpx;
+  margin-right: 24rpx;
+  background: #e5e7eb;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+  color: #6b7280;
+}
+
+.bottom-icon-grid {
+  background: linear-gradient(135deg,#667eea,#7f5af0);
+  color: #fff;
+}
+
+.arrow {
+  margin-left: auto;
+  color: #9ca3af;
+  font-size: 32rpx;
+}
