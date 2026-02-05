@@ -4,9 +4,15 @@ const app = getApp()
 
 Page({
   data: {
-    // 模式选项
-    // 脱单：找对象；知己：找聊得来的人；找局：线下局；事业：工作&创业；资源：互助共享；发现：随缘探索
-    modes: ['脱单', '知己', '找局', '事业', '资源', '发现'],
+    // 模式选项（脱单/知己/找局/事业/资源/发现）
+    modes: [
+      { label: '脱单', icon: '💕' },
+      { label: '知己', icon: '👫' },
+      { label: '找局', icon: '🎯' },
+      { label: '事业', icon: '💼' },
+      { label: '资源', icon: '🤝' },
+      { label: '发现', icon: '✨' }
+    ],
     activeModeIndex: 0,
 
     // 用户信息
@@ -75,7 +81,7 @@ Page({
   // 选择场景卡片
   onSelectModeCard(e) {
     const index = e.currentTarget.dataset.index
-    const mode = this.data.modes[index]
+    const mode = (this.data.modes[index] || {}).label || '发现'
     
     // 如果已经有对话，则开启新主题
     if (this.data.hasStartedChat) {
@@ -94,8 +100,8 @@ Page({
     const topicId = Date.now()
     const newTopic = {
       id: topicId,
-      mode: mode,
-      modeIndex: modeIndex,
+      mode,
+      modeIndex,
       title: mode,
       messages: [],
       createTime: new Date().toISOString()
@@ -175,7 +181,7 @@ Page({
       return
     }
 
-    const mode = this.data.modes[this.data.activeModeIndex] || '发现'
+    const mode = (this.data.modes[this.data.activeModeIndex] || {}).label || '发现'
 
     // 如果是首次发送，创建主题
     if (!this.data.hasStartedChat) {

@@ -1,11 +1,10 @@
 <!--pages/alumni-link/alumni-link.wxml-->
 <view class="alumni-link-page">
-  <!-- 顶部栏 -->
+  <!-- 顶部栏（方案B：标题由系统导航栏显示，此处仅保留菜单与新建） -->
   <view class="header-bar">
     <view class="header-left" bindtap="openHistoryDrawer">
       <text class="menu-icon">☰</text>
     </view>
-    <view class="header-title">校友连连看</view>
     <view class="header-right" bindtap="onNewTopic">
       <text class="new-topic-icon">💬+</text>
     </view>
@@ -30,7 +29,8 @@
             data-index="{{index}}"
             bindtap="onSelectModeCard"
           >
-            <text class="mode-card-text">{{item}}</text>
+            <text class="mode-card-icon">{{item.icon}}</text>
+            <text class="mode-card-text">{{item.label}}</text>
           </view>
         </view>
       </view>
@@ -75,15 +75,15 @@
         <!-- 模式选择滚动框 -->
         <scroll-view class="mode-selector" scroll-x="true" wx:if="{{showModeSelector}}">
           <view class="mode-selector-content">
-            <view
-              wx:for="{{modes}}"
-              wx:key="index"
-              class="mode-selector-item {{index === activeModeIndex ? 'active' : ''}}"
-              data-index="{{index}}"
-              bindtap="onSelectModeFromSelector"
-            >
-              <text>{{item}}</text>
-            </view>
+        <view
+          wx:for="{{modes}}"
+          wx:key="index"
+          class="mode-selector-item {{index === activeModeIndex ? 'active' : ''}}"
+          data-index="{{index}}"
+          bindtap="onSelectModeFromSelector"
+        >
+          <text>{{item.label}}</text>
+        </view>
           </view>
         </scroll-view>
 
@@ -111,11 +111,11 @@
       <!-- 输入框和发送按钮（包成一整行，圆角） -->
       <view class="input-container">
         <view class="mode-toggle-btn" bindtap="toggleModeSelector" wx:if="{{!showModeSelector}}">
-          <text>{{modes[activeModeIndex]}}</text>
+          <text>{{modes[activeModeIndex] ? modes[activeModeIndex].label : '发现'}}</text>
         </view>
         <input
           class="chat-input"
-          placeholder="有问题,尽管问,shift+enter换行"
+          placeholder="有问题尽管问～"
           confirm-type="send"
           value="{{inputValue}}"
           bindinput="onInput"
