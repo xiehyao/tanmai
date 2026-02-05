@@ -31,6 +31,23 @@
           >
             <text class="mode-card-icon">{{item.icon}}</text>
             <text class="mode-card-text">{{item.label}}</text>
+            <text class="mode-card-desc">{{item.desc}}</text>
+          </view>
+        </view>
+        <!-- 示例问题（可点击填充） -->
+        <view class="examples-section" wx:if="{{modes[activeModeIndex] && modes[activeModeIndex].examples}}">
+          <text class="examples-title">试试这样问：</text>
+          <view class="examples-list">
+            <view
+              wx:for="{{modes[activeModeIndex].examples}}"
+              wx:for-item="ex"
+              wx:key="*this"
+              class="example-chip"
+              data-text="{{ex}}"
+              bindtap="onExampleTap"
+            >
+              <text class="example-text">{{ex}}</text>
+            </view>
           </view>
         </view>
       </view>
@@ -52,6 +69,15 @@
           <!-- 如果没有分离，显示原始内容 -->
           <view wx:if="{{!item.thinking && !item.answer && item.content}}" class="answer-bubble">
             <text class="answer-text">{{item.content}}</text>
+          </view>
+          <!-- 反馈入口（仅当有内容且未反馈时显示） -->
+          <view wx:if="{{item.content && !item.feedback}}" class="feedback-row">
+            <text class="feedback-label">这篇回复有帮助吗？</text>
+            <view class="feedback-btns">
+              <text class="feedback-btn" data-index="{{index}}" data-value="useful" bindtap="onFeedbackTap">👍 有用</text>
+              <text class="feedback-btn" data-index="{{index}}" data-value="ok" bindtap="onFeedbackTap">😐 一般</text>
+              <text class="feedback-btn" data-index="{{index}}" data-value="useless" bindtap="onFeedbackTap">👎 没用</text>
+            </view>
           </view>
         </view>
         <!-- 用户消息 -->
@@ -87,24 +113,27 @@
           </view>
         </scroll-view>
 
-        <!-- 策略按钮 -->
-        <view class="strategy-buttons">
-          <view
-            class="strategy-btn {{strategy === 'deepthink' ? 'active' : ''}}"
-            data-strategy="deepthink"
-            bindtap="onSelectStrategy"
-          >
-            <text class="strategy-icon">💭</text>
-            <text class="strategy-text">深度思考</text>
+        <!-- 策略按钮（含简短说明） -->
+        <view class="strategy-row">
+          <view class="strategy-buttons">
+            <view
+              class="strategy-btn {{strategy === 'deepthink' ? 'active' : ''}}"
+              data-strategy="deepthink"
+              bindtap="onSelectStrategy"
+            >
+              <text class="strategy-icon">💭</text>
+              <text class="strategy-text">深度思考</text>
+            </view>
+            <view
+              class="strategy-btn {{strategy === 'knowledge' ? 'active' : ''}}"
+              data-strategy="knowledge"
+              bindtap="onSelectStrategy"
+            >
+              <text class="strategy-icon">📚</text>
+              <text class="strategy-text">校友知识库</text>
+            </view>
           </view>
-          <view
-            class="strategy-btn {{strategy === 'knowledge' ? 'active' : ''}}"
-            data-strategy="knowledge"
-            bindtap="onSelectStrategy"
-          >
-            <text class="strategy-icon">📚</text>
-            <text class="strategy-text">校友知识库</text>
-          </view>
+          <text class="strategy-hint">{{strategy === 'deepthink' ? '适合复杂需求，AI会多步推理' : '适合快速查人、查活动'}}</text>
         </view>
       </view>
 
@@ -115,7 +144,7 @@
         </view>
         <input
           class="chat-input"
-          placeholder="有问题尽管问～"
+          placeholder="{{modes[activeModeIndex] ? modes[activeModeIndex].placeholder : '有问题尽管问～'}}"
           confirm-type="send"
           value="{{inputValue}}"
           bindinput="onInput"
