@@ -15,7 +15,7 @@
     >{{item.label}}({{item.count}})</view>
   </view>
 
-  <scroll-view scroll-x class="cards-scroll" show-scrollbar="false">
+  <scroll-view scroll-x enable-flex class="cards-scroll" show-scrollbar="false" style="flex-direction: row;">
     <view
       wx:for="{{cards}}"
       wx:key="id"

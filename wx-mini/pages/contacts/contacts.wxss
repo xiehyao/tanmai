@@ -44,27 +44,27 @@
 }
 
 .cards-scroll {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
   white-space: nowrap;
   padding: 0 24rpx 24rpx;
   width: 100%;
+  height: 640rpx;
   box-sizing: border-box;
 }
 
-.cards-scroll > view {
-  display: inline-block;
-}
-
 .card-item {
-  display: inline-block;
+  flex-shrink: 0;
   width: 480rpx;
-  min-height: 520rpx;
+  height: 600rpx;
   margin-right: 24rpx;
   padding: 24rpx;
   background: #fff;
   border-radius: 20rpx;
   box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.06);
-  vertical-align: top;
-  flex-shrink: 0;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .card-name {
@@ -77,10 +77,11 @@
 
 .card-avatar {
   width: 100%;
-  height: 280rpx;
+  height: 260rpx;
   border-radius: 12rpx;
   background: #e5e7eb;
-  margin-bottom: 16rpx;
+  margin-bottom: 12rpx;
+  flex-shrink: 0;
 }
 
 .card-desc, .card-phone {
@@ -106,7 +107,6 @@
   flex-direction: column;
   align-items: center;
   height: 100%;
-  min-height: 520rpx;
   box-sizing: border-box;
 }
 
@@ -120,9 +120,9 @@
 
 .card-map-img {
   width: 100%;
-  height: 320rpx;
+  height: 400rpx;
   border-radius: 12rpx;
-  margin-bottom: 20rpx;
+  margin-bottom: 16rpx;
   flex-shrink: 0;
   object-fit: cover;
 }
