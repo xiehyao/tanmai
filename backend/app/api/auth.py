@@ -79,10 +79,15 @@ async def login(
         expires_delta=access_token_expires,
     )
 
+    user_dict = _user_to_dict(user)
+
+    # 为兼容现有小程序 index.js：
+    # - 需要 res.success / res.token / res.user
     return {
         "success": True,
         "token": token,
-        "data": _user_to_dict(user),
+        "user": user_dict,
+        "data": user_dict,
     }
 
 
@@ -96,12 +101,10 @@ async def me(
     if not user_id:
         raise HTTPException(status_code=401, detail="未登录")
 
-    user = db.query(User).filter(User.id == user_id).first()
+    user = db.query(User).filter(User.id == int(user_id)).first()
     if not user:
         raise HTTPException(status_code=404, detail="用户不存在")
 
-    return {
-        "success": True,
-        "data": _user_to_dict(user),
-    }
+    # 小程序 getUserInfo 里直接期望拿到用户对象（res.id...）
+    return _user_to_dict(user)
 
