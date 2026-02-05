@@ -4,6 +4,15 @@
 import os
 from typing import Optional
 
+try:
+    # 优先从 .env 加载（若安装了 python-dotenv）
+    from dotenv import load_dotenv  # type: ignore
+
+    load_dotenv()
+except Exception:
+    # 未安装或加载失败时静默跳过，继续使用系统环境变量
+    pass
+
 
 class Settings:
     DATABASE_URL: str = os.getenv("DATABASE_URL", "mysql+pymysql://apache:pengyoo123@localhost:3306/tanmai")
@@ -19,7 +28,14 @@ class Settings:
     DASHSCOPE_API_KEY: Optional[str] = os.getenv("DASHSCOPE_API_KEY")
     TENCENT_MAP_KEY: Optional[str] = os.getenv("TENCENT_MAP_KEY")
     DEEPSEEK_API_KEY: Optional[str] = os.getenv("DEEPSEEK_API_KEY")
-    DEEPSEEK_BASE_URL: str = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+    # 默认走腾讯云 DeepSeek OpenAI 接口网关，而不是直连官方 DeepSeek
+    # 参考文档：https://cloud.tencent.com/document/product/1772/115969
+    DEEPSEEK_BASE_URL: str = os.getenv(
+        "DEEPSEEK_BASE_URL",
+        "https://api.lkeap.cloud.tencent.com/v1",
+    )
+    # 默认模型，可通过环境变量 DEEPSEEK_MODEL 覆盖
+    DEEPSEEK_MODEL: str = os.getenv("DEEPSEEK_MODEL", "deepseek-r1-0528")
     WORK_WECHAT_CORP_SECRET: Optional[str] = os.getenv("WORK_WECHAT_CORP_SECRET")
     ENCRYPTION_KEY: str = os.getenv("ENCRYPTION_KEY", "tanmai-encryption-key-32bytes!!")
     UPLOAD_URL_BASE: Optional[str] = os.getenv("UPLOAD_URL_BASE")

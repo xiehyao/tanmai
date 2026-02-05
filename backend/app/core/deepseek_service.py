@@ -3,18 +3,21 @@ DeepSeek API 流式调用服务
 使用 OpenAI 兼容接口
 """
 import json
-from typing import AsyncGenerator, List, Dict
+from typing import AsyncGenerator, List, Dict, Optional
 from app.core.config import settings
 
 
 async def call_deepseek_stream(
     messages: List[Dict[str, str]],
-    model: str = "deepseek-chat"
+    model: Optional[str] = None,
 ) -> AsyncGenerator[str, None]:
     """
     流式调用 DeepSeek API，逐块 yield 内容
     兼容 OpenAI API 格式
     """
+    # 选择模型：优先显式入参，其次配置中的默认模型
+    model_name = model or getattr(settings, "DEEPSEEK_MODEL", "deepseek-r1-0528")
+
     try:
         from openai import AsyncOpenAI
     except ImportError:
@@ -28,12 +31,12 @@ async def call_deepseek_stream(
 
     client = AsyncOpenAI(
         api_key=api_key,
-        base_url=settings.DEEPSEEK_BASE_URL
+        base_url=settings.DEEPSEEK_BASE_URL,
     )
 
     try:
         stream = await client.chat.completions.create(
-            model=model,
+            model=model_name,
             messages=messages,
             stream=True
         )
