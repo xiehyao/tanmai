@@ -43,7 +43,14 @@ async def call_deepseek_stream(
         async for chunk in stream:
             if chunk.choices and len(chunk.choices) > 0:
                 delta = chunk.choices[0].delta
-                if delta and delta.content:
+                if not delta:
+                    continue
+                # DeepSeek R1 的 reasoning_content：深度思考过程，先流式展示
+                rc = getattr(delta, "reasoning_content", None)
+                if rc:
+                    yield _sse_data({"reasoning": rc})
+                # content：正式回答
+                if delta.content:
                     yield _sse_data({"content": delta.content})
     except Exception as e:
         yield _sse_data({"error": str(e)})

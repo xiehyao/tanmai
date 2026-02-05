@@ -340,17 +340,31 @@ Page({
                 return
               }
               
-              if (data.content) {
-                // 追加内容
+              // DeepSeek R1 的 reasoning：深度思考过程，实时展示
+              if (data.reasoning) {
                 const updatedMessages = [...this.data.messages]
-                const currentContent = updatedMessages[assistantMessageIndex].content + data.content
-                
-                // 解析思考过程和正式答案
-                const parts = this.parseThinkingAndAnswer(currentContent)
-                updatedMessages[assistantMessageIndex].content = currentContent
-                updatedMessages[assistantMessageIndex].thinking = parts.thinking
-                updatedMessages[assistantMessageIndex].answer = parts.answer
-                
+                updatedMessages[assistantMessageIndex].thinking = (updatedMessages[assistantMessageIndex].thinking || '') + data.reasoning
+                updatedMessages[assistantMessageIndex].content = (updatedMessages[assistantMessageIndex].content || '') + data.reasoning
+                this.setData({ messages: updatedMessages })
+                setTimeout(() => this.scrollToBottom(), 50)
+              }
+              
+              if (data.content) {
+                const updatedMessages = [...this.data.messages]
+                const cur = updatedMessages[assistantMessageIndex]
+                const hasReasoning = !!(cur.thinking && cur.thinking.length > 0)
+                if (hasReasoning) {
+                  // 已有 reasoning：content 即正式回答
+                  cur.answer = (cur.answer || '') + data.content
+                  cur.content = (cur.content || '') + data.content
+                } else {
+                  // 无 reasoning：用 --- 分割 thinking/answer（兼容旧模型）
+                  const currentContent = (cur.content || '') + data.content
+                  const parts = this.parseThinkingAndAnswer(currentContent)
+                  cur.content = currentContent
+                  cur.thinking = parts.thinking
+                  cur.answer = parts.answer
+                }
                 this.setData({ messages: updatedMessages })
                 
                 // 定期滚动到底部
