@@ -1,7 +1,7 @@
 # 校友连连看 llm-match 提示词规范
 
-> 本文档供后端 `/api/assistant/llm-match` 接口的提示词优化参考。  
-> 接口当前部署于 pengyoo.com。
+> 后端实现：`tanmai/backend/app/api/assistant.py`  
+> 接口路径：`POST /api/assistant/llm-match`
 
 ---
 
