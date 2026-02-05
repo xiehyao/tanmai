@@ -46,17 +46,25 @@
 .cards-scroll {
   white-space: nowrap;
   padding: 0 24rpx 24rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.cards-scroll > view {
+  display: inline-block;
 }
 
 .card-item {
   display: inline-block;
   width: 480rpx;
+  min-height: 520rpx;
   margin-right: 24rpx;
   padding: 24rpx;
   background: #fff;
   border-radius: 20rpx;
   box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.06);
   vertical-align: top;
+  flex-shrink: 0;
 }
 
 .card-name {
@@ -94,11 +102,12 @@
 }
 
 .card-map {
-  min-height: 360rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  height: 100%;
+  min-height: 520rpx;
+  box-sizing: border-box;
 }
 
 .card-map-title {
@@ -106,19 +115,16 @@
   font-weight: 600;
   color: #111827;
   margin-bottom: 20rpx;
+  flex-shrink: 0;
 }
 
-.card-map-placeholder {
+.card-map-img {
   width: 100%;
-  height: 200rpx;
-  background: #e5e7eb;
+  height: 320rpx;
   border-radius: 12rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24rpx;
-  color: #9ca3af;
   margin-bottom: 20rpx;
+  flex-shrink: 0;
+  object-fit: cover;
 }
 
 .bottom-list {

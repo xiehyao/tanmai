@@ -25,7 +25,7 @@
     >
       <block wx:if="{{item.type === 'map'}}">
         <view class="card-map-title">{{item.title}}</view>
-        <view class="card-map-placeholder">地图示意</view>
+        <image class="card-map-img" src="https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/maps/map.png" mode="aspectFill" />
         <view class="card-action">{{item.action}}</view>
       </block>
       <block wx:else>
