@@ -191,22 +191,23 @@
   box-sizing: border-box;
 }
 
-/* 思考过程区域 */
+/* 思考过程区域：不做 ###/** 转义，字号调大、左右留白 */
 .thinking-section {
   width: 100%;
-  padding: 0;
+  padding: 0 36rpx 0 36rpx;
   margin: 0;
   white-space: pre-wrap;
+  box-sizing: border-box;
 }
 
 .thinking-text {
-  font-size: 24rpx; /* 小一号字体 */
+  font-size: 28rpx;
   line-height: 1.8;
-  color: #999; /* 灰色 */
+  color: #999;
   display: block;
   word-wrap: break-word;
   word-break: break-all;
-  white-space: pre-wrap; /* 保留换行和段落间隔 */
+  white-space: pre-wrap;
 }
 
 .thinking-segments {
@@ -216,28 +217,15 @@
   white-space: pre-wrap;
 }
 
-/* 思考区文本用 inline，与校友名同行不换行；换行由 \n 段负责 */
 .thinking-segments .thinking-text {
   display: inline;
-}
-
-.thinking-segments .thinking-heading {
-  display: block;
-  font-size: 26rpx;
-  font-weight: 700;
-  color: #999;
-  margin: 12rpx 0 6rpx;
-}
-
-.thinking-segments .thinking-bold {
-  display: inline;
-  font-weight: 700;
+  font-size: 28rpx;
 }
 
 .thinking-segments .alumni-name-link,
 .alumni-name-in-thinking {
   display: inline;
-  font-size: 24rpx;
+  font-size: 28rpx;
   color: #667eea;
   text-decoration: underline;
   padding: 0 2rpx;
@@ -245,11 +233,11 @@
 
 /* 正在思考中（放在思考与答案之间） */
 .thinking-loading-indicator {
-  padding: 12rpx 24rpx 16rpx;
+  padding: 12rpx 36rpx 16rpx;
 }
 
 .thinking-loading-text {
-  font-size: 24rpx;
+  font-size: 28rpx;
   color: #9ca3af;
 }
 

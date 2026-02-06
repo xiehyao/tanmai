@@ -334,6 +334,55 @@ Page({
     }
   },
 
+  // 思考区专用：仅解析校友名可点击，不做 ### 和 ** 转义
+  parseThinkingSegments(text, alumniList) {
+    if (!text || typeof text !== 'string') return []
+    const preprocess = (t) => {
+      t = t.replace(/^---+$/gm, '').replace(/```[\s\S]*?```/g, '').replace(/(^|\n)\s*[-*•]?\s*id\s*=\s*\d+\s*[:：]?\s*/gi, '$1').replace(/[（(]\s*id\s*=\s*\d+\s*[)）]/gi, '').replace(/\bid\s*=\s*\d+\b/gi, '')
+      t = t.replace(/\t/g, '  ').replace(/[ \t]+\n/g, '\n')
+      return t.split(/\n/).map(line => { const m = line.match(/^([ \t]*)(.*)$/); const lead = (m && m[1]) || ''; const rest = (m && m[2]) || line; return lead + rest.replace(/[ ]{3,}/g, '  ') }).join('\n').replace(/\n{3,}/g, '\n\n').trim()
+    }
+    text = preprocess(text)
+    const nameMap = []
+    const seen = new Set()
+    for (const a of alumniList || []) {
+      const name = (a.name || a.nickname || '').trim()
+      const nickname = (a.nickname || '').trim()
+      const userId = a.id || a.user_id
+      if (name && !seen.has(name)) { seen.add(name); nameMap.push({ name, userId }) }
+      if (name && nickname && name !== nickname) {
+        const nwn = `${name} (${nickname})`
+        if (!seen.has(nwn)) { seen.add(nwn); nameMap.push({ name: nwn, userId }) }
+      }
+    }
+    nameMap.sort((a, b) => (b.name.length - a.name.length))
+    const segments = []
+    let idx = 0
+    const lines = text.split(/\n/)
+    for (let L = 0; L < lines.length; L++) {
+      const line = lines[L]
+      let i = 0
+      while (i < line.length) {
+        let bestAlumni = null
+        let bestStart = line.length
+        for (const n of nameMap) {
+          const p = line.indexOf(n.name, i)
+          if (p !== -1 && p < bestStart) { bestStart = p; bestAlumni = n }
+        }
+        if (bestAlumni) {
+          if (i < bestStart) segments.push({ type: 'text', value: line.substring(i, bestStart), idx: idx++ })
+          segments.push({ type: 'alumni', userId: bestAlumni.userId, name: bestAlumni.name, idx: idx++ })
+          i = bestStart + bestAlumni.name.length
+        } else {
+          segments.push({ type: 'text', value: line.substring(i), idx: idx++ })
+          break
+        }
+      }
+      if (L < lines.length - 1) segments.push({ type: 'text', value: '\n', idx: idx++ })
+    }
+    return segments.length ? segments : [{ type: 'text', value: text, idx: 0 }]
+  },
+
   // 解析 **粗体** 内部内容，提取其中的校友名为可点击段（如 **谢怀遥的双轨制身份** → 谢怀遥可点 + 的双轨制身份加粗）
   parseBoldInnerForAlumni(inner, nameMap) {
     const out = []
@@ -622,7 +671,7 @@ Page({
                 // 用闭包累积值保证完整，避免 setData 竞态
                 if (accumulatedReasoning) {
                   last.thinking = this.sanitizeThinking(accumulatedReasoning)
-                  last.thinkingSegments = this.parseAnswerSegments(last.thinking, alumniList)
+                  last.thinkingSegments = this.parseThinkingSegments(last.thinking, alumniList)
                 }
                 if (accumulatedContent) {
                   if (accumulatedReasoning) {
@@ -633,7 +682,7 @@ Page({
                     const parts = this.parseThinkingAndAnswer(accumulatedContent)
                     last.thinking = parts.thinking
                     last.answer = parts.answer
-                    if (last.thinking) last.thinkingSegments = this.parseAnswerSegments(last.thinking, alumniList)
+                    if (last.thinking) last.thinkingSegments = this.parseThinkingSegments(last.thinking, alumniList)
                     if (last.answer) last.answerSegments = this.parseAnswerSegments(last.answer, alumniList)
                     last.answer = this.sanitizeMarkdown(last.answer)
                   }
@@ -694,7 +743,7 @@ Page({
                 updatedMessages[assistantMessageIndex].thinking = sanitized
                 updatedMessages[assistantMessageIndex].content = (updatedMessages[assistantMessageIndex].content || '') + data.reasoning
                 const alumniList = (streamAlumniList && streamAlumniList.length > 0) ? streamAlumniList : (this.data.alumniList || [])
-                updatedMessages[assistantMessageIndex].thinkingSegments = this.parseAnswerSegments(sanitized, alumniList)
+                updatedMessages[assistantMessageIndex].thinkingSegments = this.parseThinkingSegments(sanitized, alumniList)
                 this.setData({ messages: updatedMessages })
                 this.updateLastAssistant(updatedMessages)
                 this.maybeSetFeedbackReady(updatedMessages[assistantMessageIndex])
@@ -718,7 +767,7 @@ Page({
                   cur.answer = parts.answer
                 }
                 const alumniList = (streamAlumniList && streamAlumniList.length > 0) ? streamAlumniList : (this.data.alumniList || [])
-                if (cur.thinking) cur.thinkingSegments = this.parseAnswerSegments(cur.thinking, alumniList)
+                if (cur.thinking) cur.thinkingSegments = this.parseThinkingSegments(cur.thinking, alumniList)
                 if (cur.answer) {
                   cur.answerSegments = this.parseAnswerSegments(cur.answer, alumniList)
                 } else if (cur.content) {
