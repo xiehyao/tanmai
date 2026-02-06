@@ -189,6 +189,22 @@ Page({
     }
   },
 
+  // 将 markdown 转为纯文字显示（避免 ### ** 等符号直接展示）
+  sanitizeMarkdown(text) {
+    if (!text || typeof text !== 'string') return text
+    return text
+      .replace(/^#{1,6}\s*/gm, '')           // ### 标题
+      .replace(/\*\*([^*]+)\*\*/g, '$1')     // **粗体**
+      .replace(/\*([^*]+)\*/g, '$1')         // *斜体*
+      .replace(/^---+$/gm, '')               // --- 分隔线
+      .replace(/```[\s\S]*?```/g, '')        // 代码块
+      .replace(/`([^`]+)`/g, '$1')           // 行内代码
+      .replace(/^\s*\|\s*[-:]+\s*\|/gm, '')  // 表格分隔行
+      .replace(/\|/g, ' ')                   // 表格竖线
+      .replace(/\n{3,}/g, '\n\n')            // 多余空行
+      .trim()
+  },
+
   // 解析思考过程和正式答案
   parseThinkingAndAnswer(content) {
     // 查找分隔符 "---" 或 "---\n"
@@ -322,16 +338,23 @@ Page({
             const dataStr = line.substring(6).trim() // 去掉 "data: " 前缀并去除空白
             
             if (dataStr === '[DONE]') {
-              // 流结束
-              console.log('流式传输完成')
+              // 流结束：对助手消息做 markdown 转纯文字，避免 ### ** 等符号直接展示
+              const msgs = [...this.data.messages]
+              const last = msgs[assistantMessageIndex]
+              if (last && last.role === 'assistant') {
+                if (last.thinking) last.thinking = this.sanitizeMarkdown(last.thinking)
+                if (last.answer) last.answer = this.sanitizeMarkdown(last.answer)
+                if (last.content && !last.thinking && !last.answer) last.content = this.sanitizeMarkdown(last.content)
+              }
+              this.setData({ messages: msgs, loading: false })
+
               requestTask.abort()
-              this.setData({ loading: false })
-              
+
               // 更新当前主题的消息
               if (this.data.currentTopicId) {
                 const topics = this.data.topics.map(topic => {
                   if (topic.id === this.data.currentTopicId) {
-                    return { ...topic, messages: this.data.messages }
+                    return { ...topic, messages: msgs }
                   }
                   return topic
                 })
