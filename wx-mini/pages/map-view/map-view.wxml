@@ -1,0 +1,82 @@
+<!--pages/map-view/map-view.wxml（非 tab，可返回）-->
+<view class="map-page">
+  <canvas
+    canvas-id="roundedMarkerCanvas"
+    style="position: fixed; left: -9999px; width: 64px; height: 64px;"
+  />
+  <map
+    id="mainMap"
+    latitude="{{centerLat}}"
+    longitude="{{centerLng}}"
+    markers="{{markers}}"
+    scale="{{scale}}"
+    class="map-container"
+    bindmarkertap="onMarkerTap"
+    show-location="{{false}}"
+    enable-zoom="{{true}}"
+    enable-scroll="{{true}}"
+  ></map>
+  
+  <view class="controls">
+    <view class="control-item" bindtap="getMyLocation">
+      <text>定位</text>
+    </view>
+    <view class="control-item" bindtap="showFilterModal">
+      <text>筛选</text>
+    </view>
+  </view>
+  
+  <view class="friend-list">
+    <view 
+      wx:for="{{nearbyFriends}}" 
+      wx:key="user_id"
+      class="friend-item"
+      bindtap="viewFriend"
+      data-friend="{{item}}"
+    >
+      <image
+        class="avatar"
+        src="{{item.avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
+        mode="aspectFill"
+      />
+      <view class="friend-info">
+        <text class="name">{{item.displayName}}</text>
+        <text class="distance">距离 {{item.distance}}km</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card-modal-mask" wx:if="{{showCardModal}}" bindtap="closeCardModal">
+    <view class="card-modal-content card-modal-new" catchtap="stopPropagation">
+      <text class="card-modal-close-icon" catchtap="closeCardModal">×</text>
+      <view class="card-modal-body card-modal-body-new">
+        <view class="map-card-inner link-inner-card-style">
+          <view class="my-card-main">
+            <image
+              class="avatar"
+              src="{{cardData.display_avatar || cardData.avatar || cardData.selected_avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
+              mode="aspectFill"
+            />
+            <view class="my-card-info">
+              <text class="my-name">{{cardData.name || cardData.nickname || '未设置'}}</text><text class="my-name-nickname" wx:if="{{cardData.nickname && cardData.name && cardData.name !== cardData.nickname}}">({{cardData.nickname}})</text>
+              <text class="my-line wechat-id-line" wx:if="{{cardData.wechat_id}}">微信ID: {{cardData.wechat_id}}</text>
+              <text class="my-line company">{{(cardData.company || '') + (cardData.company && cardData.title ? ' ' : '') + (cardData.title || '')}}</text>
+            </view>
+          </view>
+          <view class="my-card-extra">
+            <text class="my-line">{{cardData.phone ? (cardData.phone) : ''}}</text>
+            <text class="my-line" wx:if="{{cardData.email}}">{{cardData.email}}</text>
+            <text class="my-line address">{{cardData.address || ''}}</text>
+          </view>
+          <view class="map-card-detail-btn-wrap">
+            <button class="detail-btn" bindtap="goToAlumniProfile">查看详情</button>
+          </view>
+          <view class="map-card-placeholder"></view>
+        </view>
+        <view class="map-card-bio" wx:if="{{cardData.bio}}">
+          <text class="bio-text">{{cardData.bio}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

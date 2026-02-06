@@ -45,10 +45,10 @@
       <view class="section-header">
         <text class="section-title">附近校友</text>
       </view>
-      <view class="section-card nearby-card" bindtap="goToMap">
+      <view class="section-card nearby-card" bindtap="goToMapView">
         <text class="placeholder-text">填好地址后，地图上会出现您附近校友，可一起喝茶聊天。</text>
           <view class="nearby-avatars">
-            <view class="nearby-item" wx:for="{{nearbyDisplay}}" wx:key="user_id">
+            <view class="nearby-item" wx:for="{{nearbyDisplay}}" wx:key="user_id" catchtap="onAlumniAvatarTap" data-item="{{item}}">
               <image
                 class="nearby-avatar"
                 src="{{item.avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
@@ -57,7 +57,7 @@
               <text class="nearby-name">{{item.displayName || '校友'}}</text>
             </view>
           </view>
-        <button class="secondary-btn">打开周边朋友地图</button>
+        <button class="secondary-btn" catchtap="goToMapView">打开周边朋友地图</button>
       </view>
     </view>
 
@@ -141,7 +141,7 @@
               >{{item.label}}</view>
             </view>
             <view class="alumni-grid">
-              <view class="nearby-item" wx:for="{{currentAlumniList}}" wx:key="user_id">
+              <view class="nearby-item" wx:for="{{currentAlumniList}}" wx:key="user_id" catchtap="onAlumniAvatarTap" data-user-id="{{item.user_id}}" data-lat="{{item.latitude}}" data-lng="{{item.longitude}}">
                 <image
                   class="nearby-avatar"
                   src="{{item.avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
@@ -166,4 +166,36 @@
       </view>
     </view>
   </scroll-view>
+
+  <!-- 校友名片半屏弹层（点击校友头像弹出） -->
+  <view class="alumni-card-mask" wx:if="{{showAlumniCard}}" bindtap="closeAlumniCard"></view>
+  <view class="alumni-card-modal {{showAlumniCard ? 'show' : ''}}" catchtap="stopPropagation">
+    <text class="alumni-card-close" catchtap="closeAlumniCard">×</text>
+    <view class="alumni-card-body">
+      <view class="alumni-card-main">
+        <image
+          class="alumni-card-avatar"
+          src="{{alumniCardData.display_avatar || alumniCardData.avatar || alumniCardData.selected_avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
+          mode="aspectFill"
+        />
+        <view class="alumni-card-info">
+          <text class="alumni-card-name">{{alumniCardData.name || alumniCardData.nickname || '校友'}}</text>
+          <text class="alumni-card-nickname" wx:if="{{alumniCardData.nickname && alumniCardData.name && alumniCardData.name !== alumniCardData.nickname}}">({{alumniCardData.nickname}})</text>
+          <text class="alumni-card-line" wx:if="{{alumniCardData.wechat_id}}">微信ID: {{alumniCardData.wechat_id}}</text>
+          <text class="alumni-card-line">{{(alumniCardData.company || '') + (alumniCardData.company && alumniCardData.title ? ' ' : '') + (alumniCardData.title || '')}}</text>
+        </view>
+      </view>
+      <view class="alumni-card-extra">
+        <text class="alumni-card-line" wx:if="{{alumniCardData.phone}}">{{alumniCardData.phone}}</text>
+        <text class="alumni-card-line" wx:if="{{alumniCardData.email}}">{{alumniCardData.email}}</text>
+        <text class="alumni-card-line address" wx:if="{{alumniCardData.address}}">{{alumniCardData.address}}</text>
+      </view>
+      <view class="alumni-card-detail-btn-wrap">
+        <button class="alumni-card-detail-btn" bindtap="goToAlumniProfileFromCard">查看详情</button>
+      </view>
+    </view>
+    <view class="alumni-card-bio" wx:if="{{alumniCardData.bio}}">
+      <text class="alumni-card-bio-text">{{alumniCardData.bio}}</text>
+    </view>
+  </view>
 </view>

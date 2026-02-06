@@ -2,6 +2,7 @@
   "pages": [
     "pages/index/index",
     "pages/map/map",
+    "pages/map-view/map-view",
     "pages/alumni-link/alumni-link",
     "pages/assistant/assistant",
     "pages/profile/profile",

@@ -117,6 +117,8 @@ Page({
   data: {
     user: {},
     nearbyFriends: [],
+    showAlumniCard: false,
+    alumniCardData: {},
     _loginModalShown: false,  // 防止 onLoad/onShow 重复弹「请先登录」
     nearbyDisplay: getRandomPlaceholders(8, 'ph-'),
     alumniTabList: ALUMNI_TAB_LIST,
@@ -224,6 +226,58 @@ Page({
   goToMap() {
     wx.switchTab({ url: '/pages/map/map' })
   },
+
+  // 跳转到地图页（可返回，用于首页「打开周边朋友地图」）
+  goToMapView() {
+    wx.navigateTo({ url: '/pages/map-view/map-view' })
+  },
+
+  // 点击校友头像：有位置则定位+弹名片，无位置则仅弹名片
+  async onAlumniAvatarTap(e) {
+    const dataset = e.currentTarget.dataset || {}
+    const userId = dataset.userId || dataset.user_id
+    if (!userId) return
+    const lat = dataset.lat != null && dataset.lat !== '' ? parseFloat(dataset.lat) : null
+    const lng = dataset.lng != null && dataset.lng !== '' ? parseFloat(dataset.lng) : null
+    if (lat != null && lng != null) {
+      wx.navigateTo({ url: `/pages/map-view/map-view?user_id=${userId}&lat=${lat}&lng=${lng}` })
+    } else {
+      await this.loadAlumniCard(userId)
+    }
+  },
+
+  async loadAlumniCard(userId) {
+    wx.showLoading({ title: '加载中...' })
+    try {
+      const res = await request.get(`/api/users/${userId}`)
+      if (res.success && res.data) {
+        const cardData = { ...res.data }
+        if (cardData.selected_avatar) cardData.display_avatar = cardData.selected_avatar
+        else if (cardData.avatar) cardData.display_avatar = cardData.avatar
+        this.setData({ alumniCardData: cardData, showAlumniCard: true })
+      } else {
+        wx.showToast({ title: res.error || '加载失败', icon: 'none' })
+      }
+    } catch (err) {
+      wx.showToast({ title: '加载失败', icon: 'none' })
+    } finally {
+      wx.hideLoading()
+    }
+  },
+
+  closeAlumniCard() {
+    this.setData({ showAlumniCard: false, alumniCardData: {} })
+  },
+
+  goToAlumniProfileFromCard() {
+    const d = this.data.alumniCardData
+    const uid = d && (d.id || d.user_id)
+    if (!uid) return
+    this.closeAlumniCard()
+    wx.navigateTo({ url: `/pages/alumni-profile/alumni-profile?user_id=${uid}` })
+  },
+
+  stopPropagation() {},
 
   goToAssistant() {
     wx.switchTab({ url: '/pages/assistant/assistant' })
