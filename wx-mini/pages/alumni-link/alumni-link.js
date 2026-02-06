@@ -56,22 +56,6 @@ Page({
     lastAssistantMsgIndex: -1
   },
 
-  observers: {
-    'messages, loading': function(messages, loading) {
-      const msgs = messages || this.data.messages || []
-      let last = null
-      let lastIdx = -1
-      for (let i = msgs.length - 1; i >= 0; i--) {
-        if (msgs[i] && msgs[i].role === 'assistant') {
-          last = msgs[i]
-          lastIdx = i
-          break
-        }
-      }
-      this.setData({ lastAssistantMsg: last, lastAssistantMsgIndex: lastIdx })
-    }
-  },
-
   onLoad() {
     // 获取用户昵称
     const user = app.globalData.user || {}
@@ -253,11 +237,30 @@ Page({
       .replace(/^\s*\|\s*[-:]+\s*\|/gm, '')  // 表格分隔行
       .replace(/\|/g, ' ')                   // 表格竖线
       .replace(/\n{3,}/g, '\n\n')            // 多余空行
-      .replace(/\s*\[?id\s*=\s*\d+\]?\s*/gi, ' ')   // [id=3] 或 id=3
-      .replace(/\s*-\s*id\s*=\s*\d+\s*:\s*/gi, ' ') // - id=3:
-      .replace(/\s*id\s*=\s*\d+\s*:\s*/gi, ' ')     // id=3:
+      // 行首/列表中的 id=3: / id=3： 之类前缀
+      .replace(/(^|\n)\s*[-*•]?\s*id\s*=\s*\d+\s*[:：]?\s*/gi, '$1')
+      // 文中括号形式 (id=3) / （id=3）
+      .replace(/[（(]\s*id\s*=\s*\d+\s*[)）]/gi, '')
+      // 其余裸露的 id=3
+      .replace(/\bid\s*=\s*\d+\b/gi, '')
       .replace(/\s{2,}/g, ' ')               // 多余空格
       .trim()
+  },
+
+  // 计算并缓存最后一条助手消息（用于固定反馈栏）
+  updateLastAssistant(messages) {
+    const msgs = messages || this.data.messages || []
+    let last = null
+    let lastIdx = -1
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      const m = msgs[i]
+      if (m && m.role === 'assistant') {
+        last = m
+        lastIdx = i
+        break
+      }
+    }
+    this.setData({ lastAssistantMsg: last, lastAssistantMsgIndex: lastIdx })
   },
 
   // 将答案/内容文本解析为段落（普通文本 + 可点击校友姓名）
@@ -376,6 +379,7 @@ Page({
       loading: true,
       showCardsInline: false // 发送后收起内联卡片
     })
+    this.updateLastAssistant(newMessages)
 
     // 滚动到底部
     setTimeout(() => {
@@ -451,7 +455,7 @@ Page({
           if (line.startsWith('data: ')) {
             const dataStr = line.substring(6).trim() // 去掉 "data: " 前缀并去除空白
             
-            if (dataStr === '[DONE]') {
+              if (dataStr === '[DONE]') {
               // 流结束：对助手消息做 markdown 转纯文字，并解析校友姓名可点击
               const msgs = [...this.data.messages]
               const last = msgs[assistantMessageIndex]
@@ -468,6 +472,7 @@ Page({
                 }
               }
               this.setData({ messages: msgs, loading: false })
+              this.updateLastAssistant(msgs)
 
               requestTask.abort()
 
@@ -515,6 +520,7 @@ Page({
                 updatedMessages[assistantMessageIndex].thinking = (updatedMessages[assistantMessageIndex].thinking || '') + data.reasoning
                 updatedMessages[assistantMessageIndex].content = (updatedMessages[assistantMessageIndex].content || '') + data.reasoning
                 this.setData({ messages: updatedMessages })
+                this.updateLastAssistant(updatedMessages)
                 setTimeout(() => this.scrollToBottom(), 50)
               }
               
@@ -535,6 +541,7 @@ Page({
                   cur.answer = parts.answer
                 }
                 this.setData({ messages: updatedMessages })
+                this.updateLastAssistant(updatedMessages)
                 
                 // 定期滚动到底部
                 setTimeout(() => {
@@ -579,6 +586,7 @@ Page({
         hasStartedChat: topic.messages && topic.messages.length > 0,
         showHistoryDrawer: false
       })
+      this.updateLastAssistant(topic.messages || [])
       
       // 滚动到底部
       setTimeout(() => {
@@ -596,6 +604,7 @@ Page({
       activeModeIndex: 0,
       showModeSelector: false
     })
+    this.updateLastAssistant([])
   },
 
   // 阻止事件冒泡
