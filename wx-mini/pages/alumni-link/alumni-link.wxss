@@ -243,6 +243,22 @@
   margin: 16rpx 0 8rpx;
 }
 
+.answer-heading-text,
+.answer-heading-bold {
+  display: inline;
+  font-size: 32rpx;
+  font-weight: 700;
+}
+
+.alumni-name-in-heading {
+  display: inline;
+  font-size: 32rpx;
+  font-weight: 700;
+  text-decoration: underline;
+  color: #667eea;
+  padding: 0 2rpx;
+}
+
 .answer-bold {
   font-weight: 700;
   display: inline;
@@ -252,11 +268,12 @@
   font-weight: 700;
 }
 
-/* 答案段落容器（inline 流式布局，保证校友名与文字同行） */
+/* 答案段落容器（inline 流式布局，保留行首缩进表达层级） */
 .answer-segments {
   line-height: 1.8;
   word-wrap: break-word;
   word-break: break-all;
+  white-space: pre-wrap;
 }
 
 .answer-segments text,

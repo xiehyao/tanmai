@@ -61,7 +61,7 @@
             <view wx:if="{{item.answerSegments && item.answerSegments.length > 0}}" class="answer-segments">
               <block wx:for="{{item.answerSegments}}" wx:key="idx" wx:for-item="seg">
                 <text wx:if="{{seg.type === 'text'}}" class="answer-text">{{seg.value}}</text>
-                <text wx:elif="{{seg.type === 'heading'}}" class="answer-heading">{{seg.value}}</text>
+                <view wx:elif="{{seg.type === 'heading'}}" class="answer-heading"><block wx:for="{{seg.segments}}" wx:key="idx" wx:for-item="s"><text wx:if="{{s.type === 'text'}}" class="answer-heading-text">{{s.value}}</text><text wx:elif="{{s.type === 'bold'}}" class="answer-heading-bold">{{s.value}}</text><view wx:else class="alumni-name-link alumni-name-in-heading" data-user-id="{{s.userId}}" data-name="{{s.name}}" bindtap="onAlumniNameTap">{{s.name}}</view></block></view>
                 <text wx:elif="{{seg.type === 'bold'}}" class="answer-bold">{{seg.value}}</text>
                 <view wx:else class="alumni-name-link {{seg.bold ? 'alumni-name-bold' : ''}}" data-user-id="{{seg.userId}}" data-name="{{seg.name}}" bindtap="onAlumniNameTap">{{seg.name}}</view>
               </block>
@@ -73,7 +73,7 @@
             <view wx:if="{{item.contentSegments && item.contentSegments.length > 0}}" class="answer-segments">
               <block wx:for="{{item.contentSegments}}" wx:key="idx" wx:for-item="seg">
                 <text wx:if="{{seg.type === 'text'}}" class="answer-text">{{seg.value}}</text>
-                <text wx:elif="{{seg.type === 'heading'}}" class="answer-heading">{{seg.value}}</text>
+                <view wx:elif="{{seg.type === 'heading'}}" class="answer-heading"><block wx:for="{{seg.segments}}" wx:key="idx" wx:for-item="s"><text wx:if="{{s.type === 'text'}}" class="answer-heading-text">{{s.value}}</text><text wx:elif="{{s.type === 'bold'}}" class="answer-heading-bold">{{s.value}}</text><view wx:else class="alumni-name-link alumni-name-in-heading" data-user-id="{{s.userId}}" data-name="{{s.name}}" bindtap="onAlumniNameTap">{{s.name}}</view></block></view>
                 <text wx:elif="{{seg.type === 'bold'}}" class="answer-bold">{{seg.value}}</text>
                 <view wx:else class="alumni-name-link {{seg.bold ? 'alumni-name-bold' : ''}}" data-user-id="{{seg.userId}}" data-name="{{seg.name}}" bindtap="onAlumniNameTap">{{seg.name}}</view>
               </block>

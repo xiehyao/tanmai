@@ -281,10 +281,15 @@ Page({
       .replace(/[（(]\s*id\s*=\s*\d+\s*[)）]/gi, '')
       // 其余裸露的 id=3
       .replace(/\bid\s*=\s*\d+\b/gi, '')
-      .replace(/[ \t]+\n/g, '\n')            // 行尾空格/制表符（常表示换行意图）→ 保留换行
-      .replace(/\n[ \t]+/g, '\n')            // 行首空格/制表符 → 归一为换行（避免缩进堆积）
-      .replace(/\t/g, '  ')                  // 制表符 → 2 空格（保留缩进感）
-      .replace(/[ ]{3,}/g, '  ')            // 3+ 空格 → 2 空格（保留间隔感）
+      .replace(/\t/g, '  ')                   // 制表符 → 2 空格（保留层级）
+      .replace(/[ \t]+\n/g, '\n')            // 行尾空格 → 换行
+      .split(/\n/).map(line => {
+        const m = line.match(/^([ \t]*)(.*)$/)
+        const lead = (m && m[1]) || ''
+        const rest = (m && m[2]) || line
+        return lead + rest.replace(/[ ]{3,}/g, '  ')  // 仅行内 3+ 空格折叠，保留行首缩进
+      }).join('\n')
+      .replace(/\n{3,}/g, '\n\n')
       .trim()
   },
 
@@ -320,7 +325,11 @@ Page({
   // 将答案/内容文本解析为段落（### 标题、**粗体**、可点击校友姓名、普通文本）
   parseAnswerSegments(text, alumniList) {
     if (!text || typeof text !== 'string') return []
-    const preprocess = (t) => t.replace(/^---+$/gm, '').replace(/```[\s\S]*?```/g, '').replace(/(^|\n)\s*[-*•]?\s*id\s*=\s*\d+\s*[:：]?\s*/gi, '$1').replace(/[（(]\s*id\s*=\s*\d+\s*[)）]/gi, '').replace(/\bid\s*=\s*\d+\b/gi, '').replace(/[ \t]+\n/g, '\n').replace(/\n[ \t]+/g, '\n').replace(/\t/g, '  ').replace(/[ ]{3,}/g, '  ').replace(/\n{3,}/g, '\n\n').trim()
+    const preprocess = (t) => {
+      t = t.replace(/^---+$/gm, '').replace(/```[\s\S]*?```/g, '').replace(/(^|\n)\s*[-*•]?\s*id\s*=\s*\d+\s*[:：]?\s*/gi, '$1').replace(/[（(]\s*id\s*=\s*\d+\s*[)）]/gi, '').replace(/\bid\s*=\s*\d+\b/gi, '')
+      t = t.replace(/\t/g, '  ').replace(/[ \t]+\n/g, '\n')
+      return t.split(/\n/).map(line => { const m = line.match(/^([ \t]*)(.*)$/); const lead = (m && m[1]) || ''; const rest = (m && m[2]) || line; return lead + rest.replace(/[ ]{3,}/g, '  ') }).join('\n').replace(/\n{3,}/g, '\n\n').trim()
+    }
     text = preprocess(text)
     const nameMap = []
     const seen = new Set()
@@ -338,11 +347,58 @@ Page({
     const segments = []
     let idx = 0
     const lines = text.split(/\n/)
+    const parseLineToSegments = (s, nameMap, idxRef) => {
+      const out = []
+      const push = (seg) => { seg.idx = idxRef.current++; out.push(seg) }
+      const parseLine = (str) => {
+        let i = 0
+        while (i < str.length) {
+          const open = str.indexOf('**', i)
+          let bestAlumni = null
+          let bestStart = str.length
+          for (const n of nameMap) {
+            const p = str.indexOf(n.name, i)
+            if (p !== -1 && p < bestStart) { bestStart = p; bestAlumni = n }
+          }
+          if (open !== -1 && (bestAlumni === null || open <= bestStart)) {
+            const close = str.indexOf('**', open + 2)
+            if (close !== -1) {
+              if (open > i) parseLine(str.substring(i, open))
+              const inner = str.substring(open + 2, close)
+              const alum = nameMap.find(x => x.name === inner)
+              if (alum) push({ type: 'alumni', userId: alum.userId, name: alum.name, bold: true })
+              else push({ type: 'bold', value: inner })
+              i = close + 2
+              continue
+            }
+            push({ type: 'text', value: str.substring(i) })
+            break
+          }
+          if (bestAlumni) {
+            if (i < bestStart) parseLine(str.substring(i, bestStart))
+            push({ type: 'alumni', userId: bestAlumni.userId, name: bestAlumni.name })
+            i = bestStart + bestAlumni.name.length
+            continue
+          }
+          if (open !== -1 || bestAlumni) { i++; continue }
+          if (i < str.length) push({ type: 'text', value: str.substring(i) })
+          break
+        }
+      }
+      parseLine(s)
+      return out
+    }
+
     for (let L = 0; L < lines.length; L++) {
       const line = lines[L]
-      const headingMatch = line.match(/^###\s*(.*)$/)
+      const headingMatch = line.match(/^[ \t]*###\s*(.*)$/)
       if (headingMatch) {
-        segments.push({ type: 'heading', value: (headingMatch[1] || '').trim(), idx: idx++ })
+        const headingContent = (headingMatch[1] || '').trim()
+        const headIdx = idx
+        const idxRef = { current: idx }
+        const subSegs = parseLineToSegments(headingContent, nameMap, idxRef)
+        if (subSegs.length === 0) { subSegs.push({ type: 'text', value: headingContent, idx: idx }); idx++ } else { idx = idxRef.current }
+        segments.push({ type: 'heading', segments: subSegs, idx: headIdx })
         continue
       }
       const parseLine = (s) => {
