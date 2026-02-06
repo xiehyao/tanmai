@@ -232,15 +232,18 @@ Page({
     wx.navigateTo({ url: '/pages/map-view/map-view' })
   },
 
-  // 点击校友头像：有位置则定位+弹名片，无位置则仅弹名片
+  // 点击校友头像：「附近校友」一律跳地图页并定位+弹名片；「校友连连看」有位置则跳地图，无则首页弹名片
   async onAlumniAvatarTap(e) {
     const dataset = e.currentTarget.dataset || {}
     const userId = dataset.userId || dataset.user_id
     if (!userId) return
+    const fromNearby = dataset.from === 'nearby'
     const lat = dataset.lat != null && dataset.lat !== '' ? parseFloat(dataset.lat) : null
     const lng = dataset.lng != null && dataset.lng !== '' ? parseFloat(dataset.lng) : null
-    if (lat != null && lng != null) {
-      wx.navigateTo({ url: `/pages/map-view/map-view?user_id=${userId}&lat=${lat}&lng=${lng}` })
+    if (fromNearby || (lat != null && lng != null)) {
+      let url = `/pages/map-view/map-view?user_id=${userId}`
+      if (lat != null && lng != null && !isNaN(lat) && !isNaN(lng)) url += `&lat=${lat}&lng=${lng}`
+      wx.navigateTo({ url })
     } else {
       await this.loadAlumniCard(userId)
     }

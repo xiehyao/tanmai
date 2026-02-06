@@ -48,7 +48,7 @@
       <view class="section-card nearby-card" bindtap="goToMapView">
         <text class="placeholder-text">填好地址后，地图上会出现您附近校友，可一起喝茶聊天。</text>
           <view class="nearby-avatars">
-            <view class="nearby-item" wx:for="{{nearbyDisplay}}" wx:key="user_id" catchtap="onAlumniAvatarTap" data-item="{{item}}">
+            <view class="nearby-item" wx:for="{{nearbyDisplay}}" wx:key="user_id" catchtap="onAlumniAvatarTap" data-from="nearby" data-user-id="{{item.user_id}}" data-lat="{{item.latitude}}" data-lng="{{item.longitude}}">
               <image
                 class="nearby-avatar"
                 src="{{item.avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
