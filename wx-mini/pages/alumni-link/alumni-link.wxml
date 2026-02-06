@@ -61,7 +61,9 @@
             <view wx:if="{{item.answerSegments && item.answerSegments.length > 0}}" class="answer-segments">
               <block wx:for="{{item.answerSegments}}" wx:key="idx" wx:for-item="seg">
                 <text wx:if="{{seg.type === 'text'}}" class="answer-text">{{seg.value}}</text>
-                <view wx:else class="alumni-name-link" data-user-id="{{seg.userId}}" data-name="{{seg.name}}" bindtap="onAlumniNameTap">{{seg.name}}</view>
+                <text wx:elif="{{seg.type === 'heading'}}" class="answer-heading">{{seg.value}}</text>
+                <text wx:elif="{{seg.type === 'bold'}}" class="answer-bold">{{seg.value}}</text>
+                <view wx:else class="alumni-name-link {{seg.bold ? 'alumni-name-bold' : ''}}" data-user-id="{{seg.userId}}" data-name="{{seg.name}}" bindtap="onAlumniNameTap">{{seg.name}}</view>
               </block>
             </view>
             <text wx:else class="answer-text">{{item.answer}}</text>
@@ -71,7 +73,9 @@
             <view wx:if="{{item.contentSegments && item.contentSegments.length > 0}}" class="answer-segments">
               <block wx:for="{{item.contentSegments}}" wx:key="idx" wx:for-item="seg">
                 <text wx:if="{{seg.type === 'text'}}" class="answer-text">{{seg.value}}</text>
-                <view wx:else class="alumni-name-link" data-user-id="{{seg.userId}}" data-name="{{seg.name}}" bindtap="onAlumniNameTap">{{seg.name}}</view>
+                <text wx:elif="{{seg.type === 'heading'}}" class="answer-heading">{{seg.value}}</text>
+                <text wx:elif="{{seg.type === 'bold'}}" class="answer-bold">{{seg.value}}</text>
+                <view wx:else class="alumni-name-link {{seg.bold ? 'alumni-name-bold' : ''}}" data-user-id="{{seg.userId}}" data-name="{{seg.name}}" bindtap="onAlumniNameTap">{{seg.name}}</view>
               </block>
             </view>
             <text wx:else class="answer-text">{{item.content}}</text>
@@ -117,6 +121,7 @@
 
     <!-- 固定反馈栏（置于输入区上方，回答足够长或已结束时始终可见） -->
     <view wx:if="{{lastAssistantMsg && (lastAssistantMsg.thinking || lastAssistantMsg.answer || lastAssistantMsg.content) && !lastAssistantMsg.feedback && feedbackReady}}" class="feedback-bar-fixed">
+      <view class="feedback-hint-line">点击校友名字，可以查看校友详细信息</view>
       <view class="feedback-row-top">
         <text class="feedback-label">这篇回复有帮助吗？</text>
         <text class="copy-icon" data-index="{{lastAssistantMsgIndex}}" bindtap="onCopyContent">📋 复制内容</text>

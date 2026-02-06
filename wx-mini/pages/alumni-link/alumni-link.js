@@ -314,61 +314,73 @@ Page({
     }
   },
 
-  // 将答案/内容文本解析为段落（普通文本 + 可点击校友姓名）
+  // 将答案/内容文本解析为段落（### 标题、**粗体**、可点击校友姓名、普通文本）
   parseAnswerSegments(text, alumniList) {
     if (!text || typeof text !== 'string') return []
-    if (!alumniList || alumniList.length === 0) return [{ type: 'text', value: text }]
-    const nameMap = [] // [{name, userId}]
+    const preprocess = (t) => t.replace(/^---+$/gm, '').replace(/```[\s\S]*?```/g, '').replace(/(^|\n)\s*[-*•]?\s*id\s*=\s*\d+\s*[:：]?\s*/gi, '$1').replace(/[（(]\s*id\s*=\s*\d+\s*[)）]/gi, '').replace(/\bid\s*=\s*\d+\b/gi, '').replace(/\s{2,}/g, ' ').trim()
+    text = preprocess(text)
+    const nameMap = []
     const seen = new Set()
-    for (const a of alumniList) {
+    for (const a of alumniList || []) {
       const name = (a.name || a.nickname || '').trim()
       const nickname = (a.nickname || '').trim()
       const userId = a.id || a.user_id
-      if (name && !seen.has(name)) {
-        seen.add(name)
-        nameMap.push({ name, userId })
-      }
+      if (name && !seen.has(name)) { seen.add(name); nameMap.push({ name, userId }) }
       if (name && nickname && name !== nickname) {
-        const nameWithNick = `${name} (${nickname})`
-        if (!seen.has(nameWithNick)) {
-          seen.add(nameWithNick)
-          nameMap.push({ name: nameWithNick, userId })
-        }
+        const nwn = `${name} (${nickname})`
+        if (!seen.has(nwn)) { seen.add(nwn); nameMap.push({ name: nwn, userId }) }
       }
     }
-    if (nameMap.length === 0) return [{ type: 'text', value: text }]
     nameMap.sort((a, b) => (b.name.length - a.name.length))
     const segments = []
-    let i = 0
     let idx = 0
-    while (i < text.length) {
-      let matched = false
-      for (const { name, userId } of nameMap) {
-        if (text.substring(i, i + name.length) === name) {
-          segments.push({ type: 'alumni', userId, name, idx: idx++ })
-          i += name.length
-          matched = true
+    const lines = text.split(/\n/)
+    for (let L = 0; L < lines.length; L++) {
+      const line = lines[L]
+      const headingMatch = line.match(/^###\s*(.*)$/)
+      if (headingMatch) {
+        segments.push({ type: 'heading', value: (headingMatch[1] || '').trim(), idx: idx++ })
+        continue
+      }
+      const parseLine = (s) => {
+        let i = 0
+        while (i < s.length) {
+          const open = s.indexOf('**', i)
+          let bestAlumni = null
+          let bestStart = s.length
+          for (const { name } of nameMap) {
+            const p = s.indexOf(name, i)
+            if (p !== -1 && p < bestStart) { bestStart = p; bestAlumni = { name, userId: nameMap.find(x => x.name === name).userId } }
+          }
+          if (open !== -1 && (bestAlumni === null || open <= bestStart)) {
+            const close = s.indexOf('**', open + 2)
+            if (close !== -1) {
+              if (open > i) parseLine(s.substring(i, open))
+              const inner = s.substring(open + 2, close)
+              const alum = nameMap.find(x => x.name === inner)
+              if (alum) segments.push({ type: 'alumni', userId: alum.userId, name: alum.name, bold: true, idx: idx++ })
+              else segments.push({ type: 'bold', value: inner, idx: idx++ })
+              i = close + 2
+              continue
+            }
+            segments.push({ type: 'text', value: s.substring(i), idx: idx++ })
+            break
+          }
+          if (bestAlumni) {
+            if (bestAlumni.name.length > 0 && i < bestStart) parseLine(s.substring(i, bestStart))
+            segments.push({ type: 'alumni', userId: bestAlumni.userId, name: bestAlumni.name, idx: idx++ })
+            i = bestStart + bestAlumni.name.length
+            continue
+          }
+          if (open !== -1 || bestAlumni) { i++; continue }
+          if (i < s.length) segments.push({ type: 'text', value: s.substring(i), idx: idx++ })
           break
         }
       }
-      if (!matched) {
-        let j = i + 1
-        while (j < text.length) {
-          let anyMatch = false
-          for (const { name } of nameMap) {
-            if (text.substring(j, j + name.length) === name) {
-              anyMatch = true
-              break
-            }
-          }
-          if (anyMatch) break
-          j++
-        }
-        segments.push({ type: 'text', value: text.substring(i, j), idx: idx++ })
-        i = j
-      }
+      parseLine(line)
+      if (L < lines.length - 1) segments.push({ type: 'text', value: '\n', idx: idx++ })
     }
-    return segments
+    return segments.length ? segments : [{ type: 'text', value: text, idx: 0 }]
   },
 
   // 解析思考过程和正式答案
@@ -512,12 +524,12 @@ Page({
               if (last && last.role === 'assistant') {
                 if (last.thinking) last.thinking = this.sanitizeMarkdown(last.thinking)
                 if (last.answer) {
-                  last.answer = this.sanitizeMarkdown(last.answer)
                   last.answerSegments = this.parseAnswerSegments(last.answer, alumniList)
+                  last.answer = this.sanitizeMarkdown(last.answer)
                 }
                 if (last.content && !last.thinking && !last.answer) {
-                  last.content = this.sanitizeMarkdown(last.content)
                   last.contentSegments = this.parseAnswerSegments(last.content, alumniList)
+                  last.content = this.sanitizeMarkdown(last.content)
                 }
               }
               this.setData({ messages: msgs, loading: false, feedbackReady: true })

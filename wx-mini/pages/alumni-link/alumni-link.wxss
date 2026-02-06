@@ -235,6 +235,23 @@
   display: block;
 }
 
+.answer-heading {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #333;
+  display: block;
+  margin: 16rpx 0 8rpx;
+}
+
+.answer-bold {
+  font-weight: 700;
+  display: inline;
+}
+
+.alumni-name-bold {
+  font-weight: 700;
+}
+
 /* 答案段落容器（inline 流式布局，保证校友名与文字同行） */
 .answer-segments {
   line-height: 1.8;
@@ -245,6 +262,10 @@
 .answer-segments text,
 .answer-segments .alumni-name-link {
   display: inline;
+}
+
+.answer-segments .answer-heading {
+  display: block;
 }
 
 /* 答案中的校友姓名（可点击，用 view 保证 tap 生效） */
@@ -260,11 +281,29 @@
 }
 
 /* 固定反馈栏（置于输入区上方，始终可见） */
+.feedback-hint-line {
+  font-size: 22rpx;
+  color: #9ca3af;
+  background: #f0f4ff;
+  border-radius: 12rpx;
+  padding: 8rpx 16rpx;
+  margin-bottom: 12rpx;
+}
+
 .feedback-bar-fixed {
   padding: 16rpx 24rpx;
   background: #fff;
   border-top: 1rpx solid #f0f0f0;
   flex-shrink: 0;
+}
+
+.feedback-hint-line {
+  font-size: 22rpx;
+  color: #9ca3af;
+  background: #f0f4ff;
+  border-radius: 12rpx;
+  padding: 8rpx 16rpx;
+  margin-bottom: 12rpx;
 }
 
 .feedback-bar-fixed .feedback-row-top {
