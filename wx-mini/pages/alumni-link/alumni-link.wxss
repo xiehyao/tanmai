@@ -216,6 +216,11 @@
   white-space: pre-wrap;
 }
 
+/* 思考区文本用 inline，与校友名同行不换行；换行由 \n 段负责 */
+.thinking-segments .thinking-text {
+  display: inline;
+}
+
 .thinking-segments .thinking-heading {
   display: block;
   font-size: 26rpx;

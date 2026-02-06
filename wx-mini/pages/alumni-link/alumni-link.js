@@ -581,6 +581,9 @@ Page({
       let buffer = ''
       let byteBuffer = []
       let streamAlumniList = []
+      // 闭包内累积，避免 setData 未完成时下一 chunk 读到旧数据导致清空/重播
+      let accumulatedReasoning = ''
+      let accumulatedContent = ''
       requestTask.onChunkReceived((res) => {
         if (typeof res.data === 'string') {
           buffer += res.data
@@ -616,13 +619,24 @@ Page({
               const last = msgs[assistantMessageIndex]
               const alumniList = (streamAlumniList && streamAlumniList.length > 0) ? streamAlumniList : (this.data.alumniList || [])
               if (last && last.role === 'assistant') {
-                if (last.thinking) {
-                  last.thinking = this.sanitizeThinking(last.thinking)
+                // 用闭包累积值保证完整，避免 setData 竞态
+                if (accumulatedReasoning) {
+                  last.thinking = this.sanitizeThinking(accumulatedReasoning)
                   last.thinkingSegments = this.parseAnswerSegments(last.thinking, alumniList)
                 }
-                if (last.answer) {
-                  last.answerSegments = this.parseAnswerSegments(last.answer, alumniList)
-                  last.answer = this.sanitizeMarkdown(last.answer)
+                if (accumulatedContent) {
+                  if (accumulatedReasoning) {
+                    last.answer = accumulatedContent
+                    last.answerSegments = this.parseAnswerSegments(last.answer, alumniList)
+                    last.answer = this.sanitizeMarkdown(last.answer)
+                  } else {
+                    const parts = this.parseThinkingAndAnswer(accumulatedContent)
+                    last.thinking = parts.thinking
+                    last.answer = parts.answer
+                    if (last.thinking) last.thinkingSegments = this.parseAnswerSegments(last.thinking, alumniList)
+                    if (last.answer) last.answerSegments = this.parseAnswerSegments(last.answer, alumniList)
+                    last.answer = this.sanitizeMarkdown(last.answer)
+                  }
                 }
                 if (last.content && !last.thinking && !last.answer) {
                   last.contentSegments = this.parseAnswerSegments(last.content, alumniList)
@@ -674,9 +688,9 @@ Page({
               
               // DeepSeek R1 的 reasoning：深度思考过程，实时展示（去除提示词泄漏和 id=xx，校友名可点击）
               if (data.reasoning) {
+                accumulatedReasoning += data.reasoning
+                const sanitized = this.sanitizeThinking(accumulatedReasoning)
                 const updatedMessages = [...this.data.messages]
-                const raw = (updatedMessages[assistantMessageIndex].thinking || '') + data.reasoning
-                const sanitized = this.sanitizeThinking(raw)
                 updatedMessages[assistantMessageIndex].thinking = sanitized
                 updatedMessages[assistantMessageIndex].content = (updatedMessages[assistantMessageIndex].content || '') + data.reasoning
                 const alumniList = (streamAlumniList && streamAlumniList.length > 0) ? streamAlumniList : (this.data.alumniList || [])
@@ -688,18 +702,18 @@ Page({
               }
               
               if (data.content) {
+                accumulatedContent += data.content
                 const updatedMessages = [...this.data.messages]
                 const cur = updatedMessages[assistantMessageIndex]
-                const hasReasoning = !!(cur.thinking && cur.thinking.length > 0)
+                const hasReasoning = accumulatedReasoning.length > 0
                 if (hasReasoning) {
                   // 已有 reasoning：content 即正式回答
-                  cur.answer = (cur.answer || '') + data.content
-                  cur.content = (cur.content || '') + data.content
+                  cur.answer = accumulatedContent
+                  cur.content = accumulatedReasoning + accumulatedContent
                 } else {
                   // 无 reasoning：用 --- 分割 thinking/answer（兼容旧模型）
-                  const currentContent = (cur.content || '') + data.content
-                  const parts = this.parseThinkingAndAnswer(currentContent)
-                  cur.content = currentContent
+                  const parts = this.parseThinkingAndAnswer(accumulatedContent)
+                  cur.content = accumulatedContent
                   cur.thinking = parts.thinking
                   cur.answer = parts.answer
                 }
