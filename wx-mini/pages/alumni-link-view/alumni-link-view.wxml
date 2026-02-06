@@ -1,0 +1,297 @@
+<!--pages/alumni-link/alumni-link.wxml-->
+<view class="alumni-link-page">
+  <!-- 对话区域（全宽） -->
+  <view class="chat-container">
+    <!-- 对话历史（包含问候语和消息） -->
+    <scroll-view class="chat-history" scroll-y="true" scroll-top="{{scrollTop}}" scroll-with-animation="true">
+      <!-- 顶部问候语（移到滚动区域内） -->
+      <view class="greeting-section">
+        <text class="greeting-text">Hi, {{userNickname || '校友'}}</text>
+      </view>
+
+      <!-- 场景卡片区域（未开始对话时显示） -->
+      <view class="mode-cards-section" wx:if="{{!hasStartedChat}}">
+        <view class="mode-cards-grid">
+          <view
+            wx:for="{{modes}}"
+            wx:key="index"
+            class="mode-card {{index === activeModeIndex ? 'active' : ''}}"
+            data-index="{{index}}"
+            bindtap="onSelectModeCard"
+          >
+            <text class="mode-card-icon">{{item.icon}}</text>
+            <text class="mode-card-text">{{item.label}}</text>
+            <text class="mode-card-desc">{{item.desc}}</text>
+          </view>
+        </view>
+        <!-- 示例问题（可点击填充） -->
+        <view class="examples-section" wx:if="{{modes[activeModeIndex] && modes[activeModeIndex].examples}}">
+          <text class="examples-title">试试这样问：</text>
+          <view class="examples-list">
+            <view
+              wx:for="{{modes[activeModeIndex].examples}}"
+              wx:for-item="ex"
+              wx:key="*this"
+              class="example-chip"
+              data-text="{{ex}}"
+              bindtap="onExampleTap"
+            >
+              <text class="example-text">{{ex}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{messages.length === 0 && hasStartedChat}}" class="empty-message">
+        <text class="empty-text">我是校友AI匹配助手，可以根据你的需求在校友中做智能推荐。</text>
+      </view>
+      <view wx:for="{{messages}}" wx:key="index" class="msg-item {{item.role}}">
+        <!-- 助手消息：区分思考过程和正式答案 -->
+        <view wx:if="{{item.role === 'assistant'}}" class="assistant-msg-wrapper">
+          <!-- 思考过程（校友名可点击，保留换行） -->
+          <view wx:if="{{item.thinking}}" class="thinking-section">
+            <view wx:if="{{item.thinkingSegments && item.thinkingSegments.length > 0}}" class="thinking-segments"><block wx:for="{{item.thinkingSegments}}" wx:key="idx" wx:for-item="seg"><text wx:if="{{seg.type === 'text'}}" class="thinking-text">{{seg.value}}</text><text wx:else class="alumni-name-link alumni-name-in-thinking" data-user-id="{{seg.userId}}" data-name="{{seg.name}}" bindtap="onAlumniNameTap">{{seg.name}}</text></block></view>
+            <text wx:else class="thinking-text">{{item.thinking}}</text>
+          </view>
+          <!-- 正在思考中（仅在流式输出中：有 thinking 但尚无 answer 时，放在中间） -->
+          <view wx:if="{{loading && index === messages.length - 1 && item.thinking && !item.answer}}" class="thinking-loading-indicator">
+            <text class="thinking-loading-text">正在思考中...</text>
+          </view>
+          <!-- 正式答案（校友姓名用 view 包裹以保证点击有效） -->
+          <view wx:if="{{item.answer}}" class="answer-bubble">
+            <view wx:if="{{item.answerSegments && item.answerSegments.length > 0}}" class="answer-segments">
+              <block wx:for="{{item.answerSegments}}" wx:key="idx" wx:for-item="seg">
+                <text wx:if="{{seg.type === 'text'}}" class="answer-text">{{seg.value}}</text>
+                <view wx:elif="{{seg.type === 'heading'}}" class="answer-heading"><block wx:for="{{seg.segments}}" wx:key="idx" wx:for-item="s"><text wx:if="{{s.type === 'text'}}" class="answer-heading-text">{{s.value}}</text><text wx:elif="{{s.type === 'bold'}}" class="answer-heading-bold">{{s.value}}</text><view wx:else class="alumni-name-link alumni-name-in-heading" data-user-id="{{s.userId}}" data-name="{{s.name}}" bindtap="onAlumniNameTap">{{s.name}}</view></block></view>
+                <text wx:elif="{{seg.type === 'bold'}}" class="answer-bold">{{seg.value}}</text>
+                <view wx:else class="alumni-name-link {{seg.bold ? 'alumni-name-bold' : ''}}" data-user-id="{{seg.userId}}" data-name="{{seg.name}}" bindtap="onAlumniNameTap">{{seg.name}}</view>
+              </block>
+            </view>
+            <text wx:else class="answer-text">{{item.answer}}</text>
+          </view>
+          <!-- 如果没有分离，显示原始内容 -->
+          <view wx:if="{{!item.thinking && !item.answer && item.content}}" class="answer-bubble">
+            <view wx:if="{{item.contentSegments && item.contentSegments.length > 0}}" class="answer-segments">
+              <block wx:for="{{item.contentSegments}}" wx:key="idx" wx:for-item="seg">
+                <text wx:if="{{seg.type === 'text'}}" class="answer-text">{{seg.value}}</text>
+                <view wx:elif="{{seg.type === 'heading'}}" class="answer-heading"><block wx:for="{{seg.segments}}" wx:key="idx" wx:for-item="s"><text wx:if="{{s.type === 'text'}}" class="answer-heading-text">{{s.value}}</text><text wx:elif="{{s.type === 'bold'}}" class="answer-heading-bold">{{s.value}}</text><view wx:else class="alumni-name-link alumni-name-in-heading" data-user-id="{{s.userId}}" data-name="{{s.name}}" bindtap="onAlumniNameTap">{{s.name}}</view></block></view>
+                <text wx:elif="{{seg.type === 'bold'}}" class="answer-bold">{{seg.value}}</text>
+                <view wx:else class="alumni-name-link {{seg.bold ? 'alumni-name-bold' : ''}}" data-user-id="{{seg.userId}}" data-name="{{seg.name}}" bindtap="onAlumniNameTap">{{seg.name}}</view>
+              </block>
+            </view>
+            <text wx:else class="answer-text">{{item.content}}</text>
+          </view>
+        </view>
+        <!-- 用户消息 -->
+        <view wx:else class="msg-bubble">
+          <text class="msg-text">{{item.content}}</text>
+        </view>
+      </view>
+      <!-- 对话后内联卡片（从半屏选择后插入） -->
+      <view wx:if="{{hasStartedChat && showCardsInline}}" class="mode-cards-section inline-cards">
+        <view class="mode-cards-grid">
+          <view
+            wx:for="{{modes}}"
+            wx:key="index"
+            class="mode-card {{index === activeModeIndex ? 'active' : ''}}"
+            data-index="{{index}}"
+            bindtap="onSelectModeCard"
+          >
+            <text class="mode-card-icon">{{item.icon}}</text>
+            <text class="mode-card-text">{{item.label}}</text>
+            <text class="mode-card-desc">{{item.desc}}</text>
+          </view>
+        </view>
+        <view class="examples-section" wx:if="{{modes[activeModeIndex] && modes[activeModeIndex].examples}}">
+          <text class="examples-title">试试这样问：</text>
+          <view class="examples-list">
+            <view
+              wx:for="{{modes[activeModeIndex].examples}}"
+              wx:for-item="ex"
+              wx:key="*this"
+              class="example-chip"
+              data-text="{{ex}}"
+              bindtap="onExampleTap"
+            >
+              <text class="example-text">{{ex}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+
+    <!-- 固定反馈栏（置于输入区上方，回答足够长或已结束时始终可见） -->
+    <view wx:if="{{lastAssistantMsg && (lastAssistantMsg.thinking || lastAssistantMsg.answer || lastAssistantMsg.content) && !lastAssistantMsg.feedback && feedbackReady}}" class="feedback-bar-fixed">
+      <view class="feedback-hint-line">点击校友名字，可以查看校友详细信息</view>
+      <view class="feedback-row-top">
+        <text class="feedback-label">这篇回复有帮助吗？</text>
+        <text class="copy-icon" data-index="{{lastAssistantMsgIndex}}" bindtap="onCopyContent">📋 复制内容</text>
+      </view>
+      <view class="feedback-btns">
+        <text class="feedback-btn" data-index="{{lastAssistantMsgIndex}}" data-value="useful" bindtap="onFeedbackTap">👍 有用</text>
+        <text class="feedback-btn" data-index="{{lastAssistantMsgIndex}}" data-value="ok" bindtap="onFeedbackTap">😐 一般</text>
+        <text class="feedback-btn" data-index="{{lastAssistantMsgIndex}}" data-value="useless" bindtap="onFeedbackTap">👎 没用</text>
+      </view>
+    </view>
+
+    <!-- 底部操作区（统一工具栏 + 输入框） -->
+    <view class="chat-controls">
+      <!-- 统一工具栏：历史 + 新话题 + 策略开关，单行 -->
+      <view class="unified-toolbar">
+        <view class="toolbar-left">
+          <view class="toolbar-icon-btn" bindtap="openHistoryDrawer">
+            <text class="toolbar-icon">☰</text>
+          </view>
+          <view class="toolbar-icon-btn" bindtap="onNewTopic">
+            <text class="toolbar-icon">💬+</text>
+          </view>
+        </view>
+        <view class="toolbar-right">
+          <view
+            class="strategy-btn {{deepthinkOn ? 'active' : ''}}"
+            bindtap="onToggleDeepthink"
+          >
+            <text class="strategy-icon">💭</text>
+            <text class="strategy-text">深度思考</text>
+          </view>
+          <view
+            class="strategy-btn {{knowledgeOn ? 'active' : ''}}"
+            bindtap="onToggleKnowledge"
+          >
+            <text class="strategy-icon">📚</text>
+            <text class="strategy-text">校友信息库</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 输入框和发送按钮（包成一整行，圆角） -->
+      <view class="input-container">
+        <view class="mode-toggle-btn" bindtap="openModeDrawer">
+          <text class="mode-toggle-prefix">≡</text>
+          <text>{{modes[activeModeIndex] ? modes[activeModeIndex].label : '发现'}}</text>
+        </view>
+        <input
+          class="chat-input"
+          placeholder="{{modes[activeModeIndex] ? modes[activeModeIndex].placeholder : '有问题尽管问～'}}"
+          confirm-type="send"
+          value="{{inputValue}}"
+          bindinput="onInput"
+          bindconfirm="onSend"
+          adjust-position="true"
+        />
+        <view
+          class="send-btn {{inputValue.trim() ? 'active' : ''}}"
+          bindtap="onSend"
+        >
+          <text class="send-icon">▲</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 历史抽屉 -->
+  <view class="history-drawer-mask" wx:if="{{showHistoryDrawer}}" bindtap="closeHistoryDrawer"></view>
+  <view class="history-drawer {{showHistoryDrawer ? 'show' : ''}}" catchtap="stopPropagation">
+    <view class="drawer-header">
+      <text class="drawer-title">历史主题</text>
+      <text class="drawer-close" bindtap="closeHistoryDrawer">✕</text>
+    </view>
+    <scroll-view class="drawer-content" scroll-y="true">
+      <view wx:if="{{topics.length === 0}}" class="empty-topics">
+        <text>暂无历史主题</text>
+      </view>
+      <view
+        wx:for="{{topics}}"
+        wx:key="id"
+        class="topic-item {{currentTopicId === item.id ? 'active' : ''}}"
+        data-topic-id="{{item.id}}"
+        bindtap="selectTopic"
+      >
+        <view class="topic-header">
+          <text class="topic-mode">{{item.mode}}</text>
+          <text class="topic-time">{{item.createTime}}</text>
+        </view>
+        <text class="topic-title">{{item.title}}</text>
+        <text class="topic-preview" wx:if="{{item.messages && item.messages.length > 0}}">
+          {{item.messages[0].content}}
+        </text>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 半屏模式选择抽屉（≡ 按钮打开） -->
+  <view class="mode-drawer-mask" wx:if="{{showModeDrawer}}" bindtap="closeModeDrawer"></view>
+  <view class="mode-drawer {{showModeDrawer ? 'show' : ''}}" catchtap="stopPropagation">
+    <view class="mode-drawer-header">
+      <text class="mode-drawer-title">选择场景</text>
+      <text class="mode-drawer-close" bindtap="closeModeDrawer">✕</text>
+    </view>
+    <scroll-view class="mode-drawer-content" scroll-y="true">
+      <view class="mode-drawer-inner">
+      <view class="greeting-section">
+        <text class="greeting-text">Hi, {{userNickname || '校友'}}</text>
+      </view>
+      <view class="mode-cards-grid">
+        <view
+          wx:for="{{modes}}"
+          wx:key="index"
+          class="mode-card {{index === activeModeIndex ? 'active' : ''}}"
+          data-index="{{index}}"
+          bindtap="onSelectModeFromDrawer"
+        >
+          <text class="mode-card-icon">{{item.icon}}</text>
+          <text class="mode-card-text">{{item.label}}</text>
+          <text class="mode-card-desc">{{item.desc}}</text>
+        </view>
+      </view>
+      <view class="examples-section" wx:if="{{modes[activeModeIndex] && modes[activeModeIndex].examples}}">
+        <text class="examples-title">试试这样问：</text>
+        <view class="examples-list">
+          <view
+            wx:for="{{modes[activeModeIndex].examples}}"
+            wx:for-item="ex"
+            wx:key="*this"
+            class="example-chip"
+            data-text="{{ex}}"
+            bindtap="onExampleTapFromDrawer"
+          >
+            <text class="example-text">{{ex}}</text>
+          </view>
+        </view>
+      </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 校友名片半屏浮层（点击答案中的校友姓名弹出） -->
+  <view class="alumni-card-mask" wx:if="{{showAlumniCard}}" bindtap="closeAlumniCard"></view>
+  <view class="alumni-card-modal {{showAlumniCard ? 'show' : ''}}" catchtap="stopPropagation">
+    <text class="alumni-card-close" catchtap="closeAlumniCard">×</text>
+    <view class="alumni-card-body">
+      <view class="alumni-card-main">
+        <image
+          class="alumni-card-avatar"
+          src="{{alumniCardData.display_avatar || alumniCardData.avatar || alumniCardData.selected_avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
+          mode="aspectFill"
+        />
+        <view class="alumni-card-info">
+          <text class="alumni-card-name">{{alumniCardData.name || alumniCardData.nickname || '校友'}}</text>
+          <text class="alumni-card-nickname" wx:if="{{alumniCardData.nickname && alumniCardData.name && alumniCardData.name !== alumniCardData.nickname}}">({{alumniCardData.nickname}})</text>
+          <text class="alumni-card-line" wx:if="{{alumniCardData.wechat_id}}">微信ID: {{alumniCardData.wechat_id}}</text>
+          <text class="alumni-card-line">{{(alumniCardData.company || '') + (alumniCardData.company && alumniCardData.title ? ' ' : '') + (alumniCardData.title || '')}}</text>
+        </view>
+      </view>
+      <view class="alumni-card-extra">
+        <text class="alumni-card-line" wx:if="{{alumniCardData.phone}}">{{alumniCardData.phone}}</text>
+        <text class="alumni-card-line" wx:if="{{alumniCardData.email}}">{{alumniCardData.email}}</text>
+        <text class="alumni-card-line address" wx:if="{{alumniCardData.address}}">{{alumniCardData.address}}</text>
+      </view>
+      <view class="alumni-card-detail-btn-wrap">
+        <button class="alumni-card-detail-btn" bindtap="goToAlumniProfileFromCard">查看详情</button>
+      </view>
+    </view>
+    <view class="alumni-card-bio" wx:if="{{alumniCardData.bio}}">
+      <text class="alumni-card-bio-text">{{alumniCardData.bio}}</text>
+    </view>
+  </view>
+</view>

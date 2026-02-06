@@ -4,6 +4,7 @@
     "pages/map/map",
     "pages/map-view/map-view",
     "pages/alumni-link/alumni-link",
+    "pages/alumni-link-view/alumni-link-view",
     "pages/assistant/assistant",
     "pages/profile/profile",
     "pages/card-entry/card-entry",

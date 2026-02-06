@@ -44,8 +44,18 @@ Page({
     wx.switchTab({ url: '/pages/map/map' })
   },
 
+  // 跳转到地图页（可返回，用于个人中心「附近朋友地图」）
+  goToMapView() {
+    wx.navigateTo({ url: '/pages/map-view/map-view' })
+  },
+
   goToAlumniLink() {
     wx.switchTab({ url: '/pages/alumni-link/alumni-link' })
+  },
+
+  // 跳转到校友连连看页（可返回，用于个人中心「校友连连看」）
+  goToAlumniLinkView() {
+    wx.navigateTo({ url: '/pages/alumni-link-view/alumni-link-view' })
   },
 
   goToContacts() {

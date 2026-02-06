@@ -19,11 +19,11 @@
       <text>查看我的名片</text>
       <text class="arrow">›</text>
     </view>
-    <view class="menu-item" bindtap="goToMap">
+    <view class="menu-item" bindtap="goToMapView">
       <text>附近朋友地图</text>
       <text class="arrow">›</text>
     </view>
-    <view class="menu-item" bindtap="goToAlumniLink">
+    <view class="menu-item" bindtap="goToAlumniLinkView">
       <text>校友连连看</text>
       <text class="arrow">›</text>
     </view>
