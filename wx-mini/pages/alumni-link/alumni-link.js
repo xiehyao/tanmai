@@ -262,6 +262,18 @@ Page({
     }
   },
 
+  // 思考过程专用：去除 id=xx、提示词泄漏（deepthink/use_knowledge_base/关键约束等）
+  sanitizeThinking(text) {
+    if (!text || typeof text !== 'string') return text
+    const idPat = /(^|\n)\s*[-*•]?\s*id\s*=\s*\d+\s*[:：]?\s*/gi
+    const idParen = /[（(]\s*id\s*=\s*\d+\s*[)）]/gi
+    const idBare = /\bid\s*=\s*\d+\b/gi
+    let t = text.replace(idPat, '$1').replace(idParen, '').replace(idBare, '')
+    const leakPat = /deepthink\s*=\s*(True|False)|use_knowledge_base\s*=\s*(True|False)|用户指定了\s*deepthink|用户指定了\s*use_knowledge_base|关键约束：|【严禁】在推理|数据库已?提供|主体部分需要自由发挥|结尾部分.*格式|回顾校友数据库/
+    t = t.split('\n').filter(line => !leakPat.test(line)).join('\n')
+    return t.replace(/\n{3,}/g, '\n\n').trim()
+  },
+
   // 将 markdown 转为纯文字显示（避免 ### ** 等符号直接展示），并去除 id=X 等内部标识
   sanitizeMarkdown(text) {
     if (!text || typeof text !== 'string') return text
@@ -581,7 +593,7 @@ Page({
               const last = msgs[assistantMessageIndex]
               const alumniList = (streamAlumniList && streamAlumniList.length > 0) ? streamAlumniList : (this.data.alumniList || [])
               if (last && last.role === 'assistant') {
-                if (last.thinking) last.thinking = this.sanitizeMarkdown(last.thinking)
+                if (last.thinking) last.thinking = this.sanitizeThinking(last.thinking)
                 if (last.answer) {
                   last.answerSegments = this.parseAnswerSegments(last.answer, alumniList)
                   last.answer = this.sanitizeMarkdown(last.answer)
@@ -634,10 +646,11 @@ Page({
                 return
               }
               
-              // DeepSeek R1 的 reasoning：深度思考过程，实时展示
+              // DeepSeek R1 的 reasoning：深度思考过程，实时展示（去除提示词泄漏和 id=xx）
               if (data.reasoning) {
                 const updatedMessages = [...this.data.messages]
-                updatedMessages[assistantMessageIndex].thinking = (updatedMessages[assistantMessageIndex].thinking || '') + data.reasoning
+                const raw = (updatedMessages[assistantMessageIndex].thinking || '') + data.reasoning
+                updatedMessages[assistantMessageIndex].thinking = this.sanitizeThinking(raw)
                 updatedMessages[assistantMessageIndex].content = (updatedMessages[assistantMessageIndex].content || '') + data.reasoning
                 this.setData({ messages: updatedMessages })
                 this.updateLastAssistant(updatedMessages)
