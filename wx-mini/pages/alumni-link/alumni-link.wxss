@@ -259,11 +259,26 @@
   border-top: 1rpx dashed #e5e7eb;
 }
 
+.feedback-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+}
+
 .feedback-label {
   font-size: 24rpx;
   color: #9ca3af;
-  display: block;
-  margin-bottom: 12rpx;
+}
+
+.copy-icon {
+  font-size: 24rpx;
+  color: #667eea;
+  padding: 4rpx 12rpx;
+}
+
+.copy-icon:active {
+  opacity: 0.7;
 }
 
 .feedback-btns {

@@ -190,10 +190,10 @@
   word-break: break-all;
 }
 
-/* 新版弹窗 50% 高度 + 我的名片样式 */
+/* 新版弹窗 46% 高度 + 我的名片样式 */
 .card-modal-new {
-  max-height: 50vh;
-  height: 50vh;
+  max-height: 46vh;
+  height: 46vh;
   position: relative;
 }
 .card-modal-close-icon {
@@ -216,14 +216,14 @@
   box-shadow: 0 6rpx 24rpx rgba(148, 163, 184, 0.35);
   border-radius: 20rpx;
   padding: 32rpx 28rpx 28rpx;
-  min-height: 360rpx;
+  min-height: 42vh;
   width: 100%;
   box-sizing: border-box;
 }
 .card-modal-body-new .my-card-main { display: flex; }
 .card-modal-body-new .avatar {
-  width: 140rpx;
-  height: 140rpx;
+  width: 180rpx;
+  height: 180rpx;
   border-radius: 20rpx;
   margin-right: 24rpx;
   background-color: #e5e7eb;
@@ -231,29 +231,33 @@
 }
 .card-modal-body-new .my-card-info { flex: 1; min-width: 0; }
 .card-modal-body-new .my-name {
-  font-size: 32rpx;
+  font-size: 40rpx;
   font-weight: 700;
   color: #111827;
   margin-bottom: 24rpx;
 }
 .card-modal-body-new .wechat-id-line {
-  margin-bottom: 24rpx;
-  display: block;
-}
-.card-modal-body-new .my-name-nickname {
+  margin-bottom: 12rpx;
   font-size: 24rpx;
   font-weight: 400;
   color: #6b7280;
+  display: block;
+}
+.card-modal-body-new .my-name-nickname {
+  
+  font-weight: 400;
+  color: #6b7280;
   margin-left: 4rpx;
+  margin-bottom: 24rpx;
 }
 .card-modal-body-new .my-line {
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: #4b5563;
   line-height: 1.5;
   display: block;
 }
 .card-modal-body-new .my-line.address { margin-top: 4rpx; }
-.card-modal-body-new .my-card-extra { margin-top: 16rpx; }
+.card-modal-body-new .my-card-extra { margin-top: 26rpx; min-height: 9vh;}
 .map-card-bio {
   margin-top: 20rpx;
   padding: 16rpx 20rpx;
@@ -267,8 +271,8 @@
 }
 /* 与 index my-card-badge 一致的占位，保持卡片高度 */
 .map-card-placeholder {
-  margin-top: 16rpx;
-  min-height: 48rpx;
+  margin-top: 12rpx;
+  min-height: 24rpx;
 }
 .map-card-detail-btn-wrap {
   margin-top: 28rpx;

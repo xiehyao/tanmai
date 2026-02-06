@@ -190,6 +190,19 @@
   background: linear-gradient(135deg, #667eea 0%, #7f5af0 100%);
 }
 
+/* 不同活动卡片的彩色渐变背景 */
+.poster-tea {
+  background: linear-gradient(135deg, #f97316 0%, #fb923c 45%, #facc15 100%);
+}
+
+.poster-innovation {
+  background: linear-gradient(135deg, #22c1c3 0%, #4f46e5 50%, #a855f7 100%);
+}
+
+.poster-food {
+  background: linear-gradient(135deg, #fb7185 0%, #f97373 45%, #facc15 100%);
+}
+
 .activity-title {
   margin-top: 10rpx;
   font-size: 26rpx;

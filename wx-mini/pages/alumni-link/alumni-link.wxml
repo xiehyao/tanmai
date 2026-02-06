@@ -72,7 +72,10 @@
           </view>
           <!-- 反馈入口（仅当有内容且未反馈时显示） -->
           <view wx:if="{{item.content && !item.feedback}}" class="feedback-row">
-            <text class="feedback-label">这篇回复有帮助吗？</text>
+            <view class="feedback-row-top">
+              <text class="feedback-label">这篇回复有帮助吗？</text>
+              <text class="copy-icon" data-index="{{index}}" bindtap="onCopyContent">📋 复制内容</text>
+            </view>
             <view class="feedback-btns">
               <text class="feedback-btn" data-index="{{index}}" data-value="useful" bindtap="onFeedbackTap">👍 有用</text>
               <text class="feedback-btn" data-index="{{index}}" data-value="ok" bindtap="onFeedbackTap">😐 一般</text>

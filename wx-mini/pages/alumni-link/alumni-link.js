@@ -159,6 +159,25 @@ Page({
     if (text) this.setData({ inputValue: text })
   },
 
+  // 复制内容到剪贴板
+  onCopyContent(e) {
+    const index = e.currentTarget.dataset.index
+    const messages = this.data.messages || []
+    const msg = messages[index]
+    if (!msg || msg.role !== 'assistant') return
+    // 复制完整输出：思考 + 答案（或原始 content）
+    const text = [msg.thinking, msg.answer].filter(Boolean).join('\n\n') || msg.content || ''
+    if (!text) {
+      wx.showToast({ title: '暂无内容可复制', icon: 'none' })
+      return
+    }
+    wx.setClipboardData({
+      data: text,
+      success: () => wx.showToast({ title: '已复制到剪贴板', icon: 'success' }),
+      fail: () => wx.showToast({ title: '复制失败', icon: 'none' })
+    })
+  },
+
   // 反馈：有用/一般/没用
   onFeedbackTap(e) {
     const { index, value } = e.currentTarget.dataset
