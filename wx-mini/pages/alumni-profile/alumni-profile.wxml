@@ -1,25 +1,25 @@
 <!--pages/alumni-profile/alumni-profile.wxml-->
 <view class="profile-page" wx:if="{{user}}">
   <scroll-view scroll-y class="profile-scroll">
-    <!-- 名片卡 -->
+    <!-- 名片卡：布局与名片夹一致，左头像右信息 -->
     <view class="section">
       <view class="section-title">我的名片</view>
       <view class="card-card my-card-style">
-        <view class="my-card-main">
+        <view class="card-row">
           <image
-            class="avatar"
+            class="card-avatar"
             src="{{user.display_avatar || user.avatar || user.selected_avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
             mode="aspectFill"
           />
-          <view class="my-card-info">
-            <text class="my-name">{{user.name || user.nickname || '未设置'}}</text>
-            <text class="my-line company">{{(user.company || '') + ' ' + (user.title || '')}}</text>
+          <view class="card-main">
+            <text class="card-name">{{user.name || user.nickname || '未设置'}}</text>
+            <text class="card-company">{{(user.company || '') + (user.company && user.title ? ' ' : '') + (user.title || '')}}</text>
+            <text class="card-meta" wx:if="{{user.phone}}">{{user.phone}}</text>
+            <text class="card-meta" wx:if="{{user.email}}">{{user.email}}</text>
+            <text class="card-meta" wx:if="{{user.wechat_id}}">微信：{{user.wechat_id}}</text>
+            <text class="card-meta" wx:if="{{displayAddress}}">{{displayAddress}}</text>
+            <text class="card-meta" wx:if="{{user.bio}}">{{user.bio}}</text>
           </view>
-        </view>
-        <view class="my-card-extra">
-          <text class="my-line">{{user.phone ? (user.phone) : ''}}</text>
-          <text class="my-line">{{user.email || ''}}</text>
-          <text class="my-line address">{{user.address || ''}}</text>
         </view>
       </view>
     </view>

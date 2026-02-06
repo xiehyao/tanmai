@@ -28,46 +28,62 @@
   box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.06);
 }
 
+/* 我的名片：与名片夹卡片布局一致，左头像右信息 */
 .my-card-style {
-  background: #f9fafb;
-  min-height: 400rpx;
+  background: #fff;
+  min-height: auto;
 }
 
-.my-card-main {
+.my-card-style .card-row {
   display: flex;
 }
 
-.my-card-style .avatar {
-  width: 180rpx;
-  height: 180rpx;
-  border-radius: 20rpx;
+.my-card-style .card-avatar {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 16rpx;
   margin-right: 24rpx;
-  background-color: #e5e7eb;
+  background: #e5e7eb;
   flex-shrink: 0;
 }
 
-.my-card-info {
+.my-card-style .card-main {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
 }
 
-.my-name {
-  font-size: 40rpx;
+.my-card-style .card-name {
+  display: block;
+  font-size: 32rpx;
   font-weight: 700;
   color: #111827;
-  margin-bottom: 6rpx;
-  display: block;
+  margin-bottom: 8rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.my-line {
+.my-card-style .card-company {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   font-size: 26rpx;
-  color: #4b5563;
-  line-height: 1.5;
-  display: block;
+  color: #6b7280;
+  margin-bottom: 8rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-all;
 }
 
-.my-card-extra {
-  margin-top: 26rpx;
+.my-card-style .card-meta {
+  display: block;
+  font-size: 24rpx;
+  color: #9ca3af;
+  margin-bottom: 4rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-all;
 }
 
 .intro-card-style .intro-text,

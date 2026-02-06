@@ -2,6 +2,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 
 from app.core.database import get_db
 from app.core.security import verify_token
@@ -15,10 +16,24 @@ def _display_avatar(user: User) -> Optional[str]:
     return user.selected_avatar or user.avatar
 
 
-def _user_with_card(user: User, card: Optional[UserCard]) -> dict:
+def _user_with_card(user: User, card: Optional[UserCard], db: Session) -> dict:
     from .cards import _user_card_to_dict  # 重用同一结构
 
-    return _user_card_to_dict(user, card)
+    d = _user_card_to_dict(user, card)
+    # 补充地址（从 user_locations 取第一条）
+    try:
+        r = db.execute(text("""
+            SELECT address FROM user_locations
+            WHERE user_id = :uid AND address IS NOT NULL AND address != ''
+            ORDER BY CASE location_type WHEN 'residence' THEN 1 WHEN 'work' THEN 2 ELSE 3 END
+            LIMIT 1
+        """), {"uid": user.id})
+        row = r.fetchone()
+        if row:
+            d["address"] = row[0] if isinstance(row, (tuple, list)) else getattr(row, 'address', None)
+    except Exception:
+        pass
+    return d
 
 
 @router.get("/{user_id}")
@@ -43,6 +58,6 @@ async def get_user_card(
 
     return {
         "success": True,
-        "data": _user_with_card(user, card),
+        "data": _user_with_card(user, card, db),
     }
 

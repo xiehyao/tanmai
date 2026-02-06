@@ -87,7 +87,8 @@ Page({
     displaySocialPositions: '',
     displayInterests: '',
     displayAssociationNeeds: '',
-    displayContact: ''
+    displayContact: '',
+    displayAddress: ''
   },
 
   onLoad(options) {
@@ -177,6 +178,7 @@ Page({
     const constellation = (s1.constellation || u.constellation || '') || getConstellation(birthParts[1], birthParts[2])
     const companyTitle = [u.company || s1.company, u.title || s1.title].filter(Boolean).join(' ')
     const contactParts = [u.phone || s1.phone, u.email || s1.email, u.wechat_id || s1.wechat_id].filter(Boolean)
+    const addr = (s1.locations && s1.locations[0] && s1.locations[0].address) ? s1.locations[0].address : (u.address || '')
     return {
       displayName: u.name || s1.name || u.nickname || s1.nickname || '',
       displayPhotos: Array.isArray(photos) ? photos : [],
@@ -187,7 +189,8 @@ Page({
       displaySocialPositions: formatSocialPositions(s5),
       displayInterests: formatInterests(profile),
       displayAssociationNeeds: s5?.association_needs || u.association_needs || '',
-      displayContact: contactParts.join('；')
+      displayContact: contactParts.join('；'),
+      displayAddress: addr
     }
   },
 
