@@ -89,7 +89,9 @@ Page({
 
     // 最后一条助手消息（供固定反馈栏使用）
     lastAssistantMsg: null,
-    lastAssistantMsgIndex: -1
+    lastAssistantMsgIndex: -1,
+    // 反馈入口是否已就绪（避免过度依赖 [DONE]，在回答足够长时提前展示）
+    feedbackReady: false
   },
 
   onLoad() {
@@ -299,6 +301,19 @@ Page({
     this.setData({ lastAssistantMsg: last, lastAssistantMsgIndex: lastIdx })
   },
 
+  // 当助手回答达到一定长度时，提前打开反馈入口（避免必须等到 [DONE]）
+  maybeSetFeedbackReady(msg) {
+    if (this.data.feedbackReady) return
+    if (!msg || msg.role !== 'assistant') return
+    const text = [msg.thinking, msg.answer, msg.content].filter(Boolean).join('\n')
+    if (!text) return
+    const lineCount = text.split(/\n+/).length
+    // 约等于「10 行」或「300 字」左右即可展示反馈与复制
+    if (lineCount >= 10 || text.length >= 300) {
+      this.setData({ feedbackReady: true })
+    }
+  },
+
   // 将答案/内容文本解析为段落（普通文本 + 可点击校友姓名）
   parseAnswerSegments(text, alumniList) {
     if (!text || typeof text !== 'string') return []
@@ -413,7 +428,8 @@ Page({
       messages: newMessages,
       inputValue: '',
       loading: true,
-      showCardsInline: false // 发送后收起内联卡片
+      showCardsInline: false, // 发送后收起内联卡片
+      feedbackReady: false
     })
     this.updateLastAssistant(newMessages)
 
@@ -504,7 +520,7 @@ Page({
                   last.contentSegments = this.parseAnswerSegments(last.content, alumniList)
                 }
               }
-              this.setData({ messages: msgs, loading: false })
+              this.setData({ messages: msgs, loading: false, feedbackReady: true })
               this.updateLastAssistant(msgs)
 
               requestTask.abort()
@@ -554,6 +570,7 @@ Page({
                 updatedMessages[assistantMessageIndex].content = (updatedMessages[assistantMessageIndex].content || '') + data.reasoning
                 this.setData({ messages: updatedMessages })
                 this.updateLastAssistant(updatedMessages)
+                this.maybeSetFeedbackReady(updatedMessages[assistantMessageIndex])
                 setTimeout(() => this.scrollToBottom(), 50)
               }
               
@@ -573,8 +590,16 @@ Page({
                   cur.thinking = parts.thinking
                   cur.answer = parts.answer
                 }
+                // 实时为答案构建可点击的校友姓名段落，避免强依赖 [DONE]
+                const alumniList = (streamAlumniList && streamAlumniList.length > 0) ? streamAlumniList : (this.data.alumniList || [])
+                if (cur.answer) {
+                  cur.answerSegments = this.parseAnswerSegments(cur.answer, alumniList)
+                } else if (cur.content) {
+                  cur.contentSegments = this.parseAnswerSegments(cur.content, alumniList)
+                }
                 this.setData({ messages: updatedMessages })
                 this.updateLastAssistant(updatedMessages)
+                this.maybeSetFeedbackReady(updatedMessages[assistantMessageIndex])
                 
                 // 定期滚动到底部
                 setTimeout(() => {
@@ -635,7 +660,8 @@ Page({
       messages: [],
       hasStartedChat: false,
       activeModeIndex: 0,
-      showModeSelector: false
+      showModeSelector: false,
+      feedbackReady: false
     })
     this.updateLastAssistant([])
   },

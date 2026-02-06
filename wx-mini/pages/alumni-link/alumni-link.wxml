@@ -115,8 +115,8 @@
       </view>
     </scroll-view>
 
-    <!-- 固定反馈栏（置于输入区上方，流式结束后始终可见） -->
-    <view wx:if="{{lastAssistantMsg && (lastAssistantMsg.thinking || lastAssistantMsg.answer || lastAssistantMsg.content) && !lastAssistantMsg.feedback && !loading}}" class="feedback-bar-fixed">
+    <!-- 固定反馈栏（置于输入区上方，回答足够长或已结束时始终可见） -->
+    <view wx:if="{{lastAssistantMsg && (lastAssistantMsg.thinking || lastAssistantMsg.answer || lastAssistantMsg.content) && !lastAssistantMsg.feedback && feedbackReady}}" class="feedback-bar-fixed">
       <view class="feedback-row-top">
         <text class="feedback-label">这篇回复有帮助吗？</text>
         <text class="copy-icon" data-index="{{lastAssistantMsgIndex}}" bindtap="onCopyContent">📋 复制内容</text>
