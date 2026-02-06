@@ -47,6 +47,7 @@ Page({
     progress: null,
     isInternalMode: false,
     staffFillConfirmed: false,  // 是否已确认代填提醒
+    staffAddNewMode: false,     // 工作人员新增校友模式（空白填写，第一步保存时创建新用户）
     // 步骤1：基础与名片 + 位置信息
     step1: {
       name: '',
@@ -691,8 +692,8 @@ Page({
     }
   },
 
-  // 更新进度
-  async updateProgress(nextStep) {
+  // 更新进度（overrideTargetUserId：新增模式第一步保存后传入新建用户ID，因 setData 可能尚未生效）
+  async updateProgress(nextStep, overrideTargetUserId) {
     try {
       if (this.data.isInternalMode) {
         this.setData({ currentStep: nextStep })
@@ -709,8 +710,9 @@ Page({
       }
       
       let url = '/api/card-entry/progress'
-      if (this.data.isStaffMode && this.data.targetUser && this.data.targetUser.id) {
-        url += `?target_user_id=${this.data.targetUser.id}`
+      const targetUserId = overrideTargetUserId != null ? overrideTargetUserId : (this.data.targetUser && this.data.targetUser.id)
+      if (this.data.isStaffMode && targetUserId) {
+        url += `?target_user_id=${targetUserId}`
       }
       
       await request.put(url, body)
@@ -729,13 +731,36 @@ Page({
 
   // 保存当前步骤数据
   async saveCurrentStep() {
-    if (this.data.isStaffMode && (!this.data.targetUser || !this.data.targetUser.id)) {
+    const staffAddNewMode = this.data.staffAddNewMode
+    const needTargetUser = this.data.isStaffMode && !staffAddNewMode
+    if (needTargetUser && (!this.data.targetUser || !this.data.targetUser.id)) {
       wx.showToast({ title: '请先选择目标用户', icon: 'none' })
       return false
     }
     
-    // 工作人员代填模式：首次保存时显示确认提醒
-    if (this.data.isStaffMode && !this.data.isInternalMode && !this.data.staffFillConfirmed) {
+    // 工作人员新增模式：第一步保存时显示确认提醒
+    if (staffAddNewMode && this.data.currentStep === 1) {
+      const name = (this.data.step1.name || '').trim()
+      const company = (this.data.step1.company || '').trim()
+      if (!name || !company) {
+        wx.showToast({ title: '请填写真实姓名和公司名称', icon: 'none' })
+        return false
+      }
+      const confirmed = await new Promise((resolve) => {
+        wx.showModal({
+          title: '⚠️ 确认新增校友',
+          content: `即将创建新校友「${name}」（${company}）。\n\n代填信息将被校友本人及他人看到，会显示「（校友会代填）」备注，系统会记录您的操作。\n\n请确认信息准确无误。`,
+          confirmText: '确认新增',
+          cancelText: '取消',
+          success: (res) => resolve(res.confirm),
+          fail: () => resolve(false)
+        })
+      })
+      if (!confirmed) return false
+    }
+    
+    // 工作人员代填模式（非新增）：首次保存时显示确认提醒
+    if (this.data.isStaffMode && !this.data.isInternalMode && !this.data.staffFillConfirmed && !staffAddNewMode) {
       const confirmed = await new Promise((resolve) => {
         wx.showModal({
           title: '⚠️ 确认保存代填信息',
@@ -859,14 +884,24 @@ Page({
       if (this.data.isStaffMode && this.data.targetUser && this.data.targetUser.id) {
         url += `?target_user_id=${this.data.targetUser.id}`
       }
+      if (staffAddNewMode && this.data.currentStep === 1) {
+        dataToSave.create_new = true
+      }
       
-      await request.post(url, dataToSave)
+      const res = await request.post(url, dataToSave)
+      // 新增模式第一步保存成功后，后端返回 user_id，设置为目标用户继续后续步骤
+      if (staffAddNewMode && this.data.currentStep === 1 && res && res.user_id != null) {
+        this.setData({
+          targetUser: { id: res.user_id, name: this.data.step1.name, nickname: this.data.step1.nickname, company: this.data.step1.company, title: this.data.step1.title },
+          staffAddNewMode: false
+        })
+      }
       wx.hideLoading()
       wx.showToast({
         title: '保存成功',
         icon: 'success'
       })
-      return true
+      return { ok: true, newTargetUserId: (staffAddNewMode && this.data.currentStep === 1 && res && res.user_id != null) ? res.user_id : undefined }
     } catch (e) {
       wx.hideLoading()
       wx.showToast({
@@ -880,11 +915,14 @@ Page({
 
   // 下一步
   async nextStep() {
-    const saved = await this.saveCurrentStep()
-    if (!saved) return
+    const result = await this.saveCurrentStep()
+    if (!result) return
+    const ok = typeof result === 'object' ? result.ok : result
+    const newTargetUserId = typeof result === 'object' ? result.newTargetUserId : undefined
+    if (!ok) return
     
     if (this.data.currentStep < this.data.totalSteps) {
-      await this.updateProgress(this.data.currentStep + 1)
+      await this.updateProgress(this.data.currentStep + 1, newTargetUserId)
     } else {
       // 完成所有步骤
       wx.showModal({
@@ -1545,6 +1583,7 @@ Page({
       searchKeyword: '',
       searchResults: [],
       staffFillConfirmed: false,
+      staffAddNewMode: false,
       isStaffMode: shouldBeStaffMode ? true : this.data.isStaffMode
     }
     // 填写评价下换人时先清空右侧“工作人员填写”展示，避免残留上一人的代填数据
@@ -1567,7 +1606,52 @@ Page({
     this.setData({
       targetUser: null,
       showUserSearch: true,
-      staffFillConfirmed: false  // 清除时重置确认状态
+      staffFillConfirmed: false,
+      staffAddNewMode: false
+    })
+  },
+
+  // 工作人员新增校友：进入空白填写模式
+  onStaffAddNew() {
+    this.setData({
+      targetUser: null,
+      showUserSearch: false,
+      staffAddNewMode: true,
+      staffFillConfirmed: false,
+      searchKeyword: '',
+      searchResults: [],
+      currentStep: 1,
+      step1: {
+        name: '',
+        nickname: '',
+        avatar: '',
+        gender: '',
+        wechat_id: '',
+        selected_avatar: '',
+        personal_photos: [],
+        birth_place: '',
+        title: '',
+        company: '',
+        phone: '',
+        email: '',
+        bio: '',
+        field_visibility: {},
+        locations: []
+      },
+      step2: { ...EMPTY_STEP2 },
+      step3: { ...EMPTY_STEP3 },
+      step4: { ...EMPTY_STEP4 },
+      step5: { ...EMPTY_STEP5 },
+      step6: { ...EMPTY_STEP6 }
+    })
+    wx.showToast({ title: '请在下方填写新校友信息', icon: 'none', duration: 2000 })
+  },
+
+  // 取消新增模式
+  cancelStaffAddNew() {
+    this.setData({
+      staffAddNewMode: false,
+      showUserSearch: true
     })
   },
 

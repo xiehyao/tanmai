@@ -207,6 +207,18 @@
   font-size: 26rpx;
 }
 
+.add-btn {
+  width: 100rpx;
+  height: 70rpx;
+  background: #43a047;
+  color: #fff;
+  border-radius: 8rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26rpx;
+}
+
 .search-results {
   max-height: 400rpx;
   overflow-y: auto;

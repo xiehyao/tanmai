@@ -21,8 +21,8 @@
       </view>
     </view>
     
-    <!-- 代填提醒说明（代填信息模式且未选择目标用户时显示） -->
-    <view class="staff-fill-notice" wx:if="{{isStaffMode && !isInternalMode && !targetUser}}">
+    <!-- 代填提醒说明（代填信息模式且未选择目标用户且非新增模式时显示） -->
+    <view class="staff-fill-notice" wx:if="{{isStaffMode && !isInternalMode && !targetUser && !staffAddNewMode}}">
       <text class="notice-icon">⚠️</text>
       <text class="notice-text">代填信息将被校友本人及他人看到，会显示「（校友会代填）」备注，系统会记录您的操作</text>
     </view>
@@ -35,8 +35,21 @@
     
     <!-- 用户搜索（工作人员模式 或 内部辅证模式） -->
     <view class="user-search-section" wx:if="{{isStaffMode || isInternalMode}}">
+      <!-- 新增模式：空白填写 -->
+      <view class="selected-user add-new-mode" wx:if="{{staffAddNewMode}}">
+        <text class="selected-label">新增校友</text>
+        <view class="selected-user-info">
+          <text class="user-name">填写后将创建新用户</text>
+          <text class="clear-btn" bindtap="cancelStaffAddNew">取消</text>
+        </view>
+        <view class="selected-user-notice">
+          <text class="notice-icon-small">⚠️</text>
+          <text class="notice-text-small">代填信息将被校友本人及他人看到，会显示「（校友会代填）」备注</text>
+        </view>
+      </view>
+      
       <!-- 已选择的目标用户 -->
-      <view class="selected-user" wx:if="{{targetUser && !showUserSearch}}">
+      <view class="selected-user" wx:if="{{targetUser && !showUserSearch && !staffAddNewMode}}">
         <text class="selected-label">{{isInternalMode ? '评价对象：' : '正在为以下用户填写：'}}</text>
         <view class="selected-user-info">
           <text class="user-name">{{targetUser.name || targetUser.nickname}}</text>
@@ -55,8 +68,8 @@
         </view>
       </view>
       
-      <!-- 用户搜索框 -->
-      <view class="search-box" wx:if="{{!targetUser || showUserSearch}}">
+      <!-- 用户搜索框 + 新增 -->
+      <view class="search-box" wx:if="{{(!targetUser || showUserSearch) && !staffAddNewMode}}">
         <input 
           class="search-input" 
           placeholder="搜索用户姓名或昵称..."
@@ -66,10 +79,11 @@
           bindconfirm="searchUsers"
         />
         <text class="search-btn" bindtap="searchUsers">搜索</text>
+        <text class="add-btn" wx:if="{{isStaffMode && !isInternalMode}}" bindtap="onStaffAddNew">新增</text>
       </view>
       
       <!-- 搜索结果 -->
-      <view class="search-results" wx:if="{{searchResults.length > 0 && (!targetUser || showUserSearch)}}">
+      <view class="search-results" wx:if="{{searchResults.length > 0 && (!targetUser || showUserSearch) && !staffAddNewMode}}">
         <view 
           class="user-item" 
           wx:for="{{searchResults}}" 

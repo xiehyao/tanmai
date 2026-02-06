@@ -111,3 +111,17 @@
 ### POST /api/meeting/{meeting_id}/reject
 拒绝约见
 
+## 名片录入（card-entry，后端需在 pengyoo 等服务实现）
+
+### POST /api/card-entry/save-step/1（工作人员新增校友）
+
+当工作人员代填模式下点击「新增」按钮，在空白表单填写后保存第一步时，请求体包含 `create_new: true`，且**无** `target_user_id` 查询参数。
+
+后端需：
+1. 校验 X-Staff-Id 工号
+2. 创建新用户（User + UserCard）
+3. 保存 step1 数据到新用户
+4. 返回 `{ user_id: <新用户ID> }`
+
+前端将据此设置 targetUser，继续后续步骤。
+
