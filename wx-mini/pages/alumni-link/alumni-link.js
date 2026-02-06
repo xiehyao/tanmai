@@ -281,7 +281,10 @@ Page({
       .replace(/[（(]\s*id\s*=\s*\d+\s*[)）]/gi, '')
       // 其余裸露的 id=3
       .replace(/\bid\s*=\s*\d+\b/gi, '')
-      .replace(/[ \t]{2,}/g, ' ')            // 多余空格/制表符，保留换行
+      .replace(/[ \t]+\n/g, '\n')            // 行尾空格/制表符（常表示换行意图）→ 保留换行
+      .replace(/\n[ \t]+/g, '\n')            // 行首空格/制表符 → 归一为换行（避免缩进堆积）
+      .replace(/\t/g, '  ')                  // 制表符 → 2 空格（保留缩进感）
+      .replace(/[ ]{3,}/g, '  ')            // 3+ 空格 → 2 空格（保留间隔感）
       .trim()
   },
 
@@ -317,7 +320,7 @@ Page({
   // 将答案/内容文本解析为段落（### 标题、**粗体**、可点击校友姓名、普通文本）
   parseAnswerSegments(text, alumniList) {
     if (!text || typeof text !== 'string') return []
-    const preprocess = (t) => t.replace(/^---+$/gm, '').replace(/```[\s\S]*?```/g, '').replace(/(^|\n)\s*[-*•]?\s*id\s*=\s*\d+\s*[:：]?\s*/gi, '$1').replace(/[（(]\s*id\s*=\s*\d+\s*[)）]/gi, '').replace(/\bid\s*=\s*\d+\b/gi, '').replace(/[ \t]{2,}/g, ' ').replace(/\n{3,}/g, '\n\n').trim()
+    const preprocess = (t) => t.replace(/^---+$/gm, '').replace(/```[\s\S]*?```/g, '').replace(/(^|\n)\s*[-*•]?\s*id\s*=\s*\d+\s*[:：]?\s*/gi, '$1').replace(/[（(]\s*id\s*=\s*\d+\s*[)）]/gi, '').replace(/\bid\s*=\s*\d+\b/gi, '').replace(/[ \t]+\n/g, '\n').replace(/\n[ \t]+/g, '\n').replace(/\t/g, '  ').replace(/[ ]{3,}/g, '  ').replace(/\n{3,}/g, '\n\n').trim()
     text = preprocess(text)
     const nameMap = []
     const seen = new Set()
