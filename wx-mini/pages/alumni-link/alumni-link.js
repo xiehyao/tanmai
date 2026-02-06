@@ -334,6 +334,29 @@ Page({
     }
   },
 
+  // 解析 **粗体** 内部内容，提取其中的校友名为可点击段（如 **谢怀遥的双轨制身份** → 谢怀遥可点 + 的双轨制身份加粗）
+  parseBoldInnerForAlumni(inner, nameMap) {
+    const out = []
+    let i = 0
+    while (i < inner.length) {
+      let bestAlumni = null
+      let bestStart = inner.length
+      for (const n of nameMap) {
+        const p = inner.indexOf(n.name, i)
+        if (p !== -1 && p < bestStart) { bestStart = p; bestAlumni = n }
+      }
+      if (bestAlumni) {
+        if (i < bestStart) out.push({ type: 'bold', value: inner.substring(i, bestStart) })
+        out.push({ type: 'alumni', userId: bestAlumni.userId, name: bestAlumni.name, bold: true })
+        i = bestStart + bestAlumni.name.length
+      } else {
+        out.push({ type: 'bold', value: inner.substring(i) })
+        break
+      }
+    }
+    return out
+  },
+
   // 将答案/内容文本解析为段落（### 标题、**粗体**、可点击校友姓名、普通文本）
   parseAnswerSegments(text, alumniList) {
     if (!text || typeof text !== 'string') return []
@@ -379,7 +402,7 @@ Page({
               const inner = str.substring(open + 2, close)
               const alum = nameMap.find(x => x.name === inner)
               if (alum) push({ type: 'alumni', userId: alum.userId, name: alum.name, bold: true })
-              else push({ type: 'bold', value: inner })
+              else for (const seg of this.parseBoldInnerForAlumni(inner, nameMap)) push(seg)
               i = close + 2
               continue
             }
@@ -430,7 +453,7 @@ Page({
               const inner = s.substring(open + 2, close)
               const alum = nameMap.find(x => x.name === inner)
               if (alum) segments.push({ type: 'alumni', userId: alum.userId, name: alum.name, bold: true, idx: idx++ })
-              else segments.push({ type: 'bold', value: inner, idx: idx++ })
+              else for (const seg of this.parseBoldInnerForAlumni(inner, nameMap)) { seg.idx = idx++; segments.push(seg) }
               i = close + 2
               continue
             }
