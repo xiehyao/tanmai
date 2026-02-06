@@ -1,3 +1,6 @@
+# 本文件为 .cursorrules 的备份，二者内容应保持一致
+# 若 .cursorrules 丢失，可从此文件恢复：cp .rules .cursorrules
+
 # 🚨 探脉 tanmai 强制规则 - 必读 🚨
 
 ## 0. 开发环境背景
