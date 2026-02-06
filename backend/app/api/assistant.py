@@ -48,7 +48,7 @@ SYSTEM_PROMPT_BASE = """你是校友连连看 AI 匹配助手。系统会提供�
 - 不要输出代码块、伪代码或任何编程语言示例。
 
 模式理解：
-- **脱单**：性格、兴趣、价值观。必须检查校友的婚姻状况(marital_status)和脱单需求(dating_need)。仅当 marital_status 为 single 且 dating_need 为 1 时才可推荐；若无人符合，如实说明「当前数据库中暂无符合脱单条件的校友」。
+- **脱单**：性格、兴趣、价值观。必须检查婚姻状况(marital_status)和脱单需求(dating_need)。满足 single 或 dating_need=1 其一即可推荐，但必须在推荐时指出风险：若已婚却有约会需求，注明「虽有约会需求，但当前已婚，请谨慎沟通」；若单身但无约会需求，注明「暂无约会需求，但当前单身，可主动交流试试」。
 - 事业：行业、岗位、合作可能
 - 资源：互补、互助、可交换
 - 找局：活动类型、时间、地点
@@ -61,7 +61,7 @@ SYSTEM_PROMPT_BASE = """你是校友连连看 AI 匹配助手。系统会提供�
 def _build_system_prompt(alumni_block: str, mode: str = "") -> str:
     base = SYSTEM_PROMPT_BASE + "\n\n【真实校友数据库】（仅用于匹配，严禁在输出中暴露电话/邮箱/微信/出生地）\n" + alumni_block
     if mode == "脱单":
-        base += "\n\n【脱单模式特别提醒】校友数据中已包含婚姻状况(marital_status)、脱单需求(dating_need)、脱单偏好(dating_preferences)。仅推荐 marital_status 为 single 且 dating_need 为 1 的校友；若无符合者，明确告知用户。"
+        base += "\n\n【脱单模式特别提醒】校友数据中已包含婚姻状况、脱单需求、脱单偏好。满足 single 或 dating_need=1 其一即可推荐。推荐时必须指出风险：已婚且有约会需求→注明「虽有约会需求，但当前已婚，请谨慎沟通」；单身但无约会需求→注明「暂无约会需求，但当前单身，可主动交流试试」。"
     return base
 
 
