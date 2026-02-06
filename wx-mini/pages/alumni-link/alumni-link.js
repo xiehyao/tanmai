@@ -281,7 +281,7 @@ Page({
       .replace(/[（(]\s*id\s*=\s*\d+\s*[)）]/gi, '')
       // 其余裸露的 id=3
       .replace(/\bid\s*=\s*\d+\b/gi, '')
-      .replace(/\s{2,}/g, ' ')               // 多余空格
+      .replace(/[ \t]{2,}/g, ' ')            // 多余空格/制表符，保留换行
       .trim()
   },
 
@@ -317,7 +317,7 @@ Page({
   // 将答案/内容文本解析为段落（### 标题、**粗体**、可点击校友姓名、普通文本）
   parseAnswerSegments(text, alumniList) {
     if (!text || typeof text !== 'string') return []
-    const preprocess = (t) => t.replace(/^---+$/gm, '').replace(/```[\s\S]*?```/g, '').replace(/(^|\n)\s*[-*•]?\s*id\s*=\s*\d+\s*[:：]?\s*/gi, '$1').replace(/[（(]\s*id\s*=\s*\d+\s*[)）]/gi, '').replace(/\bid\s*=\s*\d+\b/gi, '').replace(/\s{2,}/g, ' ').trim()
+    const preprocess = (t) => t.replace(/^---+$/gm, '').replace(/```[\s\S]*?```/g, '').replace(/(^|\n)\s*[-*•]?\s*id\s*=\s*\d+\s*[:：]?\s*/gi, '$1').replace(/[（(]\s*id\s*=\s*\d+\s*[)）]/gi, '').replace(/\bid\s*=\s*\d+\b/gi, '').replace(/[ \t]{2,}/g, ' ').replace(/\n{3,}/g, '\n\n').trim()
     text = preprocess(text)
     const nameMap = []
     const seen = new Set()
