@@ -9,7 +9,8 @@ Page({
     markers: [],
     nearbyFriends: [],
     showCardModal: false,
-    cardData: {}
+    cardData: {},
+    _locationRequested: false
   },
 
   onReady() {
@@ -22,6 +23,12 @@ Page({
   },
 
   getMyLocation() {
+    // 防止 onLoad 与组件渲染等导致的重复请求（位置授权弹两次）
+    if (this.data._locationRequested) {
+      wx.showToast({ title: '正在定位中...', icon: 'none' })
+      return
+    }
+    this.setData({ _locationRequested: true })
     wx.getLocation({
       type: 'gcj02',
       success: (res) => {
@@ -32,8 +39,13 @@ Page({
         this.loadNearbyFriends(res.latitude, res.longitude)
       },
       fail: (err) => {
+        this.setData({ _locationRequested: false })
         this.loadNearbyFriends(this.data.centerLat, this.data.centerLng)
         wx.showToast({ title: '使用默认位置', icon: 'none', duration: 1500 })
+      },
+      complete: () => {
+        // 成功后也重置，以便用户点「定位」按钮时可再次请求
+        setTimeout(() => this.setData({ _locationRequested: false }), 500)
       }
     })
   },

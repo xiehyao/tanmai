@@ -117,6 +117,7 @@ Page({
   data: {
     user: {},
     nearbyFriends: [],
+    _loginModalShown: false,  // 防止 onLoad/onShow 重复弹「请先登录」
     nearbyDisplay: getRandomPlaceholders(8, 'ph-'),
     alumniTabList: ALUMNI_TAB_LIST,
     activeAlumniTab: 'dating',
@@ -153,18 +154,25 @@ Page({
 
   checkLogin() {
     const token = wx.getStorageSync('token')
-    if (!token) {
-      wx.showModal({
-        title: '提示',
-        content: '请先登录',
-        showCancel: true,
-        success: (res) => {
-          if (res.confirm) this.doLogin()
-        }
-      })
+    if (token) {
+      this.getUserInfo()
       return
     }
-    this.getUserInfo()
+    // 防止 onLoad 与 onShow 几乎同时触发时重复弹窗
+    if (this.data._loginModalShown) return
+    this.setData({ _loginModalShown: true })
+    wx.showModal({
+      title: '提示',
+      content: '请先登录',
+      showCancel: true,
+      success: (res) => {
+        this.setData({ _loginModalShown: false })
+        if (res.confirm) this.doLogin()
+      },
+      fail: () => {
+        this.setData({ _loginModalShown: false })
+      }
+    })
   },
 
   async getUserInfo() {

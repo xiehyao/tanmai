@@ -13,7 +13,7 @@
     scale="{{scale}}"
     class="map-container"
     bindmarkertap="onMarkerTap"
-    show-location="{{true}}"
+    show-location="{{false}}"
     enable-zoom="{{true}}"
     enable-scroll="{{true}}"
   ></map>
