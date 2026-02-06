@@ -2,6 +2,7 @@
 校友连连看 AI 助手 API
 llm-match: 流式校友匹配推荐
 """
+import json
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -16,7 +17,8 @@ router = APIRouter()
 class LLMMatchRequest(BaseModel):
     prompt: str
     mode: str = "发现"
-    strategy: str = "deepthink"  # deepthink / knowledge
+    deepthink: bool = True   # 是否开启推理过程
+    use_knowledge_base: bool = False  # 是否引用校友信息库（含私密信息、校友会评价等）
 
 
 # 系统提示词（校友数据动态注入）
@@ -45,6 +47,7 @@ SYSTEM_PROMPT_BASE = """你是校友连连看 AI 匹配助手。系统会提供�
 约束：
 - 只从系统提供的真实校友列表中推荐，不得虚构任何校友。
 - **格式约束**：严禁使用 markdown，包括 ###、**、---、```、表格、代码块等。全部用纯文字、换行和标点表达，不要出现任何 markdown 符号。
+- **严禁在输出中写出 id=数字、[id=X]、- id=3: 等内部数据库标识**，用户不需要看到这些，推荐校友时只写姓名、职位、公司等公开信息。
 - 不要输出代码块、伪代码或任何编程语言示例。
 
 模式理解：
@@ -55,7 +58,7 @@ SYSTEM_PROMPT_BASE = """你是校友连连看 AI 匹配助手。系统会提供�
 - 知己：共同话题、兴趣
 - 发现：探索性、有趣
 
-策略：deepthink=复杂需求多步推理；knowledge=快速查人查活动。"""
+策略：deepthink=开推理过程；use_knowledge_base=引用完整校友信息（含私密、校友会评价）时需做好隐私处理。"""
 
 
 def _build_system_prompt(alumni_block: str, mode: str = "") -> str:
@@ -80,21 +83,29 @@ async def llm_match(
         raise HTTPException(status_code=400, detail="prompt 不能为空")
 
     mode = body.mode or "发现"
-    strategy = body.strategy or "deepthink"
+    deepthink = getattr(body, "deepthink", True)
+    use_kb = getattr(body, "use_knowledge_base", False)
 
-    # 从数据库抓取完整校友数据（含隐藏字段），供 AI 匹配
+    # 从数据库抓取校友数据；use_knowledge_base=True 时含隐藏字段
     alumni_list = fetch_full_alumni(db)
-    alumni_block = format_alumni_for_llm(alumni_list)
+    alumni_block = format_alumni_for_llm(alumni_list, include_hidden=use_kb)
     system_prompt = _build_system_prompt(alumni_block, mode)
 
-    user_content = f"[模式: {mode}] [策略: {strategy}]\n\n用户需求：{prompt}"
+    user_content = f"[模式: {mode}] [deepthink:{deepthink}] [知识库:{use_kb}]\n\n用户需求：{prompt}"
 
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_content}
     ]
 
+    # 精简校友名单供前端匹配答案中的姓名
+    alumni_for_match = [
+        {"id": a.get("id"), "user_id": a.get("id"), "name": (a.get("name") or a.get("nickname") or "").strip(), "nickname": (a.get("nickname") or "").strip()}
+        for a in alumni_list
+    ]
+
     async def event_generator():
+        yield f"data: {json.dumps({'alumni': alumni_for_match}, ensure_ascii=False)}\n\n"
         async for chunk in call_deepseek_stream(messages):
             yield chunk
 

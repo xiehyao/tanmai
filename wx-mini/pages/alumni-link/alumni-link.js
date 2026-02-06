@@ -19,7 +19,7 @@ Page({
       { label: '发现', icon: '✨', desc: '随缘探索有意思的校友', placeholder: '随便问，AI会帮你发现…',
         examples: ['推荐几个有意思的校友认识一下', '有哪些校友的经历比较特别？'] }
     ],
-    activeModeIndex: 0,
+    activeModeIndex: 5,  // 默认「发现」
 
     // 用户信息
     userNickname: '',
@@ -30,8 +30,9 @@ Page({
     scrollTop: 0,
     hasStartedChat: false, // 是否已开始对话
 
-    // 策略选项
-    strategy: 'deepthink', // deepthink / knowledge
+    // 策略开关（独立）
+    deepthinkOn: true,
+    knowledgeOn: false,
     loading: false,
 
     // 主题管理
@@ -39,8 +40,36 @@ Page({
     topics: [], // 历史主题列表
     showHistoryDrawer: false, // 是否显示历史抽屉
 
-    // 模式滚动框显示
-    showModeSelector: false // 是否显示模式选择滚动框
+    // 半屏模式选择抽屉（≡ 按钮打开）
+    showModeDrawer: false,
+    // 对话后是否在消息下方插入 6 卡片 + 试试这样问（从半屏选择后）
+    showCardsInline: false,
+
+    // 校友名单（用于答案中姓名可点击）
+    alumniList: [],
+    // 校友名片半屏弹层
+    showAlumniCard: false,
+    alumniCardData: {},
+
+    // 最后一条助手消息（供固定反馈栏使用）
+    lastAssistantMsg: null,
+    lastAssistantMsgIndex: -1
+  },
+
+  observers: {
+    'messages, loading': function(messages, loading) {
+      const msgs = messages || this.data.messages || []
+      let last = null
+      let lastIdx = -1
+      for (let i = msgs.length - 1; i >= 0; i--) {
+        if (msgs[i] && msgs[i].role === 'assistant') {
+          last = msgs[i]
+          lastIdx = i
+          break
+        }
+      }
+      this.setData({ lastAssistantMsg: last, lastAssistantMsgIndex: lastIdx })
+    }
   },
 
   onLoad() {
@@ -56,6 +85,25 @@ Page({
 
     // 加载历史主题
     this.loadTopics()
+    // 加载校友名单（用于答案中姓名可点击匹配）
+    this.loadAlumniList()
+  },
+
+  onShow() {
+    if ((this.data.alumniList || []).length === 0) {
+      this.loadAlumniList()
+    }
+  },
+
+  async loadAlumniList() {
+    try {
+      const res = await request.get('/api/alumni/matched', { category: 'discover' })
+      if (res.success && res.list && res.list.length > 0) {
+        this.setData({ alumniList: res.list })
+      }
+    } catch (e) {
+      console.error('loadAlumniList error:', e)
+    }
   },
 
   // 获取用户信息
@@ -87,18 +135,8 @@ Page({
   // 选择场景卡片
   onSelectModeCard(e) {
     const index = e.currentTarget.dataset.index
-    const mode = (this.data.modes[index] || {}).label || '发现'
-    
-    // 如果已经有对话，则开启新主题
-    if (this.data.hasStartedChat) {
-      this.createNewTopic(mode, index)
-    } else {
-      // 首次选择，设置模式
-      this.setData({ 
-        activeModeIndex: index,
-        showModeSelector: true
-      })
-    }
+    // 直接切换模式（初始卡片或内联卡片均适用）
+    this.setData({ activeModeIndex: index })
   },
 
   // 创建新主题
@@ -126,26 +164,34 @@ Page({
     this.saveTopics()
   },
 
-  // 选择模式滚动框中的模式
-  onSelectModeFromSelector(e) {
+  // 打开半屏模式选择抽屉
+  openModeDrawer() {
+    this.setData({ showModeDrawer: true })
+  },
+
+  // 关闭半屏模式选择抽屉
+  closeModeDrawer() {
+    this.setData({ showModeDrawer: false })
+  },
+
+  // 在半屏抽屉中选择模式
+  onSelectModeFromDrawer(e) {
     const index = e.currentTarget.dataset.index
-    this.setData({ 
-      activeModeIndex: index,
-      showModeSelector: false
-    })
-  },
-
-  // 切换模式选择滚动框显示
-  toggleModeSelector() {
     this.setData({
-      showModeSelector: !this.data.showModeSelector
+      activeModeIndex: index,
+      showModeDrawer: false,
+      showCardsInline: true
     })
   },
 
-  // 选择策略
-  onSelectStrategy(e) {
-    const strategy = e.currentTarget.dataset.strategy
-    this.setData({ strategy })
+  // 切换深度思考开关
+  onToggleDeepthink() {
+    this.setData({ deepthinkOn: !this.data.deepthinkOn })
+  },
+
+  // 切换校友信息库开关
+  onToggleKnowledge() {
+    this.setData({ knowledgeOn: !this.data.knowledgeOn })
   },
 
   // 输入框内容
@@ -157,6 +203,11 @@ Page({
   onExampleTap(e) {
     const text = e.currentTarget.dataset.text
     if (text) this.setData({ inputValue: text })
+  },
+
+  onExampleTapFromDrawer(e) {
+    const text = e.currentTarget.dataset.text
+    if (text) this.setData({ inputValue: text, showModeDrawer: false })
   },
 
   // 复制内容到剪贴板
@@ -189,7 +240,7 @@ Page({
     }
   },
 
-  // 将 markdown 转为纯文字显示（避免 ### ** 等符号直接展示）
+  // 将 markdown 转为纯文字显示（避免 ### ** 等符号直接展示），并去除 id=X 等内部标识
   sanitizeMarkdown(text) {
     if (!text || typeof text !== 'string') return text
     return text
@@ -202,7 +253,68 @@ Page({
       .replace(/^\s*\|\s*[-:]+\s*\|/gm, '')  // 表格分隔行
       .replace(/\|/g, ' ')                   // 表格竖线
       .replace(/\n{3,}/g, '\n\n')            // 多余空行
+      .replace(/\s*\[?id\s*=\s*\d+\]?\s*/gi, ' ')   // [id=3] 或 id=3
+      .replace(/\s*-\s*id\s*=\s*\d+\s*:\s*/gi, ' ') // - id=3:
+      .replace(/\s*id\s*=\s*\d+\s*:\s*/gi, ' ')     // id=3:
+      .replace(/\s{2,}/g, ' ')               // 多余空格
       .trim()
+  },
+
+  // 将答案/内容文本解析为段落（普通文本 + 可点击校友姓名）
+  parseAnswerSegments(text, alumniList) {
+    if (!text || typeof text !== 'string') return []
+    if (!alumniList || alumniList.length === 0) return [{ type: 'text', value: text }]
+    const nameMap = [] // [{name, userId}]
+    const seen = new Set()
+    for (const a of alumniList) {
+      const name = (a.name || a.nickname || '').trim()
+      const nickname = (a.nickname || '').trim()
+      const userId = a.id || a.user_id
+      if (name && !seen.has(name)) {
+        seen.add(name)
+        nameMap.push({ name, userId })
+      }
+      if (name && nickname && name !== nickname) {
+        const nameWithNick = `${name} (${nickname})`
+        if (!seen.has(nameWithNick)) {
+          seen.add(nameWithNick)
+          nameMap.push({ name: nameWithNick, userId })
+        }
+      }
+    }
+    if (nameMap.length === 0) return [{ type: 'text', value: text }]
+    nameMap.sort((a, b) => (b.name.length - a.name.length))
+    const segments = []
+    let i = 0
+    let idx = 0
+    while (i < text.length) {
+      let matched = false
+      for (const { name, userId } of nameMap) {
+        if (text.substring(i, i + name.length) === name) {
+          segments.push({ type: 'alumni', userId, name, idx: idx++ })
+          i += name.length
+          matched = true
+          break
+        }
+      }
+      if (!matched) {
+        let j = i + 1
+        while (j < text.length) {
+          let anyMatch = false
+          for (const { name } of nameMap) {
+            if (text.substring(j, j + name.length) === name) {
+              anyMatch = true
+              break
+            }
+          }
+          if (anyMatch) break
+          j++
+        }
+        segments.push({ type: 'text', value: text.substring(i, j), idx: idx++ })
+        i = j
+      }
+    }
+    return segments
   },
 
   // 解析思考过程和正式答案
@@ -262,7 +374,7 @@ Page({
       messages: newMessages,
       inputValue: '',
       loading: true,
-      showModeSelector: false // 发送后隐藏模式选择器
+      showCardsInline: false // 发送后收起内联卡片
     })
 
     // 滚动到底部
@@ -282,7 +394,8 @@ Page({
         data: {
           prompt,
           mode,
-          strategy: this.data.strategy
+          deepthink: this.data.deepthinkOn,
+          use_knowledge_base: this.data.knowledgeOn
         },
         header: {
           'Content-Type': 'application/json',
@@ -302,8 +415,9 @@ Page({
         }
       })
 
-      // 监听数据接收
+      // 监听数据接收（首个 data 可能含 alumni 名单，供答案中姓名匹配）
       let buffer = ''
+      let streamAlumniList = []
       requestTask.onChunkReceived((res) => {
         // 接收到的数据块 - 微信小程序返回的是ArrayBuffer，需要转换为字符串
         let chunk = ''
@@ -338,13 +452,20 @@ Page({
             const dataStr = line.substring(6).trim() // 去掉 "data: " 前缀并去除空白
             
             if (dataStr === '[DONE]') {
-              // 流结束：对助手消息做 markdown 转纯文字，避免 ### ** 等符号直接展示
+              // 流结束：对助手消息做 markdown 转纯文字，并解析校友姓名可点击
               const msgs = [...this.data.messages]
               const last = msgs[assistantMessageIndex]
+              const alumniList = (streamAlumniList && streamAlumniList.length > 0) ? streamAlumniList : (this.data.alumniList || [])
               if (last && last.role === 'assistant') {
                 if (last.thinking) last.thinking = this.sanitizeMarkdown(last.thinking)
-                if (last.answer) last.answer = this.sanitizeMarkdown(last.answer)
-                if (last.content && !last.thinking && !last.answer) last.content = this.sanitizeMarkdown(last.content)
+                if (last.answer) {
+                  last.answer = this.sanitizeMarkdown(last.answer)
+                  last.answerSegments = this.parseAnswerSegments(last.answer, alumniList)
+                }
+                if (last.content && !last.thinking && !last.answer) {
+                  last.content = this.sanitizeMarkdown(last.content)
+                  last.contentSegments = this.parseAnswerSegments(last.content, alumniList)
+                }
               }
               this.setData({ messages: msgs, loading: false })
 
@@ -371,6 +492,12 @@ Page({
             
             try {
               const data = JSON.parse(dataStr)
+              
+              if (data.alumni && Array.isArray(data.alumni)) {
+                streamAlumniList = data.alumni
+                if (streamAlumniList.length > 0) this.setData({ alumniList: streamAlumniList })
+                continue
+              }
               
               if (data.error) {
                 // 错误信息
@@ -474,6 +601,43 @@ Page({
   // 阻止事件冒泡
   stopPropagation() {
     // 空函数，用于阻止事件冒泡
+  },
+
+  async onAlumniNameTap(e) {
+    const userId = e.currentTarget.dataset.userId
+    if (!userId) return
+    await this.loadAlumniCard(userId)
+  },
+
+  async loadAlumniCard(userId) {
+    wx.showLoading({ title: '加载中...' })
+    try {
+      const res = await request.get(`/api/users/${userId}`)
+      if (res.success && res.data) {
+        const cardData = { ...res.data }
+        if (cardData.selected_avatar) cardData.display_avatar = cardData.selected_avatar
+        else if (cardData.avatar) cardData.display_avatar = cardData.avatar
+        this.setData({ alumniCardData: cardData, showAlumniCard: true })
+      } else {
+        wx.showToast({ title: res.error || '加载失败', icon: 'none' })
+      }
+    } catch (err) {
+      wx.showToast({ title: '加载失败', icon: 'none' })
+    } finally {
+      wx.hideLoading()
+    }
+  },
+
+  closeAlumniCard() {
+    this.setData({ showAlumniCard: false, alumniCardData: {} })
+  },
+
+  goToAlumniProfileFromCard() {
+    const d = this.data.alumniCardData
+    const uid = d && (d.id || d.user_id)
+    if (!uid) return
+    this.closeAlumniCard()
+    wx.navigateTo({ url: `/pages/alumni-profile/alumni-profile?user_id=${uid}` })
   }
 })
 

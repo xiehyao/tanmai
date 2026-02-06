@@ -136,10 +136,14 @@ def fetch_full_alumni(db: Session) -> List[Dict[str, Any]]:
     return result
 
 
-def format_alumni_for_llm(alumni_list: List[Dict[str, Any]], max_chars: int = 25000) -> str:
+def format_alumni_for_llm(
+    alumni_list: List[Dict[str, Any]],
+    max_chars: int = 25000,
+    include_hidden: bool = True,
+) -> str:
     """
     将校友数据格式化为 LLM 可用的文本块。
-    去除 id/created_at 等无关字段，保留匹配相关字段。
+    include_hidden=False 时剔除：电话、邮箱、微信ID、出生地、校友会敏感信息等。
     """
     lines: List[str] = []
     for a in alumni_list:
@@ -147,17 +151,17 @@ def format_alumni_for_llm(alumni_list: List[Dict[str, Any]], max_chars: int = 25
         parts.append(f"[id={a.get('id')}] 姓名:{a.get('name') or ''} 昵称:{a.get('nickname') or ''}")
         if a.get("gender"):
             parts.append(f"性别:{a['gender']}")
-        if a.get("birth_place"):
+        if include_hidden and a.get("birth_place"):
             parts.append(f"出生地:{a['birth_place']}")
         if a.get("title"):
             parts.append(f"职位:{a['title']}")
         if a.get("company"):
             parts.append(f"公司:{a['company']}")
-        if a.get("phone"):
+        if include_hidden and a.get("phone"):
             parts.append(f"电话:{a['phone']}")
-        if a.get("email"):
+        if include_hidden and a.get("email"):
             parts.append(f"邮箱:{a['email']}")
-        if a.get("wechat_id"):
+        if include_hidden and a.get("wechat_id"):
             parts.append(f"微信:{a['wechat_id']}")
         if a.get("bio"):
             parts.append(f"简介:{a['bio'][:200]}")
@@ -208,7 +212,7 @@ def format_alumni_for_llm(alumni_list: List[Dict[str, Any]], max_chars: int = 25
                 parts.append("资源:" + " ".join(titles[:5]))
 
         assoc = a.get("association") or {}
-        if assoc.get("association_needs"):
+        if include_hidden and assoc.get("association_needs"):
             parts.append(f"校友会需求:{assoc['association_needs'][:80]}")
 
         lines.append(" | ".join(p for p in parts if p))
