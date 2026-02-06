@@ -48,9 +48,10 @@
       <view wx:for="{{messages}}" wx:key="index" class="msg-item {{item.role}}">
         <!-- 助手消息：区分思考过程和正式答案 -->
         <view wx:if="{{item.role === 'assistant'}}" class="assistant-msg-wrapper">
-          <!-- 思考过程 -->
+          <!-- 思考过程（校友名可点击，保留换行） -->
           <view wx:if="{{item.thinking}}" class="thinking-section">
-            <text class="thinking-text">{{item.thinking}}</text>
+            <view wx:if="{{item.thinkingSegments && item.thinkingSegments.length > 0}}" class="thinking-segments"><block wx:for="{{item.thinkingSegments}}" wx:key="idx" wx:for-item="seg"><text wx:if="{{seg.type === 'text'}}" class="thinking-text">{{seg.value}}</text><text wx:elif="{{seg.type === 'heading'}}" class="thinking-heading">{{seg.value}}</text><text wx:elif="{{seg.type === 'bold'}}" class="thinking-bold">{{seg.value}}</text><view wx:else class="alumni-name-link alumni-name-in-thinking" data-user-id="{{seg.userId}}" data-name="{{seg.name}}" bindtap="onAlumniNameTap">{{seg.name}}</view></block></view>
+            <text wx:else class="thinking-text">{{item.thinking}}</text>
           </view>
           <!-- 正在思考中（仅在流式输出中：有 thinking 但尚无 answer 时，放在中间） -->
           <view wx:if="{{loading && index === messages.length - 1 && item.thinking && !item.answer}}" class="thinking-loading-indicator">

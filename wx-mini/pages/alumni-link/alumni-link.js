@@ -593,7 +593,10 @@ Page({
               const last = msgs[assistantMessageIndex]
               const alumniList = (streamAlumniList && streamAlumniList.length > 0) ? streamAlumniList : (this.data.alumniList || [])
               if (last && last.role === 'assistant') {
-                if (last.thinking) last.thinking = this.sanitizeThinking(last.thinking)
+                if (last.thinking) {
+                  last.thinking = this.sanitizeThinking(last.thinking)
+                  last.thinkingSegments = this.parseAnswerSegments(last.thinking, alumniList)
+                }
                 if (last.answer) {
                   last.answerSegments = this.parseAnswerSegments(last.answer, alumniList)
                   last.answer = this.sanitizeMarkdown(last.answer)
@@ -646,12 +649,15 @@ Page({
                 return
               }
               
-              // DeepSeek R1 的 reasoning：深度思考过程，实时展示（去除提示词泄漏和 id=xx）
+              // DeepSeek R1 的 reasoning：深度思考过程，实时展示（去除提示词泄漏和 id=xx，校友名可点击）
               if (data.reasoning) {
                 const updatedMessages = [...this.data.messages]
                 const raw = (updatedMessages[assistantMessageIndex].thinking || '') + data.reasoning
-                updatedMessages[assistantMessageIndex].thinking = this.sanitizeThinking(raw)
+                const sanitized = this.sanitizeThinking(raw)
+                updatedMessages[assistantMessageIndex].thinking = sanitized
                 updatedMessages[assistantMessageIndex].content = (updatedMessages[assistantMessageIndex].content || '') + data.reasoning
+                const alumniList = (streamAlumniList && streamAlumniList.length > 0) ? streamAlumniList : (this.data.alumniList || [])
+                updatedMessages[assistantMessageIndex].thinkingSegments = this.parseAnswerSegments(sanitized, alumniList)
                 this.setData({ messages: updatedMessages })
                 this.updateLastAssistant(updatedMessages)
                 this.maybeSetFeedbackReady(updatedMessages[assistantMessageIndex])
@@ -674,8 +680,8 @@ Page({
                   cur.thinking = parts.thinking
                   cur.answer = parts.answer
                 }
-                // 实时为答案构建可点击的校友姓名段落，避免强依赖 [DONE]
                 const alumniList = (streamAlumniList && streamAlumniList.length > 0) ? streamAlumniList : (this.data.alumniList || [])
+                if (cur.thinking) cur.thinkingSegments = this.parseAnswerSegments(cur.thinking, alumniList)
                 if (cur.answer) {
                   cur.answerSegments = this.parseAnswerSegments(cur.answer, alumniList)
                 } else if (cur.content) {

@@ -196,6 +196,7 @@
   width: 100%;
   padding: 0;
   margin: 0;
+  white-space: pre-wrap;
 }
 
 .thinking-text {
@@ -205,6 +206,36 @@
   display: block;
   word-wrap: break-word;
   word-break: break-all;
+  white-space: pre-wrap; /* 保留换行和段落间隔 */
+}
+
+.thinking-segments {
+  line-height: 1.8;
+  word-wrap: break-word;
+  word-break: break-all;
+  white-space: pre-wrap;
+}
+
+.thinking-segments .thinking-heading {
+  display: block;
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #999;
+  margin: 12rpx 0 6rpx;
+}
+
+.thinking-segments .thinking-bold {
+  display: inline;
+  font-weight: 700;
+}
+
+.thinking-segments .alumni-name-link,
+.alumni-name-in-thinking {
+  display: inline;
+  font-size: 24rpx;
+  color: #667eea;
+  text-decoration: underline;
+  padding: 0 2rpx;
 }
 
 /* 正在思考中（放在思考与答案之间） */
