@@ -175,15 +175,19 @@ def format_alumni_for_llm(alumni_list: List[Dict[str, Any]], max_chars: int = 25
 
         needs = a.get("needs") or {}
         need_parts = []
-        # 婚姻状况与脱单需求（脱单模式必备）
-        ms = needs.get("marital_status")
+        # 婚姻状况与脱单需求（脱单模式必备；未填写时显式标注）
+        ms = needs.get("marital_status") if needs else None
+        dn = needs.get("dating_need") if needs else None
         if ms:
             need_parts.append(f"婚姻状况:{ms}")
-        dn = needs.get("dating_need")
+        else:
+            need_parts.append("婚姻状况:未填写")
         if dn is not None and dn != 0:
             need_parts.append("有脱单需求")
         elif dn == 0:
             need_parts.append("无脱单需求")
+        else:
+            need_parts.append("脱单需求:未填写")
         if needs.get("dating_preferences"):
             need_parts.append(f"脱单偏好:{needs['dating_preferences'][:80]}")
         if needs.get("job_seeking"):
