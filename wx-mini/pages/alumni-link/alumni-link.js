@@ -2,6 +2,42 @@
 const request = require('../../utils/request.js')
 const app = getApp()
 
+// 真机不支持 TextDecoder：正确解码 UTF-8，兼容分块边界与 apply 参数上限
+function utf8BytesToString(arr) {
+  const u8 = arr instanceof Uint8Array ? arr : new Uint8Array(arr)
+  if (u8.length === 0) return ''
+  try {
+    if (typeof TextDecoder !== 'undefined') {
+      return new TextDecoder('utf-8').decode(u8)
+    }
+  } catch (e) {}
+  // escape+decodeURIComponent 方案，分批避免 apply 参数过多
+  const BATCH = 8192
+  let out = ''
+  for (let i = 0; i < u8.length; i += BATCH) {
+    const slice = u8.subarray(i, Math.min(i + BATCH, u8.length))
+    const arrCopy = Array.from(slice)
+    out += decodeURIComponent(escape(String.fromCharCode.apply(null, arrCopy)))
+  }
+  return out
+}
+
+// 返回可安全解码的字节数（不切断 UTF-8 多字节字符）
+function getUtf8SafeDecodeLength(u8) {
+  const n = u8.length
+  if (n === 0) return 0
+  let i = n - 1
+  const b = u8[i]
+  if ((b & 0x80) === 0) return n
+  if ((b & 0xC0) === 0x80) {
+    while (i > 0 && (u8[i] & 0xC0) === 0x80) i--
+    const start = u8[i]
+    const need = (start & 0xE0) === 0xC0 ? 2 : (start & 0xF0) === 0xE0 ? 3 : (start & 0xF8) === 0xF0 ? 4 : 1
+    return (n - i >= need) ? n : i
+  }
+  return n - 1
+}
+
 Page({
   data: {
     // 模式选项（含价值说明、示例问题、占位文案）
@@ -421,29 +457,22 @@ Page({
 
       // 监听数据接收（首个 data 可能含 alumni 名单，供答案中姓名匹配）
       let buffer = ''
+      let byteBuffer = []
       let streamAlumniList = []
       requestTask.onChunkReceived((res) => {
-        // 接收到的数据块 - 微信小程序返回的是ArrayBuffer，需要转换为字符串
-        let chunk = ''
-        if (res.data instanceof ArrayBuffer) {
-          // 将ArrayBuffer转换为UTF-8字符串
-          const uint8Array = new Uint8Array(res.data)
-          // 使用TextDecoder（如果支持）或手动转换
-          try {
-            const decoder = new TextDecoder('utf-8')
-            chunk = decoder.decode(uint8Array)
-          } catch (e) {
-            // 降级方案：手动转换
-            chunk = String.fromCharCode.apply(null, uint8Array)
-          }
-        } else if (typeof res.data === 'string') {
-          chunk = res.data
+        if (typeof res.data === 'string') {
+          buffer += res.data
         } else {
-          chunk = String(res.data)
+          const raw = res.data
+          const u8 = raw instanceof Uint8Array ? raw : (raw instanceof ArrayBuffer ? new Uint8Array(raw) : new Uint8Array(0))
+          for (let i = 0; i < u8.length; i++) byteBuffer.push(u8[i])
+          const safeLen = getUtf8SafeDecodeLength(new Uint8Array(byteBuffer))
+          if (safeLen > 0) {
+            const toDecode = new Uint8Array(byteBuffer.splice(0, safeLen))
+            buffer += utf8BytesToString(toDecode)
+          }
         }
-        
-        buffer += chunk
-        console.log('收到数据块，长度:', chunk.length, 'buffer长度:', buffer.length)
+        console.log('收到数据块，buffer长度:', buffer.length, 'byteBuf:', byteBuffer.length)
         
         // 解析SSE格式：data: {...}\n\n
         const lines = buffer.split('\n')
@@ -456,6 +485,10 @@ Page({
             const dataStr = line.substring(6).trim() // 去掉 "data: " 前缀并去除空白
             
               if (dataStr === '[DONE]') {
+              if (byteBuffer.length > 0) {
+                try { buffer += utf8BytesToString(new Uint8Array(byteBuffer)) } catch (e) {}
+                byteBuffer = []
+              }
               // 流结束：对助手消息做 markdown 转纯文字，并解析校友姓名可点击
               const msgs = [...this.data.messages]
               const last = msgs[assistantMessageIndex]
