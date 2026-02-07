@@ -1,0 +1,30 @@
+---
+description: 探脉 tanmai 必做流程（修改 backend/wx-mini/frontend 后强制执行）
+alwaysApply: true
+---
+
+# 探脉 tanmai 强制流程
+
+对 `tanmai/backend/`、`tanmai/wx-mini/`、`tanmai/frontend/` 做**非临时性改动**后，必须执行：
+
+## 1. Git 提交（强制）
+
+- 执行 `git status` / `git diff` 自检
+- 若有未跟踪或未暂存的改动，立即 `git add` 所有相关文件
+- `git commit -m "模块：简短描述"`（示例：`后端：xxx 接口` / `小程序：xxx 页面` / `fix: 修复 xxx`）
+- **禁止**重要代码长期只在工作区、不提交
+
+## 2. 后端重启（若改了 backend）
+
+若本次修改涉及 `tanmai/backend/`，需重启 uvicorn：
+
+```bash
+pid=$(pgrep -f "uvicorn app.main:app.*8000" | head -1); [ -n "$pid" ] && kill $pid; sleep 2
+cd tanmai/backend && nohup python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 > /tmp/tanmai-uvicorn.log 2>&1 &
+```
+
+确保新代码生效。
+
+## 3. 会话结束前自检
+
+在完成用户任务、准备结束回复前，必须检查并完成以上步骤。若为临时代码，需在对话中明确说明。

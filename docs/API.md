@@ -111,17 +111,23 @@
 ### POST /api/meeting/{meeting_id}/reject
 拒绝约见
 
-## 名片录入（card-entry，后端需在 pengyoo 等服务实现）
+## 名片录入（card-entry）
+
+tanmai 后端已实现 card-entry API（`/api/card-entry`）。若使用 pengyoo 作为 apiBase，需在 pengyoo 服务实现相同接口。
 
 ### POST /api/card-entry/save-step/1（工作人员新增校友）
 
 当工作人员代填模式下点击「新增」按钮，在空白表单填写后保存第一步时，请求体包含 `create_new: true`，且**无** `target_user_id` 查询参数。
 
 后端需：
-1. 校验 X-Staff-Id 工号
+1. 校验 X-Staff-Id 工号（如 362100）
 2. 创建新用户（User + UserCard）
 3. 保存 step1 数据到新用户
 4. 返回 `{ user_id: <新用户ID> }`
 
 前端将据此设置 targetUser，继续后续步骤。
+
+### 使用 tanmai 后端测试
+
+将 `wx-mini/config.js` 中 `apiBase` 改为 tanmai 后端地址（如 `http://43.143.224.158:8000`），即可使用 tanmai 实现的 card-entry 接口。
 

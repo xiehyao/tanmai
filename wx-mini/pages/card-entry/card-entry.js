@@ -396,6 +396,9 @@ Page({
       if (isInternalMode && (!targetUser || !targetUser.id)) {
         return
       }
+      if (isStaffMode && (!targetUser || !targetUser.id)) {
+        return
+      }
       const base = isInternalMode ? '/api/card-entry/internal' : '/api/card-entry'
       let url = base + '/data'
       if (targetUser && targetUser.id) {

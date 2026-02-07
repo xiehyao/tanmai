@@ -43,6 +43,7 @@ def _include_routers():
         ("app.api.meeting", "router", "/api/meeting", "meeting"),
         ("app.api.payment", "router", "/api/payment", "payment"),
         ("app.api.config", "router", "/api/config", "config"),
+        ("app.api.card_entry", "router", "/api/card-entry", "card-entry"),
     ]
     for mod_path, attr, prefix, tag in routers:
         try:
