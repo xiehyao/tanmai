@@ -1,8 +1,11 @@
 /* pages/card-entry/card-entry.wxss */
 .card-entry-page {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
+  height: 100vh;
   background: #f5f5f5;
-  padding-bottom: 120rpx;
+  padding-bottom: 0;
 }
 
 /* 工作人员模式栏 */
@@ -365,10 +368,12 @@
   color: #667eea;
 }
 
-/* 表单容器 */
+/* 表单容器：留足顶部栏+步骤条+底部按钮空间，确保可滚动查看全部内容 */
 .form-container {
-  height: calc(100vh - 200rpx);
-  padding: 0 30rpx;
+  flex: 1;
+  min-height: 400rpx;
+  height: calc(100vh - 500rpx);
+  padding: 0 30rpx 40rpx;
   box-sizing: border-box;
   width: 100%;
 }

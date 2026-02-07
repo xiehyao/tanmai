@@ -8,11 +8,18 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 
 from app.core.database import get_db
 from app.core.security import verify_token
 from app.models.user import User
 from app.models.card import UserCard
+from app.core.alumni_data import (
+    _get_education,
+    _get_needs,
+    _get_resources,
+    _get_association_info,
+)
 
 router = APIRouter()
 
@@ -101,6 +108,8 @@ async def save_step_1(
         db.add(card)
         db.commit()
         db.refresh(user)
+        _save_locations(db, user.id, body.get("locations") or [], None)
+        db.commit()
         return {"user_id": user.id}
 
     if not target_user_id:
@@ -148,7 +157,7 @@ async def save_step_n(
 ):
     """
     保存步骤 2-6。步骤 1 由 save_step_1 处理。
-    步骤 2-6 暂返回成功，后续可持久化到 user_education 等表。
+    持久化到 user_education、user_needs、user_resources、user_association_info 等表。
     """
     if step == 1:
         raise HTTPException(status_code=404, detail="请使用 POST /save-step/1")
@@ -161,10 +170,130 @@ async def save_step_n(
     if not user:
         raise HTTPException(status_code=404, detail="用户不存在")
     try:
-        await request.json()
+        body = await request.json()
     except Exception:
         raise HTTPException(status_code=400, detail="无效的 JSON")
+
+    try:
+        if step == 2:
+            _save_education(db, target_user_id, body)
+        elif step == 3:
+            _save_needs(db, target_user_id, body)
+        elif step == 4:
+            _save_resources(db, target_user_id, body)
+        elif step == 5:
+            _save_association_info(db, target_user_id, body)
+        elif step == 6:
+            _save_hidden_info(db, target_user_id, body)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
     return {"ok": True}
+
+
+def _save_education(db: Session, uid: int, b: dict) -> None:
+    db.execute(text("DELETE FROM user_education WHERE user_id = :uid"), {"uid": uid})
+    db.execute(
+        text("""
+            INSERT INTO user_education (user_id, primary_school, primary_graduation_year, middle_school,
+                middle_graduation_year, high_school, high_graduation_year, bachelor_university, bachelor_major,
+                bachelor_graduation_year, master_university, master_major, master_graduation_year,
+                doctor_university, doctor_major, doctor_graduation_year, highest_degree)
+            VALUES (:uid, :ps, :py, :ms, :my, :hs, :hy, :bu, :bm, :by, :mu, :mm, :my2, :du, :dm, :dy, :hd)
+        """),
+        {"uid": uid, "ps": b.get("primary_school"), "py": b.get("primary_graduation_year"),
+         "ms": b.get("middle_school"), "my": b.get("middle_graduation_year"),
+         "hs": b.get("high_school"), "hy": b.get("high_graduation_year"),
+         "bu": b.get("bachelor_university"), "bm": b.get("bachelor_major"), "by": b.get("bachelor_graduation_year"),
+         "mu": b.get("master_university"), "mm": b.get("master_major"), "my2": b.get("master_graduation_year"),
+         "du": b.get("doctor_university"), "dm": b.get("doctor_major"), "dy": b.get("doctor_graduation_year"),
+         "hd": b.get("highest_degree")},
+    )
+
+
+def _save_needs(db: Session, uid: int, b: dict) -> None:
+    db.execute(
+        text("""
+            INSERT INTO user_needs (user_id, marital_status, dating_need, dating_preferences,
+                job_seeking, job_target_position, job_target_industry, job_preferences,
+                entrepreneurship_need, entrepreneurship_type, entrepreneurship_description)
+            VALUES (:uid, :ms, :dn, :dp, :js, :jtp, :jti, :jp, :en, :et, :ed)
+            ON DUPLICATE KEY UPDATE
+                marital_status=VALUES(marital_status), dating_need=VALUES(dating_need),
+                dating_preferences=VALUES(dating_preferences), job_seeking=VALUES(job_seeking),
+                job_target_position=VALUES(job_target_position), job_target_industry=VALUES(job_target_industry),
+                job_preferences=VALUES(job_preferences), entrepreneurship_need=VALUES(entrepreneurship_need),
+                entrepreneurship_type=VALUES(entrepreneurship_type), entrepreneurship_description=VALUES(entrepreneurship_description)
+        """),
+        {"uid": uid, "ms": b.get("marital_status"), "dn": b.get("dating_need"), "dp": b.get("dating_preferences"),
+         "js": b.get("job_seeking"), "jtp": b.get("job_target_position"), "jti": b.get("job_target_industry"),
+         "jp": b.get("job_preferences"), "en": b.get("entrepreneurship_need"), "et": b.get("entrepreneurship_type"),
+         "ed": b.get("entrepreneurship_description")},
+    )
+
+
+def _save_resources(db: Session, uid: int, b: dict) -> None:
+    db.execute(text("DELETE FROM user_resources WHERE user_id = :uid"), {"uid": uid})
+    for r in b.get("resources") or []:
+        if not isinstance(r, dict):
+            continue
+        rt = r.get("resource_type") or ""
+        rtitle = r.get("resource_title") or ""
+        rdesc = r.get("resource_description") or ""
+        sm = r.get("sharing_mode") or "free"
+        if rt and rtitle:
+            db.execute(
+                text("INSERT INTO user_resources (user_id, resource_type, resource_title, resource_description, sharing_mode) VALUES (:uid, :rt, :rtitle, :rdesc, :sm)"),
+                {"uid": uid, "rt": rt, "rtitle": rtitle, "rdesc": rdesc, "sm": sm},
+            )
+
+
+def _save_association_info(db: Session, uid: int, b: dict) -> None:
+    ad = b.get("association_needs_detail")
+    ad_json = json.dumps(ad) if isinstance(ad, (dict, list)) else None
+    ap = b.get("association_positions")
+    ap_json = json.dumps(ap) if isinstance(ap, list) else (json.dumps([ap]) if ap else None)
+    so = b.get("support_offerings")
+    so_json = json.dumps(so) if isinstance(so, list) else (json.dumps([so]) if so else None)
+    db.execute(
+        text("""
+            INSERT INTO user_association_info (user_id, willing_to_serve, contribution_types, contribution_description,
+                desired_position, position_preferences, association_needs, board_position,
+                association_positions, support_offerings, association_needs_detail)
+            VALUES (:uid, :wts, :ct, :cd, :dp, :pp, :an, :bp, :ap, :so, :ad)
+            ON DUPLICATE KEY UPDATE
+                willing_to_serve=VALUES(willing_to_serve), contribution_types=VALUES(contribution_types),
+                contribution_description=VALUES(contribution_description), desired_position=VALUES(desired_position),
+                position_preferences=VALUES(position_preferences), association_needs=VALUES(association_needs),
+                board_position=VALUES(board_position), association_positions=VALUES(association_positions),
+                support_offerings=VALUES(support_offerings), association_needs_detail=VALUES(association_needs_detail)
+        """),
+        {"uid": uid, "wts": int(bool(b.get("willing_to_serve"))), "ct": b.get("contribution_types"),
+         "cd": b.get("contribution_description"), "dp": b.get("desired_position"),
+         "pp": b.get("position_preferences"), "an": b.get("association_needs"),
+         "bp": b.get("board_position"), "ap": ap_json, "so": so_json, "ad": ad_json},
+    )
+
+
+def _save_hidden_info(db: Session, uid: int, b: dict) -> None:
+    """step6 存到 user_cards.field_source，与 step1 的 field_source 合并"""
+    card = db.query(UserCard).filter(UserCard.user_id == uid).first()
+    if not card:
+        return
+    hi = b.get("hidden_info") or {}
+    fv = b.get("field_visibility") or {}
+    step6_data = {"hidden_info": hi, "field_visibility": fv}
+    merged: dict = {}
+    if card.field_source:
+        try:
+            merged = json.loads(card.field_source) if isinstance(card.field_source, str) else dict(card.field_source)
+        except Exception:
+            pass
+    if not isinstance(merged, dict):
+        merged = {}
+    merged["step6"] = step6_data
+    card.field_source = json.dumps(merged)
 
 
 # 进度存储：使用内存 dict，生产环境建议用 Redis
@@ -203,7 +332,41 @@ async def put_progress(
     return {"ok": True}
 
 
-def _build_step1_from_user_card(user: User, card: Optional[UserCard]) -> dict:
+def _get_hidden_info(db: Session, user_id: int) -> dict:
+    """step6 隐藏信息，暂从 user_cards 或专用表读取，无则返回空"""
+    try:
+        r = db.execute(
+            text("SELECT field_source FROM user_cards WHERE user_id = :uid ORDER BY id LIMIT 1"),
+            {"uid": user_id},
+        )
+        row = r.fetchone()
+        if not row:
+            return {"hidden_info": {}, "field_visibility": {}}
+        fs = row[0] if hasattr(row, "__getitem__") else getattr(row, "field_source", None)
+        if not fs:
+            return {"hidden_info": {}, "field_visibility": {}}
+        data = json.loads(fs) if isinstance(fs, str) else fs
+        if isinstance(data, dict) and "step6" in data:
+            return data["step6"]
+    except Exception:
+        pass
+    return {"hidden_info": {}, "field_visibility": {}}
+
+
+def _get_locations(db: Session, user_id: int) -> list:
+    try:
+        r = db.execute(
+            text("SELECT location_type, address, latitude, longitude, location_visibility, source FROM user_locations WHERE user_id = :uid ORDER BY id"),
+            {"uid": user_id},
+        )
+        rows = r.fetchall()
+        keys = list(r.keys()) if hasattr(r, "keys") else ["location_type", "address", "latitude", "longitude", "location_visibility", "source"]
+        return [dict(zip(keys, row)) if keys else dict(row._mapping) for row in rows]
+    except Exception:
+        return []
+
+
+def _build_step1_from_user_card(db: Session, user: User, card: Optional[UserCard], user_id: int) -> dict:
     fv = {}
     fs = {}
     if card and card.field_visibility:
@@ -222,6 +385,7 @@ def _build_step1_from_user_card(user: User, card: Optional[UserCard]) -> dict:
             photos = json.loads(card.personal_photos) if isinstance(card.personal_photos, str) else card.personal_photos
         except Exception:
             pass
+    locations = _get_locations(db, user_id)
     return {
         "name": (card.name if card else None) or user.name,
         "nickname": user.nickname,
@@ -238,7 +402,7 @@ def _build_step1_from_user_card(user: User, card: Optional[UserCard]) -> dict:
         "bio": card.bio if card else None,
         "field_visibility": fv,
         "field_source": fs,
-        "locations": [],
+        "locations": locations,
     }
 
 
@@ -258,12 +422,17 @@ async def get_card_entry_data(
     card = (
         db.query(UserCard).filter(UserCard.user_id == target_user_id).order_by(UserCard.id.asc()).first()
     )
-    step1 = _build_step1_from_user_card(user, card)
+    step1 = _build_step1_from_user_card(db, user, card, target_user_id)
+    step2 = _get_education(db, target_user_id) or {}
+    step3 = _get_needs(db, target_user_id) or {}
+    step4 = {"resources": _get_resources(db, target_user_id)}
+    step5 = _get_association_info(db, target_user_id) or {}
+    step6 = _get_hidden_info(db, target_user_id)
     return {
         "step1": step1,
-        "step2": {},
-        "step3": {},
-        "step4": {"resources": []},
-        "step5": {},
-        "step6": {"hidden_info": {}},
+        "step2": step2,
+        "step3": step3,
+        "step4": step4,
+        "step5": step5,
+        "step6": step6,
     }

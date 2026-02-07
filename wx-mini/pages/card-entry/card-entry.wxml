@@ -254,6 +254,55 @@
           <input class="input input-internal" placeholder="评价/备注" value="{{step1.company}}" data-step="1" data-field="company" bindinput="onInputChange" />
         </view>
       </view>
+
+      <view class="section-title">位置/地址</view>
+      <view class="form-group" wx:for="{{step1.locations}}" wx:key="index" wx:for-item="loc" wx:for-index="locIndex">
+        <view class="item-header">
+          <text class="item-title">位置 {{locIndex + 1}}<text class="fill-remark" wx:if="{{!isInternalMode && loc.source === 'staff'}}">（校友会代填）</text><text class="fill-remark" wx:if="{{!isInternalMode && loc.source === 'alumni'}}">（其它校友代填）</text></text>
+          <text class="btn-remove" data-index="{{locIndex}}" bindtap="removeLocation">删除</text>
+        </view>
+        <picker mode="selector" range="{{locationTypeOptions}}" range-key="label" value="{{loc._typeIndex >= 0 ? loc._typeIndex : 0}}" data-step="1" data-field="location_type" data-loc-index="{{locIndex}}" bindchange="onLocationTypeChange">
+          <view class="picker">{{loc._typeLabel || '请选择位置类型'}}</view>
+        </picker>
+        <view class="address-input-wrapper">
+          <input 
+            class="input" 
+            placeholder="详细地址（输入小区/大厦名称可智能提示）" 
+            value="{{loc.address}}" 
+            data-step="1" 
+            data-field="address" 
+            data-loc-index="{{locIndex}}" 
+            bindinput="onLocationInputChange"
+            bindfocus="onLocationInputFocus"
+            bindblur="onLocationInputBlur"
+          />
+          <view 
+            class="address-suggestions" 
+            wx:if="{{showAddressSuggestions[locIndex] && addressSuggestions[locIndex] && addressSuggestions[locIndex].length > 0}}"
+          >
+            <view 
+              class="suggestion-item" 
+              wx:for="{{addressSuggestions[locIndex]}}" 
+              wx:key="index"
+              wx:for-index="sugIndex"
+              data-loc-index="{{locIndex}}"
+              data-index="{{sugIndex}}"
+              bindtap="onSelectAddressSuggestion"
+            >
+              <view class="suggestion-title">{{item.title}}</view>
+              <view class="suggestion-address">{{item.address}}</view>
+            </view>
+          </view>
+        </view>
+        <view class="visibility-row">
+          <text class="visibility-label">可见性</text>
+          <picker mode="selector" range="{{locationVisibilityOptions}}" range-key="label" value="{{loc._visibilityIndex >= 0 ? loc._visibilityIndex : 0}}" data-loc-index="{{locIndex}}" bindchange="onLocationVisibilityChange">
+            <view class="picker">{{loc._visibilityLabel || '公开'}}</view>
+          </picker>
+        </view>
+      </view>
+      <button class="btn-add" bindtap="addLocation">+ 添加位置</button>
+
       <view class="form-group form-group-with-visibility" wx:if="{{!isInternalMode}}">
         <text class="label">电话<text class="fill-remark" wx:if="{{step1.field_source && step1.field_source.phone === 'staff'}}">（校友会代填）</text><text class="fill-remark" wx:if="{{step1.field_source && step1.field_source.phone === 'alumni'}}">（其它校友代填）</text></text>
         <input class="input" type="number" placeholder="请输入电话号码" value="{{step1.phone}}" data-step="1" data-field="phone" bindinput="onInputChange" />
@@ -305,55 +354,6 @@
           <textarea class="textarea textarea-internal" placeholder="评价/备注" value="{{step1.bio}}" data-step="1" data-field="bio" bindinput="onInputChange" maxlength="500" />
         </view>
       </view>
-
-      <view class="section-title">位置信息</view>
-      <view class="form-group" wx:for="{{step1.locations}}" wx:key="index" wx:for-item="loc" wx:for-index="locIndex">
-        <view class="item-header">
-          <text class="item-title">位置 {{locIndex + 1}}<text class="fill-remark" wx:if="{{!isInternalMode && loc.source === 'staff'}}">（校友会代填）</text><text class="fill-remark" wx:if="{{!isInternalMode && loc.source === 'alumni'}}">（其它校友代填）</text></text>
-          <text class="btn-remove" data-index="{{locIndex}}" bindtap="removeLocation">删除</text>
-        </view>
-        <picker mode="selector" range="{{locationTypeOptions}}" range-key="label" value="{{loc._typeIndex >= 0 ? loc._typeIndex : 0}}" data-step="1" data-field="location_type" data-loc-index="{{locIndex}}" bindchange="onLocationTypeChange">
-          <view class="picker">{{loc._typeLabel || '请选择位置类型'}}</view>
-        </picker>
-        <view class="address-input-wrapper">
-          <input 
-            class="input" 
-            placeholder="详细地址（输入小区/大厦名称可智能提示）" 
-            value="{{loc.address}}" 
-            data-step="1" 
-            data-field="address" 
-            data-loc-index="{{locIndex}}" 
-            bindinput="onLocationInputChange"
-            bindfocus="onLocationInputFocus"
-            bindblur="onLocationInputBlur"
-          />
-          <!-- 地址智能建议列表 -->
-          <view 
-            class="address-suggestions" 
-            wx:if="{{showAddressSuggestions[locIndex] && addressSuggestions[locIndex] && addressSuggestions[locIndex].length > 0}}"
-          >
-            <view 
-              class="suggestion-item" 
-              wx:for="{{addressSuggestions[locIndex]}}" 
-              wx:key="index"
-              wx:for-index="sugIndex"
-              data-loc-index="{{locIndex}}"
-              data-index="{{sugIndex}}"
-              bindtap="onSelectAddressSuggestion"
-            >
-              <view class="suggestion-title">{{item.title}}</view>
-              <view class="suggestion-address">{{item.address}}</view>
-            </view>
-          </view>
-        </view>
-        <view class="visibility-row">
-          <text class="visibility-label">可见性</text>
-          <picker mode="selector" range="{{locationVisibilityOptions}}" range-key="label" value="{{loc._visibilityIndex >= 0 ? loc._visibilityIndex : 0}}" data-loc-index="{{locIndex}}" bindchange="onLocationVisibilityChange">
-            <view class="picker">{{loc._visibilityLabel || '公开'}}</view>
-          </picker>
-        </view>
-      </view>
-      <button class="btn-add" bindtap="addLocation">+ 添加位置</button>
 
       <view class="voice-btn-wrapper">
         <button class="btn-voice" bindtap="goToVoiceInput">🎤 语音补充</button>
