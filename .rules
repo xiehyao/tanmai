@@ -9,7 +9,7 @@
 - **服务器**：Apache、数据库均在服务器上；Cursor 终端可直接操作服务器，必要时可接管服务器终端
 - **小程序调试**：Mac 用 sshfs + macfuse 挂载服务器 `/var/www/html/moodle/tanmai/`，微信官方开发者工具打开挂载后的 `wx-mini` 文件夹进行体验与截图
 
-## 1. Git 提交（强制）
+## 1. Git 提交 + 三备份推送（强制）
 
 对 `tanmai/backend/`、`tanmai/wx-mini/`、`tanmai/frontend/` 做**非临时性改动**时，必须：
 
@@ -19,14 +19,16 @@
 4. `git commit -m "模块：简短描述"`，示例：
    - `后端：xxx 接口` / `小程序：xxx 页面`
    - `feat: 新功能` / `fix: 修复 xxx`
+5. **立即执行三备份推送**：`./scripts/git-sync.sh push`（同时推送到 本地 Gitea + 新加坡 Gitea + GitHub）
 
-**禁止**重要代码长期只在工作区、不提交。
+**禁止**重要代码长期只在工作区、不提交。**禁止**提交后不推送。
 
 ## 2. 会话结束前自检
 
 在完成用户任务、准备结束回复前，必须：
 
 - 执行 `git status`，若有未提交改动，立即完成 `git add` + `git commit`
+- **每次 commit 后必须执行** `./scripts/git-sync.sh push`，确保三备份（本地 Gitea + 新加坡 Gitea + GitHub）同步
 - **检查后端服务**：若本次修改涉及 `tanmai/backend/`，需重启 uvicorn（`kill 旧进程` + `nohup uvicorn ...`），确保新代码生效
 - 若为临时代码，需在对话中明确说明
 
