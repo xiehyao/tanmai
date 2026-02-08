@@ -66,6 +66,10 @@ github  →  https://github.com/xiehyao/tanmai.git
 ./scripts/git-sync.sh push
 ```
 
+### 脚本丢失恢复
+
+若 `scripts/git-sync.sh` 丢失：`cp docs/git-sync.sh.backup scripts/git-sync.sh && chmod +x scripts/git-sync.sh`
+
 会依次推送到：origin → sgp → github（github 失败不影响，新加坡会镜像）
 
 ### 手动推送

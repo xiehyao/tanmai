@@ -29,3 +29,28 @@ cd tanmai/backend && nohup python3 -m uvicorn app.main:app --host 0.0.0.0 --port
 ## 3. 会话结束前自检
 
 在完成用户任务、准备结束回复前，必须检查并完成以上步骤。**特别确认**：若有 commit，已执行 `./scripts/git-sync.sh push`。若为临时代码，需在对话中明确说明。
+
+## 4. git-sync.sh 丢失恢复（必读）
+
+若 `scripts/git-sync.sh` 不存在，**立即**恢复并 push：
+
+1. 优先：`cp docs/git-sync.sh.backup scripts/git-sync.sh && chmod +x scripts/git-sync.sh && ./scripts/git-sync.sh push`
+2. 若 `docs/git-sync.sh.backup` 也丢失，根据下方嵌入的脚本**新建** `scripts/git-sync.sh`，然后 `chmod +x` 并执行 push。
+
+```bash
+#!/bin/bash
+# tanmai 三备份同步脚本
+set -e
+cd "$(dirname "$0")/.."
+[ -d .git ] || { echo "Not a git repo"; exit 1; }
+BRANCH="${2:-master}"
+push_all() {
+  git push origin "$BRANCH"
+  git push sgp "$BRANCH"
+  git push github "$BRANCH" 2>/dev/null || true
+}
+pull_smart() {
+  git pull github "$BRANCH" 2>/dev/null || git pull sgp "$BRANCH"
+}
+case "$1" in push) push_all ;; pull) pull_smart ;; *) echo "Usage: $0 push|pull [branch]"; exit 1 ;; esac
+```

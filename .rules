@@ -37,6 +37,7 @@
 - **`.cursorrules`**：若被删除或清空，立即从 `.rules` 恢复（`cp .rules .cursorrules`）或按 `.rules` 内容重建
 - **`.rules`**：`.cursorrules` 的备份；修改 `.cursorrules` 时须同步更新 `.rules`
 - **`.gitignore`**：不得删除；若误删，执行 `git restore .gitignore` 恢复
+- **`scripts/git-sync.sh`**：若丢失，立即 `cp docs/git-sync.sh.backup scripts/git-sync.sh && chmod +x scripts/git-sync.sh`，然后执行 push
 
 ## 4. 适用范围
 
