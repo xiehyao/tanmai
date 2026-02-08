@@ -29,7 +29,7 @@
 
 - 执行 `git status`，若有未提交改动，立即完成 `git add` + `git commit`
 - **每次 commit 后必须执行** `./scripts/git-sync.sh push`，确保三备份（本地 Gitea + 新加坡 Gitea + GitHub）同步
-- **检查后端服务**：若本次修改涉及 `tanmai/backend/`，需重启 uvicorn（`kill 旧进程` + `nohup uvicorn ...`），确保新代码生效
+- **检查后端服务**：若本次修改涉及 `tanmai/backend/`，先运行 `cd tanmai/backend && pytest tests/ -v`，通过后再重启 uvicorn
 - 若为临时代码，需在对话中明确说明
 
 ## 3. 受保护文件

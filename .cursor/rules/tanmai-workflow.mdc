@@ -15,16 +15,14 @@ alwaysApply: true
 - **每次 commit 后必须执行** `./scripts/git-sync.sh push`，同时推送到 本地 Gitea + 新加坡 Gitea + GitHub
 - **禁止**重要代码长期只在工作区、不提交。**禁止**提交后不推送
 
-## 2. 后端重启（若改了 backend）
+## 2. 后端测试 + 重启（若改了 backend）
 
-若本次修改涉及 `tanmai/backend/`，需重启 uvicorn：
+若本次修改涉及 `tanmai/backend/`，必须：
 
-```bash
-pid=$(pgrep -f "uvicorn app.main:app.*8000" | head -1); [ -n "$pid" ] && kill $pid; sleep 2
-cd tanmai/backend && nohup python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 > /tmp/tanmai-uvicorn.log 2>&1 &
-```
+1. **运行 API 测试**：`cd tanmai/backend && python3 -m pytest tests/ -v --tb=short`（失败则修复后再提交）
+2. **重启 uvicorn**：`pid=$(pgrep -f "uvicorn app.main:app.*8000" | head -1); [ -n "$pid" ] && kill $pid; sleep 2; cd tanmai/backend && nohup python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 > /tmp/tanmai-uvicorn.log 2>&1 &`
 
-确保新代码生效。
+禁止在测试失败时提交 backend 改动。
 
 ## 3. 会话结束前自检
 
