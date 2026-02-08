@@ -412,10 +412,17 @@ async def get_card_entry_data(
     db: Session = Depends(get_db),
     token: dict = Depends(verify_token),
 ):
-    """获取名片录入数据（供校友详情页等使用）"""
+    """获取名片录入数据。无 target_user_id 时使用当前登录用户（普通模式填写自己名片）"""
     target_user_id = _parse_target_user_id(request)
     if not target_user_id:
-        raise HTTPException(status_code=400, detail="需要 target_user_id")
+        target_user_id = token.get("sub")
+        if target_user_id is not None:
+            try:
+                target_user_id = int(target_user_id)
+            except (ValueError, TypeError):
+                target_user_id = None
+    if not target_user_id:
+        raise HTTPException(status_code=400, detail="需要 target_user_id 或已登录用户")
     user = db.query(User).filter(User.id == target_user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="用户不存在")
