@@ -1,0 +1,3 @@
+/* pages/card-entry-v2/card-entry-v2.wxss */
+@import "../card-entry/card-entry.wxss";
+

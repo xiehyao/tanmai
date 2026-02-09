@@ -8,6 +8,7 @@
     "pages/assistant/assistant",
     "pages/profile/profile",
     "pages/card-entry/card-entry",
+    "pages/card-entry-v2/card-entry-v2",
     "pages/voice-input/voice-input",
     "pages/intro-card/intro-card",
     "pages/card/card",
