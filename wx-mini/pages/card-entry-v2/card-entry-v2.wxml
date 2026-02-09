@@ -1,5 +1,5 @@
-<!--pages/card-entry-v2/card-entry-v2.wxml-->
-<!-- 当前先完全复用旧版布局与交互，保证功能完整。
-     后续在此文件上按 CARD_ENTRY_V2_DESIGN.md 逐步重构为「上预览 + 下输入」的新体验。 -->
-<import src="../card-entry/card-entry.wxml" />
+<!-- pages/card-entry-v2/card-entry-v2.wxml -->
+<!-- 当前先完全复用旧版布局与交互，直接 include 旧版页面结构。
+     后续在此文件上按 CARD_ENTRY_V2_DESIGN.md 逐步改造成「上预览 + 下输入」布局。 -->
+<include src="../card-entry/card-entry.wxml" />
 
