@@ -1,3 +1,108 @@
 /* pages/card-entry-v2/card-entry-v2.wxss */
 @import "../card-entry/card-entry.wxss";
 
+.card-entry-v2-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* 顶部预览区域，仅用于 V2 第一步 */
+.preview-section {
+  background: #f5f5ff;
+  padding: 24rpx 30rpx 12rpx;
+}
+
+.preview-title-row {
+  margin-bottom: 16rpx;
+}
+
+.preview-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333;
+  display: block;
+}
+
+.preview-subtitle {
+  margin-top: 4rpx;
+  font-size: 22rpx;
+  color: #888;
+}
+
+.preview-card {
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 24rpx 28rpx;
+  box-shadow: 0 4rpx 10rpx rgba(102, 126, 234, 0.12);
+}
+
+.preview-card-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.preview-avatar {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: #eee;
+  margin-right: 20rpx;
+}
+
+.preview-main-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.preview-name {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.preview-title-text {
+  margin-top: 4rpx;
+  font-size: 26rpx;
+  color: #555;
+}
+
+.preview-body {
+  border-top: 1rpx solid #f0f0f0;
+  padding-top: 12rpx;
+}
+
+.preview-row {
+  display: flex;
+  margin-top: 6rpx;
+}
+
+.preview-label {
+  width: 80rpx;
+  font-size: 24rpx;
+  color: #999;
+}
+
+.preview-value {
+  flex: 1;
+  font-size: 24rpx;
+  color: #333;
+}
+
+.preview-value.placeholder,
+.preview-name.placeholder,
+.preview-title-text.placeholder {
+  color: #bbb;
+}
+
+.preview-footer {
+  margin-top: 10rpx;
+}
+
+.preview-tip {
+  font-size: 22rpx;
+  color: #999;
+}
+
+

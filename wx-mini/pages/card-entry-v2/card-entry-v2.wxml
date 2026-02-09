@@ -1,5 +1,64 @@
 <!-- pages/card-entry-v2/card-entry-v2.wxml -->
-<!-- 当前先完全复用旧版布局与交互，直接 include 旧版页面结构。
-     后续在此文件上按 CARD_ENTRY_V2_DESIGN.md 逐步改造成「上预览 + 下输入」布局。 -->
-<include src="../card-entry/card-entry.wxml" />
+<!-- V2：在旧版基础上，为第1步增加「上半预览 + 下半填写」的预览卡片。 -->
+
+<view class="card-entry-v2-page">
+  <!-- 仅在第1步显示的名片预览区 -->
+  <view class="preview-section" wx:if="{{currentStep === 1}}">
+    <view class="preview-title-row">
+      <text class="preview-title">我的名片（预览）</text>
+      <text class="preview-subtitle">上方是正式场合展示的名片，下方是填写区</text>
+    </view>
+
+    <view class="preview-card">
+      <view class="preview-card-header">
+        <image
+          class="preview-avatar"
+          src="{{step1.display_avatar || step1.selected_avatar || step1.avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
+          mode="aspectFill"
+        />
+        <view class="preview-main-info">
+          <text class="preview-name {{step1.name ? '' : 'placeholder'}}">
+            {{step1.name || '填写真实姓名'}}
+          </text>
+          <text class="preview-title-text {{step1.company || step1.title ? '' : 'placeholder'}}">
+            {{step1.company || '填写公司名称'}}<block wx:if="{{step1.title}}"> · {{step1.title}}</block>
+          </text>
+        </view>
+      </view>
+
+      <view class="preview-body">
+        <view class="preview-row">
+          <text class="preview-label">微信</text>
+          <text class="preview-value {{step1.wechat_id ? '' : 'placeholder'}}">
+            {{step1.wechat_id || '填写微信号（可设仅好友可见）'}}
+          </text>
+        </view>
+        <view class="preview-row">
+          <text class="preview-label">手机</text>
+          <text class="preview-value {{step1.phone ? '' : 'placeholder'}}">
+            {{step1.phone || '填写手机号（可设仅互换名片后可见）'}}
+          </text>
+        </view>
+        <view class="preview-row">
+          <text class="preview-label">邮箱</text>
+          <text class="preview-value {{step1.email ? '' : 'placeholder'}}">
+            {{step1.email || '填写邮箱（用于正式联系，可隐藏）'}}
+          </text>
+        </view>
+        <view class="preview-row">
+          <text class="preview-label">地址</text>
+          <text class="preview-value {{step1.locations && step1.locations.length ? '' : 'placeholder'}}">
+            {{(step1.locations && step1.locations.length && step1.locations[0].address) || '添加居住地/工作地，方便附近校友发现你'}}
+          </text>
+        </view>
+      </view>
+      <view class="preview-footer">
+        <text class="preview-tip">私密信息可通过「可见性」设置为仅好友/仅校友可见</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 下面仍然复用旧版完整表单与步骤逻辑 -->
+  <include src="../card-entry/card-entry.wxml" />
+</view>
 
