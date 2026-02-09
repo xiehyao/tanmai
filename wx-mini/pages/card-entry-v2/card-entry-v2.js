@@ -353,6 +353,33 @@ Page({
     this.setData({ pickerIndexes: indexes })
   },
 
+  /** 按性别过滤头像选项：男→仅男头像，女→仅女头像，未选/其他→全部；若当前选中不在过滤结果内则重置为「使用微信头像」。 */
+  updateFilteredAvatarOptions(overrideGender) {
+    const raw = overrideGender !== undefined && overrideGender !== null
+      ? String(overrideGender).trim()
+      : ((this.data.step1 && this.data.step1.gender) != null ? String(this.data.step1.gender).trim() : '')
+    const gender = raw
+    const isMale = gender === 'male' || gender === '男'
+    const isFemale = gender === 'female' || gender === '女'
+    const all = this.data.selectedAvatarOptions || []
+    let filtered = all
+    if (isMale) {
+      filtered = all.filter(o => !o.value || o.value.indexOf('/avatars/male-') !== -1)
+    } else if (isFemale) {
+      filtered = all.filter(o => !o.value || o.value.indexOf('female-') !== -1)
+    }
+    const current = (this.data.step1 && this.data.step1.selected_avatar) || ''
+    const inList = filtered.some(o => o.value === current)
+    const updates = { filteredAvatarOptions: filtered }
+    if (!inList && current !== '') {
+      const idx = this.data.selectedAvatarOptions.findIndex(o => o.value === '')
+      updates['step1.selected_avatar'] = ''
+      updates['step1._selectedAvatarIndex'] = idx >= 0 ? idx : 0
+      updates['step1._selectedAvatarLabel'] = '使用微信头像'
+    }
+    this.setData(updates)
+  },
+
   onInputChange(e) {
     const { step, field } = e.currentTarget.dataset
     const value = e.detail.value
