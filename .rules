@@ -42,3 +42,13 @@
 ## 4. 适用范围
 
 `tanmai/` 及其子目录（backend、wx-mini、frontend 等）。上述路径内的实质性改动均需遵循本规则。
+
+## 5. 服务器 Apache 配置（www.pengyoo.com）— 必须进 git + 守护
+
+- **配置源文件（以 repo 为准）**：`tanmai/deploy/apache/pengyoo-ssl.conf`、`tanmai/deploy/apache/http-redirect.conf`
+- **禁止**只在服务器上改 `/etc/httpd/conf.d/` 而不更新 repo。正确流程：
+  1. 在 **tanmai/deploy/apache/** 下修改对应 `.conf`
+  2. `git add` 并 `git commit`，执行 `./scripts/git-sync.sh push`
+  3. 在服务器上：`sudo cp tanmai/deploy/apache/*.conf /etc/httpd/conf.d/` 且 `sudo systemctl reload httpd`
+- **守护**：服务器上应配置 cron 每 5 分钟执行 `tanmai/deploy/guard-apache-config.sh`（root）。一旦检测到 `/etc/httpd/conf.d/` 下配置与 repo 不一致，会告警（logger 标签 `pengyoo-apache-guard`）并自动恢复为 repo 版本并重载 Apache。详见 `tanmai/deploy/README.md`。
+- 若修改了 Apache 相关配置（含 SSL、API 反向代理），必须同步更新 **deploy/apache/** 并提交、推送，并确保守护脚本已部署。
