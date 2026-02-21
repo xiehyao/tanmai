@@ -20,14 +20,15 @@
 
 **禁止**重要代码长期只在工作区、不提交。**禁止**提交后不推送。
 
-## 2. 会话结束前自检
+## 2. 会话结束前自检（未执行则视为任务未完成）
 
-在完成用户任务、准备结束回复前，必须：
+**在发送最后一条回复前必须执行**（不可省略、不可“等会儿再做”）：
 
-- 执行 `git status`，若有未提交改动，立即完成 `git add` + `git commit`
-- **每次 commit 后必须执行** `./scripts/git-sync.sh push`，确保三备份（本地 Gitea + 新加坡 Gitea + GitHub）同步
-- **检查后端服务**：若本次修改涉及 `tanmai/backend/`，先运行 `cd tanmai/backend && pytest tests/ -v`，通过后再重启 uvicorn
-- 若为临时代码，需在对话中明确说明
+1. `cd tanmai && git status` — 若有未提交改动（含未跟踪文件），必须 `git add` 相关文件并 `git commit -m "模块：描述"`
+2. 若有本次会话内任何一次 commit，必须立即执行 `./scripts/git-sync.sh push`（三备份）
+3. 若本次修改涉及 `tanmai/backend/`，先运行 `cd tanmai/backend && pytest tests/ -v`，通过后再重启 uvicorn
+
+其余：若为临时代码，需在对话中明确说明。
 
 ## 3. 受保护文件
 

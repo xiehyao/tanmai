@@ -24,9 +24,15 @@ alwaysApply: true
 
 禁止在测试失败时提交 backend 改动。
 
-## 3. 会话结束前自检
+## 3. 会话结束前自检（未执行则视为任务未完成）
 
-在完成用户任务、准备结束回复前，必须检查并完成以上步骤。**特别确认**：若有 commit，已执行 `./scripts/git-sync.sh push`。若为临时代码，需在对话中明确说明。
+**在发送最后一条回复前必须执行**（不可省略）：
+
+1. `cd tanmai && git status` — 若有未提交/未跟踪改动，必须 `git add` 并 `git commit`
+2. 若有本次会话内任何一次 commit，必须执行 `./scripts/git-sync.sh push`
+3. 若改了 backend，先 `pytest tests/ -v` 通过再重启 uvicorn
+
+未完成上述步骤即结束回复，视为任务未完成。若为临时代码，需在对话中明确说明。
 
 ## 4. git-sync.sh 丢失恢复（必读）
 
