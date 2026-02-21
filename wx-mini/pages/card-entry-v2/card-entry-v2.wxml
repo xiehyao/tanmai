@@ -1,64 +1,253 @@
 <!-- pages/card-entry-v2/card-entry-v2.wxml -->
-<!-- V2：在旧版基础上，为第1步增加「上半预览 + 下半填写」的预览卡片。 -->
+<!-- V2 全新骨架：按 CARD_ENTRY_V2_DESIGN.md 设计，布局为 模式栏 → 流程+预览 → 填写区 -->
 
-<view class="card-entry-v2-page">
-  <!-- 仅在第1步显示的名片预览区 -->
-  <view class="preview-section" wx:if="{{currentStep === 1}}">
-    <view class="preview-title-row">
-      <text class="preview-title">我的名片（预览）</text>
-      <text class="preview-subtitle">上方是正式场合展示的名片，下方是填写区</text>
+<view class="v2-page">
+  <!-- 1. 最顶部：普通模式 / 工作人员模式 -->
+  <view class="mode-bar">
+    <view class="mode-toggle" bindtap="toggleStaffMode">
+      <text class="mode-label">{{isStaffMode ? '工作人员模式' : '普通模式'}}</text>
+      <switch checked="{{isStaffMode}}" color="#667eea" />
     </view>
+    <!-- 工作人员模式下的扩展（用户搜索等，骨架先简化） -->
+    <view class="staff-extras" wx:if="{{isStaffMode}}">
+      <text class="staff-hint">选择目标用户后填写</text>
+    </view>
+  </view>
 
-    <view class="preview-card">
-      <view class="preview-card-header">
-        <image
-          class="preview-avatar"
-          src="{{step1.display_avatar || step1.selected_avatar || step1.avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
-          mode="aspectFill"
-        />
-        <view class="preview-main-info">
-          <text class="preview-name {{step1.name ? '' : 'placeholder'}}">
-            {{step1.name || '填写真实姓名'}}
-          </text>
-          <text class="preview-title-text {{step1.company || step1.title ? '' : 'placeholder'}}">
-            {{step1.company || '填写公司名称'}}<block wx:if="{{step1.title}}"> · {{step1.title}}</block>
-          </text>
+  <!-- 2. 流程 + 预览 合一区域 -->
+  <view class="flow-preview-area">
+    <view class="flow-row">
+      <view
+        class="flow-item {{currentStep === step ? 'active' : ''}} {{index < currentStep ? 'done' : ''}}"
+        wx:for="{{[1,2,3,4,5,6]}}"
+        wx:key="*this"
+        wx:for-item="step"
+        wx:for-index="index"
+        data-step="{{step}}"
+        bindtap="goToStep"
+      >
+        <text class="flow-num">{{step}}</text>
+        <text class="flow-name">{{step === 1 ? '名片' : step === 2 ? '简介' : step === 3 ? '校友' : step === 4 ? '事业' : step === 5 ? '社团' : '资源'}}</text>
+      </view>
+    </view>
+    <!-- 预览区：流程内再用独立卡片框住名片 -->
+    <view class="preview-compact">
+      <view class="preview-card-wrap" wx:if="{{currentStep === 1}}">
+      <!-- Step1 预览：独立名片卡片，样式同名片夹 -->
+      <view class="preview-card-step1">
+        <view class="preview-card-inner">
+          <view class="preview-row-mini">
+            <image
+              class="preview-avatar-mini"
+              src="{{step1.display_avatar || step1.selected_avatar || step1.avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
+              mode="aspectFill"
+            />
+            <view class="preview-fields">
+              <!-- 多行，每行独立 ph：仅该行未填时灰色，填了变黑 -->
+              <text class="preview-name-line {{step1.name ? '' : 'ph'}}">{{step1.name || '朱元璋'}}</text>
+              <text class="preview-mid-line {{step1.company_title || step1.company || step1.title ? '' : 'ph'}}">{{step1.company_title || (step1.company ? step1.company + (step1.title ? ' ' + step1.title : '') : '') || '大明集团 董事局主席兼CEO'}}</text>
+              <text class="preview-mid-line {{step1.association_title ? '' : 'ph'}}">{{step1.association_title || '朱氏宗亲会会长'}}</text>
+              <text class="preview-small-line">   </text>
+              <text class="preview-small-line {{step1.wechat_id ? '' : 'ph'}}">{{step1.wechat_id || '微信号: zyz88'}}</text>
+              <text class="preview-small-line {{step1.phone ? '' : 'ph'}}">{{step1.phone || '135 5555 5555'}}</text>
+              <text class="preview-small-line {{step1.email ? '' : 'ph'}}">{{step1.email || 'zyz@ming.gov'}}</text>
+              <text class="preview-small-line {{step1.main_address ? '' : 'ph'}}">{{step1.main_address || '江苏省南京市明皇宫95号'}}</text>
+            </view>
+          </view>
         </view>
       </view>
-
-      <view class="preview-body">
-        <view class="preview-row">
-          <text class="preview-label">微信</text>
-          <text class="preview-value {{step1.wechat_id ? '' : 'placeholder'}}">
-            {{step1.wechat_id || '填写微信号（可设仅好友可见）'}}
-          </text>
-        </view>
-        <view class="preview-row">
-          <text class="preview-label">手机</text>
-          <text class="preview-value {{step1.phone ? '' : 'placeholder'}}">
-            {{step1.phone || '填写手机号（可设仅互换名片后可见）'}}
-          </text>
-        </view>
-        <view class="preview-row">
-          <text class="preview-label">邮箱</text>
-          <text class="preview-value {{step1.email ? '' : 'placeholder'}}">
-            {{step1.email || '填写邮箱（用于正式联系，可隐藏）'}}
-          </text>
-        </view>
-        <view class="preview-row">
-          <text class="preview-label">地址</text>
-          <text class="preview-value {{step1.locations && step1.locations.length ? '' : 'placeholder'}}">
-            {{(step1.locations && step1.locations.length && step1.locations[0].address) || '添加居住地/工作地，方便附近校友发现你'}}
-          </text>
-        </view>
       </view>
-      <view class="preview-footer">
-        <text class="preview-tip">私密信息可通过「可见性」设置为仅好友/仅校友可见</text>
+      <!-- Step2 预览 -->
+      <view class="preview-inner" wx:if="{{currentStep === 2}}">
+        <text class="preview-sm {{step2.intro_raw ? '' : 'ph'}}">{{step2.intro_raw || '一段话介绍自己：星座、籍贯、母校、现职、爱好...'}}</text>
+      </view>
+      <!-- Step3 预览 -->
+      <view class="preview-inner" wx:if="{{currentStep === 3}}">
+        <text class="preview-sm {{step3.raw || step3.schools ? '' : 'ph'}}">{{step3.raw || step3.schools || '学校、届别、专业、星座、生日、家乡、兴趣'}}</text>
+      </view>
+      <!-- Step4 预览 -->
+      <view class="preview-inner" wx:if="{{currentStep === 4}}">
+        <text class="preview-sm {{step4.raw || (step4.resources && step4.resources.length) ? '' : 'ph'}}">{{step4.raw || (step4.resources && step4.resources.length ? '已填' + step4.resources.length + '项资源' : '公司、项目、职位、能提供什么、需要什么')}}</text>
+      </view>
+      <!-- Step5 预览 -->
+      <view class="preview-inner" wx:if="{{currentStep === 5}}">
+        <text class="preview-sm {{step5.orgs || step5.willing_to_serve ? '' : 'ph'}}">{{step5.orgs || (step5.willing_to_serve ? '愿意为校友会出力' : '参与组织、职位、是否愿意支持')}}</text>
+      </view>
+      <!-- Step6 预览 -->
+      <view class="preview-inner" wx:if="{{currentStep === 6}}">
+        <text class="preview-sm {{step6.raw ? '' : 'ph'}}">{{step6.raw || '聚拢资源与需求，可补充调整'}}</text>
       </view>
     </view>
   </view>
 
-  <!-- 下面仍然复用旧版完整表单与步骤逻辑 -->
-  <include src="../card-entry/card-entry.wxml" />
-</view>
+  <!-- 3. 填写区 -->
+  <scroll-view class="form-area" scroll-y>
+    <!-- Step1：我的名片 - 多行填写框、每行前三个横设可见性 -->
+    <view class="step-form" wx:if="{{currentStep === 1}}">
+      <view class="form-group">
+        <text class="label">头像</text>
+        <view class="avatar-pick" bindtap="onPickAvatar">
+          <image class="avatar-pick-img" src="{{step1.display_avatar || step1.selected_avatar || step1.avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}" mode="aspectFill" />
+          <text class="avatar-pick-txt">点击选择</text>
+        </view>
+      </view>
+      <view class="form-group">
+        <text class="label hint">填写后点击行前的 ☰ 可设置可见性（公开/不公开/仅好友/仅校友）</text>
+      </view>
+      <view class="field-row">
+        <view class="field-visibility {{step1.name ? '' : 'empty'}}" data-field="name" bindtap="onVisibilityTap">
+          <text class="icon-three" wx:if="{{step1.name}}">☰</text>
+        </view>
+        <view class="field-input-wrap">
+          <text class="field-label">= 姓名 </text>
+          <textarea class="field-textarea" placeholder="朱元璋" value="{{step1.name}}" data-step="1" data-field="name" bindinput="onInputChange" maxlength="50" />
+        </view>
+      </view>
+      <view class="field-row">
+        <view class="field-visibility {{step1.company_title ? '' : 'empty'}}" data-field="company_title" bindtap="onVisibilityTap">
+          <text class="icon-three" wx:if="{{step1.company_title}}">☰</text>
+        </view>
+        <view class="field-input-wrap">
+          <text class="field-label">= 公司-职位 </text>
+          <textarea class="field-textarea" placeholder="大明集团 董事局主席兼CEO" value="{{step1.company_title}}" data-step="1" data-field="company_title" bindinput="onInputChange" maxlength="100" />
+        </view>
+      </view>
+      <view class="field-row">
+        <view class="field-visibility {{step1.association_title ? '' : 'empty'}}" data-field="association_title" bindtap="onVisibilityTap">
+          <text class="icon-three" wx:if="{{step1.association_title}}">☰</text>
+        </view>
+        <view class="field-input-wrap">
+          <text class="field-label">= 社团-职位 </text>
+          <textarea class="field-textarea" placeholder="朱氏宗亲会会长" value="{{step1.association_title}}" data-step="1" data-field="association_title" bindinput="onInputChange" maxlength="80" />
+        </view>
+      </view>
+      <view class="field-row">
+        <view class="field-visibility {{step1.wechat_id ? '' : 'empty'}}" data-field="wechat_id" bindtap="onVisibilityTap">
+          <text class="icon-three" wx:if="{{step1.wechat_id}}">☰</text>
+        </view>
+        <view class="field-input-wrap">
+          <text class="field-label">= 微信 </text>
+          <textarea class="field-textarea" placeholder="zyz88" value="{{step1.wechat_id}}" data-step="1" data-field="wechat_id" bindinput="onInputChange" maxlength="50" />
+        </view>
+      </view>
+      <view class="field-row">
+        <view class="field-visibility {{step1.phone ? '' : 'empty'}}" data-field="phone" bindtap="onVisibilityTap">
+          <text class="icon-three" wx:if="{{step1.phone}}">☰</text>
+        </view>
+        <view class="field-input-wrap">
+          <text class="field-label">= 手机 </text>
+          <textarea class="field-textarea" placeholder="135 5555 5555" value="{{step1.phone}}" data-step="1" data-field="phone" bindinput="onInputChange" maxlength="30" />
+        </view>
+      </view>
+      <view class="field-row">
+        <view class="field-visibility {{step1.email ? '' : 'empty'}}" data-field="email" bindtap="onVisibilityTap">
+          <text class="icon-three" wx:if="{{step1.email}}">☰</text>
+        </view>
+        <view class="field-input-wrap">
+          <text class="field-label">= 邮箱 </text>
+          <textarea class="field-textarea" placeholder="zyz@ming.gov" value="{{step1.email}}" data-step="1" data-field="email" bindinput="onInputChange" maxlength="80" />
+        </view>
+      </view>
+      <view class="field-row">
+        <view class="field-visibility {{step1.main_address ? '' : 'empty'}}" data-field="main_address" bindtap="onVisibilityTap">
+          <text class="icon-three" wx:if="{{step1.main_address}}">☰</text>
+        </view>
+        <view class="field-input-wrap">
+          <text class="field-label">= 地址 </text>
+          <textarea class="field-textarea" placeholder="江苏省南京市明皇宫95号" value="{{step1.main_address}}" data-step="1" data-field="main_address" bindinput="onInputChange" maxlength="120" />
+        </view>
+      </view>
+    </view>
 
+    <!-- Step2：个人简介 -->
+    <view class="step-form" wx:if="{{currentStep === 2}}">
+      <view class="form-group">
+        <text class="label">个人简介</text>
+        <text class="hint">可转发到群、发给新朋友。示例：白羊座；张坂人；惠安一中初97届；北邮通信工程00本04硕；腾讯产品总监；喜欢羽毛球、爬山</text>
+        <textarea class="textarea" placeholder="一段话介绍自己（星座、籍贯、母校、现职、爱好等）" value="{{step2.intro_raw}}" data-step="2" data-field="intro_raw" bindinput="onInputChange" maxlength="500" />
+      </view>
+      <view class="form-group">
+        <text class="label">照片</text>
+        <view class="photo-add" bindtap="onAddIntroPhoto">+ 添加照片</view>
+      </view>
+    </view>
+
+    <!-- Step3：校友/同乡/同好发现 -->
+    <view class="step-form" wx:if="{{currentStep === 3}}">
+      <view class="form-group">
+        <text class="label">学校、届别、专业、星座、生日、家乡、兴趣</text>
+        <text class="hint">用于校友发现与匹配：同届、同校、同好</text>
+        <textarea class="textarea" placeholder="可自由书写，或填学校、届别、专业、星座、生日、家乡、兴趣爱好" value="{{step3.raw}}" data-step="3" data-field="raw" bindinput="onInputChange" maxlength="300" />
+      </view>
+    </view>
+
+    <!-- Step4：事业与资源 -->
+    <view class="step-form" wx:if="{{currentStep === 4}}">
+      <view class="form-group">
+        <text class="label">事业履历、能提供什么、需要什么</text>
+        <text class="hint">用于前同事、同行发现，以及资源对接</text>
+        <textarea class="textarea" placeholder="公司、项目、职位、现职、能提供什么、需要什么" value="{{step4.raw}}" data-step="4" data-field="raw" bindinput="onInputChange" maxlength="500" />
+      </view>
+      <view class="form-group">
+        <text class="label">或添加结构化资源</text>
+        <view class="resource-add" bindtap="onAddResource">+ 添加资源</view>
+      </view>
+    </view>
+
+    <!-- Step5：社团参与 -->
+    <view class="step-form" wx:if="{{currentStep === 5}}">
+      <view class="form-group">
+        <text class="label">参与的组织、担任职位</text>
+        <input class="input" placeholder="如：惠安一中校友会" value="{{step5.orgs}}" data-step="5" data-field="orgs" bindinput="onInputChange" />
+      </view>
+      <view class="form-group">
+        <text class="label">是否愿意为校友会出力</text>
+        <switch checked="{{step5.willing_to_serve}}" data-step="5" data-field="willing_to_serve" bindchange="onSwitchChange" />
+      </view>
+    </view>
+
+    <!-- Step6：资源与需求 -->
+    <view class="step-form" wx:if="{{currentStep === 6}}">
+      <view class="form-group">
+        <text class="label">资源与需求汇总</text>
+        <text class="hint">聚拢您在各环节填写的资源与需求，可补充或调整</text>
+        <textarea class="textarea" placeholder="补充、修正、确认您的资源与需求" value="{{step6.raw}}" data-step="6" data-field="raw" bindinput="onInputChange" maxlength="500" />
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 底部导航 -->
+  <view class="nav-bar">
+    <button class="btn-prev" wx:if="{{currentStep > 1}}" bindtap="prevStep">上一步</button>
+    <button class="btn-next" bindtap="nextStep">{{currentStep < totalSteps ? '下一步' : '完成'}}</button>
+  </view>
+
+  <!-- 可见性半屏弹窗 -->
+  <view class="visibility-mask" wx:if="{{showVisibilitySheet}}" bindtap="closeVisibilitySheet"></view>
+  <view class="visibility-sheet {{showVisibilitySheet ? 'show' : ''}}">
+    <view class="visibility-sheet-title">设置可见性</view>
+    <view class="visibility-sheet-desc" wx:if="{{visibilityEditField}}">{{visibilityEditFieldLabel}}</view>
+    <view class="visibility-options">
+      <view 
+        class="visibility-opt {{(step1.field_visibility[visibilityEditField] || 'public') === 'public' ? 'active' : ''}}" 
+        data-value="public"
+        bindtap="onVisibilitySelect"
+      >公开</view>
+      <view 
+        class="visibility-opt {{step1.field_visibility[visibilityEditField] === 'private' ? 'active' : ''}}" 
+        data-value="private"
+        bindtap="onVisibilitySelect"
+      >不公开</view>
+      <view 
+        class="visibility-opt {{step1.field_visibility[visibilityEditField] === 'friends_only' ? 'active' : ''}}" 
+        data-value="friends_only"
+        bindtap="onVisibilitySelect"
+      >仅好友可见</view>
+      <view 
+        class="visibility-opt {{step1.field_visibility[visibilityEditField] === 'alumni_only' ? 'active' : ''}}" 
+        data-value="alumni_only"
+        bindtap="onVisibilitySelect"
+      >仅校友可见</view>
+    </view>
+  </view>
+</view>

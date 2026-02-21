@@ -40,6 +40,10 @@ Page({
     wx.navigateTo({ url: '/pages/card-entry-v2/card-entry-v2' })
   },
 
+  goToCardEntryV3() {
+    wx.navigateTo({ url: '/pages/card-entry-v3/card-entry-v3' })
+  },
+
   goToCard() {
     wx.navigateTo({ url: '/pages/card/card' })
   },

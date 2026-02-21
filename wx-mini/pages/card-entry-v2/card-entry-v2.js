@@ -1,241 +1,122 @@
 // pages/card-entry-v2/card-entry-v2.js
-// 填写名片 V2 实验版：当前先完全复用旧版逻辑，后续在此基础上重构 UI/交互
+// V2 全新骨架：按 CARD_ENTRY_V2_DESIGN.md 设计，与旧版数据结构映射以复用后端
 
 const request = require('../../utils/request.js')
-let QQMapWX = null
-try {
-  QQMapWX = require('../../utils/qqmap-wx.js')
-} catch (error) {
-  console.warn('腾讯地图SDK加载失败，地址智能提示功能将不可用:', error)
-  QQMapWX = class {
-    constructor() {}
-    getSuggestion() {
-      if (arguments[0] && arguments[0].fail) {
-        arguments[0].fail({ message: 'SDK未安装' })
-      }
-    }
-  }
-}
 
-// 直接复用旧版的数据结构与方法，方便后续平滑演进
-// 为避免两份实现长期分叉，这里暂时拷贝一份；后续可考虑抽取公共模块。
-
-var EMPTY_STEP2 = { primary_school: '', primary_graduation_year: '', middle_school: '', middle_graduation_year: '', high_school: '', high_graduation_year: '', bachelor_university: '', bachelor_major: '', bachelor_graduation_year: '', master_university: '', master_major: '', master_graduation_year: '', doctor_university: '', doctor_major: '', doctor_graduation_year: '', highest_degree: '', field_visibility: {} }
-var EMPTY_STEP3 = { marital_status: '', dating_need: false, dating_preferences: '', job_seeking: false, job_target_position: '', job_target_industry: '', job_preferences: '', entrepreneurship_need: false, entrepreneurship_type: '', entrepreneurship_description: '', field_visibility: {} }
-var EMPTY_STEP4 = { resources: [], field_visibility: {} }
-var EMPTY_STEP5 = { willing_to_serve: false, contribution_types: '', contribution_description: '', desired_position: '', position_preferences: '', association_needs: '', board_position: '', association_positions: [], support_offerings: [], association_needs_detail: { selected: [], other: '' }, field_visibility: {} }
-var EMPTY_STEP6 = { hidden_info: {}, field_visibility: {} }
-function hasStep2Data(o) { return o && typeof o === 'object' && Object.keys(o).some(function(k) { return k !== 'field_visibility' && o[k] !== undefined && o[k] !== null && o[k] !== '' }) }
-function hasStep3Data(o) { return o && typeof o === 'object' && Object.keys(o).some(function(k) { return k !== 'field_visibility' && o[k] !== undefined && o[k] !== null && o[k] !== '' }) }
-function hasStep5Data(o) {
-  if (!o || typeof o !== 'object') return false
-  var ad = o.association_needs_detail
-  var hasNeeds = ad && typeof ad === 'object' && (Array.isArray(ad.selected) && ad.selected.length > 0 || (ad.other && String(ad.other).trim()))
-  return Object.keys(o).some(function(k) {
-    if (k === 'field_visibility' || k === 'association_needs_detail') return false
-    var v = o[k]
-    if (Array.isArray(v) && v.length > 0) return true
-    if (v === true || v === false) return true
-    return v !== undefined && v !== null && v !== ''
-  }) || !!hasNeeds
+// V2 步骤结构（按设计文档）
+const EMPTY_STEP1 = {
+  name: '', nickname: '', avatar: '', gender: '', wechat_id: '', selected_avatar: '',
+  personal_photos: [], birth_place: '', title: '', company: '', phone: '', email: '',
+  bio: '', field_visibility: {}, locations: [], main_address: '',
+  company_title: '', association_title: ''
 }
+const STEP1_FIELD_LABELS = {
+  name: '姓名', company_title: '公司-职位', association_title: '社团-职位',
+  wechat_id: '微信', phone: '手机', email: '邮箱', main_address: '地址'
+}
+const EMPTY_STEP2 = { intro_raw: '', photos: [] }
+const EMPTY_STEP3 = { raw: '', schools: '' }
+const EMPTY_STEP4 = { raw: '', resources: [] }
+const EMPTY_STEP5 = { orgs: '', willing_to_serve: false, board_position: '', association_positions: [], contribution_types: '' }
+const EMPTY_STEP6 = { raw: '' }
 
 Page({
   data: {
     currentStep: 1,
     totalSteps: 6,
     progress: null,
-    isInternalMode: false,
-    staffFillConfirmed: false,
-    staffAddNewMode: false,
-    step1: {
-      name: '',
-      nickname: '',
-      avatar: '',
-      gender: '',
-      wechat_id: '',
-      selected_avatar: '',
-      personal_photos: [],
-      birth_place: '',
-      title: '',
-      company: '',
-      phone: '',
-      email: '',
-      bio: '',
-      field_visibility: {},
-      locations: []
-    },
+    isStaffMode: false,
+    staffIdVerified: false,
+    targetUser: null,
+    showVisibilitySheet: false,
+    visibilityEditField: null,
+    visibilityEditFieldLabel: '',
+    step1: { ...EMPTY_STEP1 },
     step2: { ...EMPTY_STEP2 },
     step3: { ...EMPTY_STEP3 },
     step4: { ...EMPTY_STEP4 },
     step5: { ...EMPTY_STEP5 },
     step6: { ...EMPTY_STEP6 },
-    degreeOptions: ['小学', '初中', '高中', '本科', '硕士', '博士'],
-    genderOptions: [
-      { label: '请选择', value: '' },
-      { label: '男', value: 'male' },
-      { label: '女', value: 'female' },
-      { label: '其他', value: 'other' }
-    ],
-    selectedAvatarOptions: [], // 初始化时从旧版选项复制
-    maritalOptions: [
-      { label: '单身', value: 'single' },
-      { label: '已婚', value: 'married' },
-      { label: '离异', value: 'divorced' },
-      { label: '丧偶', value: 'widowed' }
-    ],
-    entrepreneurshipTypeOptions: [
-      { label: '找资源', value: 'resource' },
-      { label: '找合作伙伴', value: 'partner' },
-      { label: '两者都需要', value: 'both' }
-    ],
-    resourceTypeOptions: [
-      { label: '经验分享', value: 'experience' },
-      { label: '知识技能', value: 'knowledge' },
-      { label: '资源对接', value: 'resource' },
-      { label: '人脉连接', value: 'connection' },
-      { label: '其他', value: 'other' }
-    ],
-    sharingModeOptions: [
-      { label: '免费分享', value: 'free' },
-      { label: '事业共创', value: 'collaboration' },
-      { label: '两者都可以', value: 'both' }
-    ],
-    locationTypeOptions: [
-      { label: '居住地', value: 'residence' },
-      { label: '工作地', value: 'work' },
-      { label: '其他', value: 'other' }
-    ],
-    locationVisibilityOptions: [
-      { label: '公开', value: 'public' },
-      { label: '不公开', value: 'private' },
-      { label: '仅精确到区，不暴露精准位置', value: 'district_only' }
-    ],
-    fieldVisibilityOptions: [
-      { label: '公开', value: 'public' },
-      { label: '不公开', value: 'private' },
-      { label: '部分打码', value: 'masked' }
-    ],
-    addressSuggestions: {},
-    addressSuggestionTimers: {},
-    showAddressSuggestions: {},
-    qqmapsdk: null,
-    boardPositionOptions: [],
-    associationPositionOptions: [],
-    supportTypeOptions: [],
-    associationNeedsOptions: [],
-    pickerIndexes: {},
-    isStaffMode: false,
-    staffIdVerified: false,
-    targetUser: null,
-    searchKeyword: '',
-    searchResults: [],
-    showUserSearch: false,
-    filteredAvatarOptions: [],
-    entrySource: null,
-    defaultTags: []
+    entrySource: null
   },
 
   onLoad(options) {
-    // 记录入口来源（后续用于预填标签）
     const from = options.from || options.scene || null
-    if (from) {
-      this.setData({ entrySource: from })
-    }
-
-    // 这里先直接沿用旧版 onLoad 的主要逻辑（地图 SDK + 内部模式 + 数据加载）
-    try {
-      const TENCENT_MAP_KEY = 'HLRBZ-2VD6Q-X6C5D-2OG4P-4WHZO-ZVFEI'
-      if (QQMapWX && typeof QQMapWX === 'function') {
-        this.setData({
-          qqmapsdk: new QQMapWX({ key: TENCENT_MAP_KEY })
-        })
-      } else {
-        this.setData({ qqmapsdk: null })
-      }
-    } catch (error) {
-      console.error('腾讯地图SDK初始化失败:', error)
-      this.setData({ qqmapsdk: null })
-    }
-
+    if (from) this.setData({ entrySource: from })
     const isInternal = options.mode === 'internal'
     if (isInternal) {
-      wx.setNavigationBarTitle({ title: '内部评价·新版' })
-      this.setData({ isInternalMode: true, isStaffMode: true })
+      wx.setNavigationBarTitle({ title: '填写名片 V2' })
+      this.setData({ isStaffMode: true })
     }
     if (options.target_user_id) {
-      const verifiedStaffId = wx.getStorageSync('staff_id_verified')
-      if (verifiedStaffId === '362100' || isInternal) {
-        this.setData({
-          isStaffMode: true,
-          targetUser: { id: parseInt(options.target_user_id) }
-        })
+      const verified = wx.getStorageSync('staff_id_verified')
+      if (verified === '362100' || isInternal) {
+        this.setData({ isStaffMode: true, targetUser: { id: parseInt(options.target_user_id) } })
       }
     }
-    const verifiedStaffId = wx.getStorageSync('staff_id_verified')
-    if (verifiedStaffId === '362100') {
+    if (wx.getStorageSync('staff_id_verified') === '362100') {
       this.setData({ staffIdVerified: true })
     }
-    if (isInternal && (!this.data.targetUser || !this.data.targetUser.id)) {
-      this.updatePickerIndexes()
-      this.updateFilteredAvatarOptions()
-      return
+    if (!this.data.isStaffMode || (this.data.targetUser && this.data.targetUser.id)) {
+      this.loadAllData()
+      this.loadProgress()
     }
-    this.loadAllData(undefined, isInternal ? true : undefined)
-    this.loadProgress()
-    this.updatePickerIndexes()
-    this.updateFilteredAvatarOptions()
   },
 
   onShow() {
     this.loadProgress()
-    if (this.data.currentStep === 1) this.updateFilteredAvatarOptions()
   },
 
-  // 其余方法完全沿用旧版实现，为节省篇幅这里不再一一注释
-  // 直接从旧版 card-entry.js 拷贝（已验证通过）
+  toggleStaffMode() {
+    const next = !this.data.isStaffMode
+    this.setData({ isStaffMode: next })
+    if (!next && this.data.targetUser) {
+      this.setData({ targetUser: null })
+    } else if (next && this.data.targetUser && this.data.targetUser.id) {
+      this.loadAllData()
+    }
+  },
 
-  async loadAllData(overrideTargetUser, forceInternal) {
+  async loadAllData() {
     try {
-      const isInternalMode = forceInternal === true ? true : this.data.isInternalMode
-      const isStaffMode = this.data.isStaffMode
-      const targetUser = overrideTargetUser || this.data.targetUser
-      const requestedTargetId = (targetUser && targetUser.id) ? targetUser.id : null
-
-      if (isInternalMode && (!targetUser || !targetUser.id)) return
-      if (isStaffMode && (!targetUser || !targetUser.id)) return
-
-      const base = isInternalMode ? '/api/card-entry/internal' : '/api/card-entry'
-      let url = base + '/data'
-      if (targetUser && targetUser.id) {
-        url += `?target_user_id=${targetUser.id}`
+      let url = '/api/card-entry/data'
+      if (this.data.isStaffMode && this.data.targetUser && this.data.targetUser.id) {
+        url += `?target_user_id=${this.data.targetUser.id}`
       }
       const res = await request.get(url)
       if (!res) return
 
-      // 后续逻辑直接复制旧版（为简洁省略注释）
-      // ... 出于篇幅限制，这里不完全展开；在实际实现中应保持与旧版一致。
-      // 为了保持代码可运行，这里简单把 res.step1–step6 setData 回 data。
+      // 映射旧版数据到 V2 结构
+      const step1 = { ...EMPTY_STEP1, ...res.step1 }
+      step1.main_address = (step1.locations && step1.locations[0] && step1.locations[0].address) || ''
+      step1.company_title = [step1.company, step1.title].filter(Boolean).join(' ') || ''
+      step1.association_title = step1.association_title || ''
+      step1.field_visibility = step1.field_visibility || {}
 
-      if (res.step1) {
-        this.setData({ step1: { ...this.data.step1, ...res.step1 } })
-      }
-      if (res.step2) {
-        this.setData({ step2: { ...this.data.step2, ...res.step2 } })
-      }
-      if (res.step3) {
-        this.setData({ step3: { ...this.data.step3, ...res.step3 } })
-      }
-      if (res.step4) {
-        this.setData({ step4: { ...this.data.step4, ...res.step4 } })
-      }
-      if (res.step5) {
-        this.setData({ step5: { ...this.data.step5, ...res.step5 } })
-      }
-      if (res.step6) {
-        this.setData({ step6: { ...this.data.step6, ...res.step6 } })
-      }
-      this.updatePickerIndexes()
+      const step2 = { ...EMPTY_STEP2 }
+      step2.intro_raw = res.step1 && res.step1.bio ? res.step1.bio : ''
+
+      const step3 = { ...EMPTY_STEP3 }
+      const edu = res.step2 || {}
+      const needs = res.step3 || {}
+      step3.schools = edu.high_school || edu.bachelor_university || ''
+      step3.raw = [edu.high_school, edu.bachelor_university, needs.marital_status].filter(Boolean).join('；') || ''
+
+      const step4 = { ...EMPTY_STEP4 }
+      step4.resources = (res.step4 && res.step4.resources) || []
+
+      const step5 = { ...EMPTY_STEP5 }
+      const assoc = res.step5 || {}
+      step5.willing_to_serve = !!assoc.willing_to_serve
+      step5.board_position = assoc.board_position || ''
+      step5.association_positions = assoc.association_positions || []
+      step5.contribution_types = assoc.contribution_types || ''
+      step5.orgs = assoc.association_positions && assoc.association_positions.length ? '已选' + assoc.association_positions.length + '项' : ''
+
+      const step6 = { ...EMPTY_STEP6 }
+      step6.raw = (res.step6 && res.step6.hidden_info && res.step6.hidden_info.description) || ''
+
+      this.setData({ step1, step2, step3, step4, step5, step6 })
     } catch (e) {
       console.error('Load data error (v2):', e)
     }
@@ -243,50 +124,122 @@ Page({
 
   async loadProgress() {
     try {
-      if (this.data.isInternalMode) return
       let url = '/api/card-entry/progress'
       if (this.data.isStaffMode && this.data.targetUser && this.data.targetUser.id) {
         url += `?target_user_id=${this.data.targetUser.id}`
       }
       const res = await request.get(url)
       if (res && res.current_step != null) {
-        this.setData({
-          progress: res,
-          currentStep: res.current_step || 1
-        })
+        this.setData({ progress: res, currentStep: res.current_step || 1 })
       }
     } catch (e) {
       console.error('Load progress error (v2):', e)
     }
   },
 
+  _buildStep1ForSave() {
+    const s = this.data.step1
+    const locs = s.main_address ? [{ address: s.main_address, location_type: 'residence', location_visibility: 'public' }] : []
+    let company = s.company, title = s.title
+    if (s.company_title) {
+      const parts = s.company_title.trim().split(/\s+/)
+      company = parts[0] || s.company
+      title = parts.length > 1 ? parts.slice(1).join(' ') : (s.title || '')
+    }
+    return {
+      name: s.name, nickname: s.nickname, avatar: s.avatar, gender: s.gender,
+      wechat_id: s.wechat_id, selected_avatar: s.selected_avatar,
+      personal_photos: s.personal_photos, birth_place: s.birth_place,
+      title: title, company: company, phone: s.phone, email: s.email,
+      bio: s.bio, field_visibility: s.field_visibility || {}, locations: locs
+    }
+  },
+
+  _buildStep3ForSave() {
+    return {
+      marital_status: '', dating_need: false, dating_preferences: '',
+      job_seeking: false, job_target_position: '', entrepreneurship_need: false,
+      entrepreneurship_type: '', entrepreneurship_description: this.data.step3.raw
+    }
+  },
+
+  _buildStep4ForSave() {
+    const s = this.data.step4
+    let resources = [...(s.resources || [])]
+    if (s.raw && s.raw.trim()) {
+      resources.push({
+        resource_type: 'other',
+        resource_title: '自由填写',
+        resource_description: s.raw.trim(),
+        sharing_mode: 'free'
+      })
+    }
+    return { resources }
+  },
+
+  _buildStep5ForSave() {
+    const s = this.data.step5
+    return {
+      willing_to_serve: s.willing_to_serve,
+      board_position: s.board_position || '',
+      association_positions: s.association_positions || [],
+      contribution_types: s.contribution_types || s.orgs || '',
+      contribution_description: '',
+      desired_position: '',
+      position_preferences: '',
+      association_needs: '',
+      support_offerings: [],
+      association_needs_detail: { selected: [], other: '' }
+    }
+  },
+
+  _buildStep6ForSave() {
+    return {
+      hidden_info: { description: this.data.step6.raw || '' },
+      field_visibility: {}
+    }
+  },
+
   async saveCurrentStep() {
-    // 暂时直接调用旧版 save-step 接口，后续在此处接 AI 解析与新结构
-    const staffAddNewMode = this.data.staffAddNewMode
-    const needTargetUser = this.data.isStaffMode && !staffAddNewMode
-    if (needTargetUser && (!this.data.targetUser || !this.data.targetUser.id)) {
+    if (this.data.isStaffMode && (!this.data.targetUser || !this.data.targetUser.id)) {
       wx.showToast({ title: '请先选择目标用户', icon: 'none' })
       return false
     }
 
     wx.showLoading({ title: '保存中...' })
     try {
-      const stepData = this.data[`step${this.data.currentStep}`]
-      let dataToSave = stepData
+      const step = this.data.currentStep
+      let dataToSave
+      let url
+      if (step === 1) {
+        dataToSave = this._buildStep1ForSave()
+        url = '/api/card-entry/save-step/1'
+      } else if (step === 2) {
+        const step1 = this._buildStep1ForSave()
+        dataToSave = { ...step1, bio: this.data.step2.intro_raw }
+        url = '/api/card-entry/save-step/1'
+      } else if (step === 3) {
+        dataToSave = this._buildStep3ForSave()
+        url = '/api/card-entry/save-step/3'
+      } else if (step === 4) {
+        dataToSave = this._buildStep4ForSave()
+        url = '/api/card-entry/save-step/4'
+      } else if (step === 5) {
+        dataToSave = this._buildStep5ForSave()
+        url = '/api/card-entry/save-step/5'
+      } else {
+        dataToSave = this._buildStep6ForSave()
+        url = '/api/card-entry/save-step/6'
+      }
 
-      const isInternalMode = this.data.isInternalMode
-      const base = isInternalMode ? '/api/card-entry/internal' : '/api/card-entry'
-      let url = `${base}/save-step/${this.data.currentStep}`
       if (this.data.isStaffMode && this.data.targetUser && this.data.targetUser.id) {
         url += `?target_user_id=${this.data.targetUser.id}`
       }
-      if (staffAddNewMode && this.data.currentStep === 1) {
-        dataToSave = { ...dataToSave, create_new: true }
-      }
-      const res = await request.post(url, dataToSave)
+
+      await request.post(url, dataToSave)
       wx.hideLoading()
       wx.showToast({ title: '保存成功', icon: 'success' })
-      return { ok: true, newTargetUserId: res && res.user_id != null ? res.user_id : undefined }
+      return { ok: true }
     } catch (e) {
       wx.hideLoading()
       wx.showToast({ title: '保存失败', icon: 'none' })
@@ -297,87 +250,38 @@ Page({
 
   async nextStep() {
     const result = await this.saveCurrentStep()
-    if (!result) return
-    const ok = typeof result === 'object' ? result.ok : result
-    const newTargetUserId = typeof result === 'object' ? result.newTargetUserId : undefined
-    if (!ok) return
-
+    if (!result || !result.ok) return
     if (this.data.currentStep < this.data.totalSteps) {
-      await this.updateProgress(this.data.currentStep + 1, newTargetUserId)
+      const next = this.data.currentStep + 1
+      this.setData({ currentStep: next })
+      await this.updateProgress(next)
     } else {
-      wx.showModal({
-        title: '完成',
-        content: '恭喜！您已完成所有信息填写（新版）',
-        showCancel: false,
-        success: () => wx.navigateBack()
-      })
+      wx.showModal({ title: '完成', content: '您已完成所有信息填写', showCancel: false, success: () => wx.navigateBack() })
     }
   },
 
   prevStep() {
     if (this.data.currentStep > 1) {
-      this.setData({ currentStep: this.data.currentStep - 1 })
-      this.updateProgress(this.data.currentStep - 1)
+      const prev = this.data.currentStep - 1
+      this.setData({ currentStep: prev })
+      this.updateProgress(prev)
     }
   },
 
-  async updateProgress(nextStep, overrideTargetUserId) {
+  async updateProgress(nextStep) {
     try {
-      if (this.data.isInternalMode) {
-        this.setData({ currentStep: nextStep })
-        return
-      }
       const completedSteps = this.data.progress?.completed_steps || []
-      if (!completedSteps.includes(this.data.currentStep)) {
-        completedSteps.push(this.data.currentStep)
-      }
+      if (!completedSteps.includes(this.data.currentStep)) completedSteps.push(this.data.currentStep)
       const body = { current_step: nextStep, completed_steps: completedSteps }
       let url = '/api/card-entry/progress'
-      const targetUserId = overrideTargetUserId != null ? overrideTargetUserId : (this.data.targetUser && this.data.targetUser.id)
-      if (this.data.isStaffMode && targetUserId) {
-        url += `?target_user_id=${targetUserId}`
+      if (this.data.isStaffMode && this.data.targetUser && this.data.targetUser.id) {
+        url += `?target_user_id=${this.data.targetUser.id}`
       }
       await request.put(url, body)
-      this.setData({
-        currentStep: nextStep,
-        progress: { ...this.data.progress, current_step: nextStep, completed_steps: completedSteps }
-      })
+      this.setData({ progress: { ...this.data.progress, current_step: nextStep, completed_steps: completedSteps } })
     } catch (e) {
       console.error('Update progress error (v2):', e)
     }
-  },
-
-  updatePickerIndexes() {
-    // 先做一个空实现，后续根据 v2 需要补充；为兼容旧数据，保留基本结构
-    const indexes = {}
-    this.setData({ pickerIndexes: indexes })
-  },
-
-  /** 按性别过滤头像选项：男→仅男头像，女→仅女头像，未选/其他→全部；若当前选中不在过滤结果内则重置为「使用微信头像」。 */
-  updateFilteredAvatarOptions(overrideGender) {
-    const raw = overrideGender !== undefined && overrideGender !== null
-      ? String(overrideGender).trim()
-      : ((this.data.step1 && this.data.step1.gender) != null ? String(this.data.step1.gender).trim() : '')
-    const gender = raw
-    const isMale = gender === 'male' || gender === '男'
-    const isFemale = gender === 'female' || gender === '女'
-    const all = this.data.selectedAvatarOptions || []
-    let filtered = all
-    if (isMale) {
-      filtered = all.filter(o => !o.value || o.value.indexOf('/avatars/male-') !== -1)
-    } else if (isFemale) {
-      filtered = all.filter(o => !o.value || o.value.indexOf('female-') !== -1)
-    }
-    const current = (this.data.step1 && this.data.step1.selected_avatar) || ''
-    const inList = filtered.some(o => o.value === current)
-    const updates = { filteredAvatarOptions: filtered }
-    if (!inList && current !== '') {
-      const idx = this.data.selectedAvatarOptions.findIndex(o => o.value === '')
-      updates['step1.selected_avatar'] = ''
-      updates['step1._selectedAvatarIndex'] = idx >= 0 ? idx : 0
-      updates['step1._selectedAvatarLabel'] = '使用微信头像'
-    }
-    this.setData(updates)
   },
 
   onInputChange(e) {
@@ -392,18 +296,51 @@ Page({
     this.setData({ [`step${step}.${field}`]: value })
   },
 
-  goToVoiceInput() {
-    wx.navigateTo({
-      url: `/pages/voice-input/voice-input?source=card_entry_v2&step=${this.data.currentStep}`
-    })
-  },
-
   goToStep(e) {
-    const step = e.currentTarget.dataset.step
+    const step = parseInt(e.currentTarget.dataset.step)
     if (step >= 1 && step <= this.data.totalSteps) {
       this.setData({ currentStep: step })
       this.updateProgress(step)
     }
+  },
+
+  onPickAvatar() {
+    wx.showToast({ title: '头像选择（待完善）', icon: 'none' })
+  },
+
+  onAddIntroPhoto() {
+    wx.showToast({ title: '添加照片（待完善）', icon: 'none' })
+  },
+
+  onAddResource() {
+    wx.showToast({ title: '添加资源（待完善）', icon: 'none' })
+  },
+
+  onVisibilityTap(e) {
+    const field = e.currentTarget.dataset.field
+    if (!field) return
+    const val = this.data.step1[field]
+    if (!val || !val.trim()) return
+    const label = STEP1_FIELD_LABELS[field] || field
+    this.setData({
+      showVisibilitySheet: true,
+      visibilityEditField: field,
+      visibilityEditFieldLabel: label
+    })
+  },
+
+  closeVisibilitySheet() {
+    this.setData({ showVisibilitySheet: false, visibilityEditField: null, visibilityEditFieldLabel: '' })
+  },
+
+  onVisibilitySelect(e) {
+    const value = e.currentTarget.dataset.value
+    const field = this.data.visibilityEditField
+    if (!field) return
+    const fv = { ...this.data.step1.field_visibility }
+    fv[field] = value
+    this.setData({ 'step1.field_visibility': fv })
+    this.closeVisibilitySheet()
+    wx.showToast({ title: '已设置', icon: 'success' })
   }
 })
-

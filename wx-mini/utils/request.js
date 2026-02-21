@@ -26,8 +26,9 @@ function request(options) {
     // 获取工号（如果已验证）
     const staffId = wx.getStorageSync('staff_id_verified')
     
+    const fullUrl = apiBase + options.url
     wx.request({
-      url: apiBase + options.url,
+      url: fullUrl,
       method: options.method || 'GET',
       data: options.data || {},
       header: {
@@ -54,8 +55,11 @@ function request(options) {
         }
       },
       fail: (err) => {
-        console.error('请求失败:', err)
-        reject(new Error('网络连接失败，请检查网络设置'))
+        console.error('请求失败:', err, 'URL:', fullUrl)
+        const msg = err.errMsg === 'request:fail'
+          ? '请求失败：请检查 1) 微信开发者工具勾选「不校验合法域名」 2) 网络是否可达 ' + fullUrl
+          : (err.errMsg || '网络连接失败，请检查网络设置')
+        reject(new Error(msg))
       }
     })
   })

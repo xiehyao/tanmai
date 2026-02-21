@@ -1,108 +1,438 @@
 /* pages/card-entry-v2/card-entry-v2.wxss */
-@import "../card-entry/card-entry.wxss";
+/* V2 全新骨架样式 */
 
-.card-entry-v2-page {
+.v2-page {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  background: #f5f5f5;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* 顶部预览区域，仅用于 V2 第一步 */
-.preview-section {
-  background: #f5f5ff;
-  padding: 24rpx 30rpx 12rpx;
+/* 1. 模式栏 - 最顶部 */
+.mode-bar {
+  background: #fff;
+  padding: 20rpx 30rpx 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06);
 }
 
-.preview-title-row {
-  margin-bottom: 16rpx;
+.mode-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.preview-title {
-  font-size: 30rpx;
-  font-weight: 600;
+.mode-label {
+  font-size: 28rpx;
   color: #333;
-  display: block;
+  font-weight: 600;
 }
 
-.preview-subtitle {
-  margin-top: 4rpx;
+.staff-extras {
+  margin-top: 12rpx;
+  padding-top: 12rpx;
+  border-top: 1rpx solid #eee;
+}
+
+.staff-hint {
   font-size: 22rpx;
   color: #888;
 }
 
-.preview-card {
-  background: #ffffff;
+/* 2. 流程 + 预览 合一区域 */
+.flow-preview-area {
+  background: #fff;
+  margin: 16rpx 24rpx;
   border-radius: 16rpx;
-  padding: 24rpx 28rpx;
-  box-shadow: 0 4rpx 10rpx rgba(102, 126, 234, 0.12);
+  padding: 20rpx 24rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.06);
 }
 
-.preview-card-header {
+.flow-row {
   display: flex;
-  align-items: center;
+  justify-content: space-between;
   margin-bottom: 16rpx;
 }
 
-.preview-avatar {
-  width: 96rpx;
-  height: 96rpx;
-  border-radius: 50%;
-  background: #eee;
-  margin-right: 20rpx;
-}
-
-.preview-main-info {
+.flow-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   flex: 1;
-  min-width: 0;
+  padding: 8rpx 4rpx;
+  border-radius: 8rpx;
 }
 
-.preview-name {
-  font-size: 32rpx;
+.flow-item.active {
+  background: #667eea;
+}
+
+.flow-item.active .flow-num,
+.flow-item.active .flow-name {
+  color: #fff;
+}
+
+.flow-item.done .flow-num {
+  color: #52c41a;
+}
+
+.flow-num {
+  font-size: 24rpx;
   font-weight: 600;
   color: #333;
 }
 
-.preview-title-text {
-  margin-top: 4rpx;
-  font-size: 26rpx;
-  color: #555;
+.flow-name {
+  font-size: 20rpx;
+  color: #666;
+  margin-top: 2rpx;
 }
 
-.preview-body {
-  border-top: 1rpx solid #f0f0f0;
-  padding-top: 12rpx;
-}
-
-.preview-row {
+/* 预览区 */
+.preview-compact {
+  min-height: 80rpx;
   display: flex;
-  margin-top: 6rpx;
+  justify-content: center;
+  padding: 8rpx 0;
 }
 
-.preview-label {
-  width: 80rpx;
-  font-size: 24rpx;
-  color: #999;
+/* Step1：名片卡片 - 宽度随内容、高度随内容、居中 */
+.preview-card-wrap {
+  background: #fff;
+  border-radius: 20rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.06);
+  overflow: hidden;
+  padding: 16rpx 20rpx 20rpx;
+  box-sizing: border-box;
+  display: inline-block;
+  max-width: 88%;
 }
 
-.preview-value {
-  flex: 1;
-  font-size: 24rpx;
+.preview-card-step1 {
+  background: #fff;
+  border-radius: 12rpx;
+  overflow: hidden;
+}
+
+.preview-card-step1 .preview-card-inner {
+  padding: 60rpx;
+  box-sizing: border-box;
+}
+
+/* 预览文字：字号层级 + 紧凑行间距 + 每行独立 ph */
+.preview-name-line {
+  display: block;
+  font-size: 36rpx;
+  line-height: 1.2;
+  font-weight: 700;
   color: #333;
+  margin-bottom: 8rpx;
 }
 
-.preview-value.placeholder,
-.preview-name.placeholder,
-.preview-title-text.placeholder {
+.preview-mid-line {
+  display: block;
+  font-size: 26rpx;
+  line-height: 1.2;
+  color: #333;
+  margin-bottom: 8rpx;
+}
+
+.preview-small-line {
+  display: block;
+  font-size: 24rpx;
+  line-height: 1;
+  color: #333;
+  margin-bottom: 4rpx;
+}
+
+.preview-fields .preview-small-line:last-child {
+  margin-bottom: 0;
+}
+
+.preview-name-line.ph,
+.preview-mid-line.ph,
+.preview-small-line.ph {
   color: #bbb;
 }
 
-.preview-footer {
-  margin-top: 10rpx;
+.ph {
+  color: #bbb;
 }
 
-.preview-tip {
+.preview-inner {
   font-size: 22rpx;
-  color: #999;
+  line-height: 1.5;
+  color: #555;
 }
 
+.preview-sm {
+  font-size: 22rpx;
+  color: #555;
+}
 
+.preview-sm.ph,
+.preview-text-mini .ph {
+  color: #bbb;
+}
+
+.preview-row-mini {
+  display: flex;
+  align-items: flex-start;
+  gap: 24rpx;
+}
+
+.preview-avatar-mini {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 12rpx;
+  background: #eee;
+  flex-shrink: 0;
+}
+
+.preview-fields {
+  flex: 1;
+  min-width: 0;
+  line-height: 1;
+}
+
+.preview-text-mini {
+  flex: 1;
+  min-width: 0;
+}
+
+.preview-text-mini text {
+  display: block;
+  font-size: 22rpx;
+}
+
+.preview-text-mini .ph {
+  color: #bbb;
+}
+
+/* 3. 填写区 */
+.form-area {
+  flex: 1;
+  padding: 0 24rpx 24rpx;
+}
+
+.step-form {
+  padding: 16rpx 0;
+}
+
+.form-group {
+  margin-bottom: 24rpx;
+}
+
+.form-group .label {
+  display: block;
+  font-size: 26rpx;
+  color: #333;
+  font-weight: 500;
+  margin-bottom: 8rpx;
+}
+
+.form-group .hint {
+  display: block;
+  font-size: 22rpx;
+  color: #888;
+  margin-bottom: 8rpx;
+  line-height: 1.4;
+}
+
+.input {
+  width: 100%;
+  padding: 20rpx 24rpx;
+  background: #fff;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 160rpx;
+  padding: 20rpx 24rpx;
+  background: #fff;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.avatar-pick {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.avatar-pick-img {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: #eee;
+}
+
+.avatar-pick-txt {
+  font-size: 24rpx;
+  color: #667eea;
+}
+
+.photo-add,
+.resource-add {
+  padding: 24rpx;
+  text-align: center;
+  background: #fff;
+  border-radius: 12rpx;
+  border: 2rpx dashed #ddd;
+  font-size: 26rpx;
+  color: #888;
+}
+
+/* Step1 多行填写框、每行三个横 */
+.field-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+  margin-bottom: 20rpx;
+}
+
+.field-visibility {
+  width: 48rpx;
+  min-height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.field-visibility.empty {
+  width: 48rpx;
+}
+
+.icon-three {
+  font-size: 32rpx;
+  color: #667eea;
+  font-weight: bold;
+}
+
+.field-input-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.field-label {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.field-textarea {
+  width: 100%;
+  min-height: 72rpx;
+  padding: 16rpx 20rpx;
+  background: #fff;
+  border-radius: 12rpx;
+  font-size: 26rpx;
+  color: #333;
+  box-sizing: border-box;
+}
+
+.field-textarea::placeholder {
+  color: #bbb;
+}
+
+.label.hint {
+  font-size: 22rpx;
+  color: #888;
+  font-weight: normal;
+}
+
+/* 可见性半屏弹窗 */
+.visibility-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 900;
+}
+
+.visibility-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #fff;
+  border-radius: 24rpx 24rpx 0 0;
+  padding: 32rpx 32rpx calc(32rpx + env(safe-area-inset-bottom));
+  z-index: 901;
+  transform: translateY(100%);
+  transition: transform 0.3s;
+}
+
+.visibility-sheet.show {
+  transform: translateY(0);
+}
+
+.visibility-sheet-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 16rpx;
+}
+
+.visibility-sheet-desc {
+  font-size: 26rpx;
+  color: #666;
+  margin-bottom: 24rpx;
+}
+
+.visibility-options {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.visibility-opt {
+  padding: 24rpx;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  color: #333;
+  background: #f5f5f5;
+}
+
+.visibility-opt.active {
+  background: #667eea;
+  color: #fff;
+}
+
+/* 底部导航 */
+.nav-bar {
+  display: flex;
+  gap: 24rpx;
+  padding: 20rpx 24rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+  background: #fff;
+  box-shadow: 0 -2rpx 12rpx rgba(0,0,0,0.06);
+}
+
+.btn-prev,
+.btn-next {
+  flex: 1;
+  height: 80rpx;
+  line-height: 80rpx;
+  font-size: 30rpx;
+  border-radius: 12rpx;
+}
+
+.btn-prev {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.btn-next {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+}
