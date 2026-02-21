@@ -1,0 +1,728 @@
+<!-- pages/card-entry-v3/card-entry-v3.wxml -->
+<!-- 模仿「名片全能王」编辑资料页面 -->
+
+<view class="v3-page">
+  <!-- 步骤条：仅当配置了校友会/商会时显示 -->
+  <view class="v3-step-bar" wx:if="{{hasAlumniConfig}}">
+    <view class="v3-step-item {{currentStep === 1 ? 'active' : ''}}" data-step="1" bindtap="goToStep">1. 个人信息</view>
+    <view class="v3-step-item {{currentStep === 2 ? 'active' : ''}}" data-step="2" bindtap="goToStep">2. 校友会参与意愿</view>
+  </view>
+  <scroll-view class="v3-content" scroll-y>
+    <!-- 1. 名片样式（暂时不用） -->
+    <view class="section" wx:if="{{false}}">
+      <view class="section-title">名片样式</view>
+      <view class="card-style-row" bindtap="onChangeCardBg">
+        <view class="card-style-placeholder">
+          <view class="card-style-lines"></view>
+        </view>
+        <text class="section-action">更换名片背景 ></text>
+      </view>
+    </view>
+
+    <!-- 2. 基本信息（第1步 或 无分步时显示） -->
+    <view class="section" wx:if="{{!hasAlumniConfig || currentStep === 1}}">
+      <view class="section-header">
+        <text class="section-title">{{hasAlumniConfig ? '1. 基本信息' : '基本信息'}}</text>
+        <view class="add-btn" bindtap="onAddCompanyPosition">
+          <text class="add-icon">+</text>
+          <text>添加多公司、多职位</text>
+        </view>
+      </view>
+      <view class="form-row">
+        <view class="visibility-cell" data-field="name" data-label="姓名" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityLabels.name || '公开'}}</text>
+        </view>
+        <text class="form-label">姓名 *</text>
+        <input class="form-input" placeholder="请输入姓名" value="{{name}}" data-field="name" bindinput="onInputChange" bindblur="onFieldBlur" />
+      </view>
+      <view class="form-row" bindtap="onPickPhoto">
+        <view class="visibility-cell" data-field="photo" data-label="相片" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityLabels.photo || '公开'}}</text>
+        </view>
+        <text class="form-label">相片</text>
+        <image class="form-avatar" wx:if="{{photoUrl}}" src="{{photoUrl}}" mode="aspectFill" />
+        <text class="form-input form-input-placeholder" wx:else>点击选择相册或拍摄</text>
+        <text class="form-arrow">></text>
+      </view>
+      <view class="form-row">
+        <view class="visibility-cell" data-field="nickname" data-label="微信昵称" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityLabels.nickname || '公开'}}</text>
+        </view>
+        <text class="form-label">微信昵称</text>
+        <input class="form-input" placeholder="可填写常用称呼" value="{{nickname}}" data-field="nickname" bindinput="onInputChange" bindblur="onFieldBlur" />
+      </view>
+      <view class="form-row">
+        <view class="visibility-cell" data-field="wechatId" data-label="微信id" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityLabels.wechatId || '公开'}}</text>
+        </view>
+        <text class="form-label">微信id</text>
+        <input class="form-input" placeholder="选填，用于校友加友" value="{{wechatId}}" data-field="wechatId" bindinput="onInputChange" bindblur="onFieldBlur" />
+      </view>
+      <view class="form-row" bindtap="onPickAvatar">
+        <view class="visibility-cell" data-field="avatar" data-label="头像" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityLabels.avatar || '公开'}}</text>
+        </view>
+        <text class="form-label">头像</text>
+        <image class="form-avatar" src="{{avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}" mode="aspectFill" />
+        <text class="form-arrow">></text>
+      </view>
+      <view class="form-row">
+        <view class="visibility-cell" data-field="gender" data-label="性别" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityLabels.gender || '公开'}}</text>
+        </view>
+        <text class="form-label">性别</text>
+        <picker class="form-picker" mode="selector" range="{{genderOptions}}" range-key="label" bindchange="onGenderChange">
+          <view class="form-input">{{genderLabel}}</view>
+        </picker>
+        <text class="form-arrow">></text>
+      </view>
+      <view class="form-row">
+        <view class="visibility-cell" data-field="birthPlace" data-label="籍贯" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityLabels.birthPlace || '公开'}}</text>
+        </view>
+        <text class="form-label">籍贯</text>
+        <input class="form-input" placeholder="如：福建泉州惠安" value="{{birthPlace}}" data-field="birthPlace" bindinput="onInputChange" bindblur="onFieldBlur" />
+      </view>
+      <view class="form-row">
+        <view class="visibility-cell" data-field="company" data-label="公司" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityLabels.company || '公开'}}</text>
+        </view>
+        <text class="form-label">公司 *</text>
+        <input class="form-input" placeholder="请输入公司" value="{{company}}" data-field="company" bindinput="onInputChange" bindblur="onFieldBlur" />
+        <text class="form-arrow">></text>
+      </view>
+      <view class="form-row">
+        <view class="visibility-cell" data-field="title" data-label="职位" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityLabels.title || '公开'}}</text>
+        </view>
+        <text class="form-label">职位 *</text>
+        <input class="form-input" placeholder="请输入职位" value="{{title}}" data-field="title" bindinput="onInputChange" bindblur="onFieldBlur" />
+        <view class="add-icon-sm" catchtap="onAddCompanyPosition">+</view>
+      </view>
+      <view class="form-row">
+        <view class="visibility-cell" data-field="association_title" data-label="社会团体" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityLabels.association_title || '公开'}}</text>
+        </view>
+        <text class="form-label">社会团体</text>
+        <textarea class="form-input multi-line" placeholder="可多行填写多个头衔" value="{{association_title}}" data-field="association_title" bindinput="onInputChange" bindblur="onFieldBlur" />
+      </view>
+      <view class="form-row">
+        <view class="visibility-cell" data-field="industry" data-label="行业" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityLabels.industry || '公开'}}</text>
+        </view>
+        <text class="form-label">行业</text>
+        <input class="form-input" placeholder="请选择行业" value="{{industry}}" data-field="industry" bindinput="onInputChange" bindblur="onFieldBlur" />
+        <text class="form-arrow">></text>
+      </view>
+      <!-- 认证状态（暂时不用） -->
+      <view class="form-row" wx:if="{{false}}">
+        <text class="form-label">认证状态</text>
+        <view class="form-badges">
+          <text class="badge grey">在职</text>
+          <text class="badge teal">已实名</text>
+        </view>
+        <text class="form-arrow">></text>
+      </view>
+    </view>
+
+    <!-- 3. 联系方式（第1步） -->
+    <view class="section" wx:if="{{!hasAlumniConfig || currentStep === 1}}">
+      <view class="section-header">
+        <text class="section-title">联系方式</text>
+        <view class="add-btn" bindtap="openContactAddSheet">
+          <text class="add-icon">+</text>
+          <text>添加</text>
+        </view>
+      </view>
+      <view class="form-row contact-row" wx:for="{{contactItems}}" wx:key="id">
+        <text class="form-label">{{item.label}}{{item.required ? ' *' : ''}}</text>
+        <input class="form-input" placeholder="请填写{{item.label}}" value="{{item.value}}" data-index="{{index}}" bindinput="onContactItemInput" bindblur="onFieldBlur" />
+        <view class="contact-add-address" wx:if="{{item.type === 'address'}}" catchtap="onAddAddress">+</view>
+        <view class="contact-remove" wx:if="{{!item.required}}" data-index="{{index}}" catchtap="onRemoveContact">−</view>
+        <text class="form-arrow" wx:elif="{{item.type === 'wechat'}}">></text>
+      </view>
+    </view>
+
+    <!-- 4. 名片预览（第1步） -->
+    <view class="section" wx:if="{{!hasAlumniConfig || currentStep === 1}}">
+      <view class="section-title">名片预览</view>
+      <view class="card-preview-block">
+        <view class="card-preview-row">
+          <image class="card-preview-avatar" src="{{avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}" mode="aspectFill" />
+          <view class="card-preview-main">
+            <text class="card-preview-name">{{name || '姓名'}}</text>
+            <text class="card-preview-company">{{company || ''}}{{company && title ? ' ' : ''}}{{title || ''}}</text>
+            <text class="card-preview-meta" wx:if="{{previewPhone}}">{{previewPhone}}</text>
+            <text class="card-preview-meta" wx:if="{{previewEmail}}">{{previewEmail}}</text>
+            <text class="card-preview-meta" wx:if="{{previewAddress}}">{{previewAddress}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 13. 社团 / 校友会参与（第2步 或 无分步时显示，DOM 置于个人介绍前以实现第2步顺序） -->
+    <view class="section" wx:if="{{!hasAlumniConfig || currentStep === 2}}">
+      <view class="section-title">社团 / 校友会参与</view>
+      <view class="form-row">
+        <text class="form-label">组织</text>
+        <input class="form-input" placeholder="如：惠安一中大湾区校友会" value="{{associationOrgs}}" data-field="associationOrgs" bindinput="onInputChange" />
+      </view>
+      <!-- 子部分：对校友会需求 -->
+      <view class="subsection-title">对校友会需求</view>
+      <view class="form-row form-row-needs">
+        <text class="form-label">需求调研</text>
+        <view class="needs-groups">
+          <view class="needs-group" wx:for="{{associationNeedsGroups}}" wx:key="title">
+            <view class="needs-group-title">{{item.title}}</view>
+            <view class="checkbox-wrap">
+              <view class="checkbox-item" wx:for="{{item.options}}" wx:for-item="opt" wx:key="value">
+                <checkbox value="{{opt.value}}" checked="{{opt.checked}}" bindtap="onAssociationNeedTap" data-value="{{opt.value}}" />
+                <text>{{opt.label}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+      <view class="form-row" wx:if="{{associationNeedsOtherVisible}}">
+        <text class="form-label">其它需求</text>
+        <textarea class="form-input multi-line" placeholder="其它说明" value="{{associationNeedsOther}}" data-field="associationNeedsOther" bindinput="onInputChange" />
+      </view>
+      <!-- 子部分：为校友会服务意愿 -->
+      <view class="subsection-title">为校友会服务意愿</view>
+      <view class="form-row">
+        <text class="form-label">愿意服务校友</text>
+        <switch checked="{{associationWilling}}" data-field="associationWilling" bindchange="onSwitchChange" />
+      </view>
+      <view class="form-row" bindtap="openBoardPositionSheet">
+        <text class="form-label">校董会职务</text>
+        <view class="form-input">{{boardPositionLabel}}</view>
+        <text class="form-arrow">></text>
+      </view>
+      <view class="form-row">
+        <text class="form-label">校友会职务</text>
+        <view class="checkbox-wrap">
+          <view class="checkbox-item" wx:for="{{associationPositionOptions}}" wx:key="value">
+            <checkbox value="{{item.value}}" checked="{{item.checked}}" bindtap="onAssociationPositionTap" data-value="{{item.value}}" />
+            <text>{{item.label}}</text>
+          </view>
+        </view>
+      </view>
+      <view class="form-row">
+        <text class="form-label">可提供支持</text>
+        <view class="checkbox-wrap">
+          <view class="checkbox-item" wx:for="{{supportTypeOptions}}" wx:key="value">
+            <checkbox value="{{item.value}}" checked="{{item.checked}}" bindtap="onSupportTypeTap" data-value="{{item.value}}" />
+            <text>{{item.label}}</text>
+          </view>
+        </view>
+      </view>
+      <view class="form-row">
+        <text class="form-label">可承担工作</text>
+        <input class="form-input" placeholder="如 具体校友活动的策划和组织" value="{{contributionTypes}}" data-field="contributionTypes" bindinput="onInputChange" />
+      </view>
+      <view class="form-row">
+        <text class="form-label">具体描述</text>
+        <textarea class="form-input multi-line" placeholder="如 在外企工作，时间宽裕；市场营销策划岗位，可协助校友活动的具体策划和组织工作" value="{{contributionDescription}}" data-field="contributionDescription" bindinput="onInputChange" />
+      </view>
+    </view>
+
+    <!-- 5. 个人介绍（第1步原位置 + 第2步均展示，数据同步） -->
+    <view class="section" wx:if="{{!hasAlumniConfig || currentStep === 1 || currentStep === 2}}">
+      <view class="section-header">
+        <text class="section-title">个人介绍</text>
+        <view class="add-btn" bindtap="openIntroSheet">
+          <text class="add-icon">+</text>
+          <text>添加</text>
+        </view>
+      </view>
+      <scroll-view class="intro-cards-scroll" scroll-x>
+        <view class="intro-card" wx:for="{{introCards}}" wx:key="index" data-index="{{index}}" bindtap="onEditIntroCard">
+          <image class="intro-card-photo" src="{{item.photo || avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}" mode="aspectFill" />
+          <text class="intro-card-name">{{item.name || '姓名'}}</text>
+          <text class="intro-card-desc">{{item.introText || '简介'}}</text>
+          <text class="intro-card-scene" wx:if="{{item.scene}}">{{item.scene}}</text>
+        </view>
+        <view class="intro-card intro-card-add" bindtap="openIntroSheet">+</view>
+      </scroll-view>
+    </view>
+
+    <!-- 6. 名片附件（第1步） -->
+    <view class="section" wx:if="{{!hasAlumniConfig || currentStep === 1}}">
+      <view class="section-title">名片附件</view>
+      <view class="add-link" bindtap="onAddPdf">+ 添加 PDF 文件</view>
+      <text class="section-hint">可添加对外合作方案、个人作品、产品介绍等文档</text>
+      <text class="section-hint">仅支持单个PDF上传, 最大10MB</text>
+    </view>
+
+    <!-- 7. 业务介绍（第1步） -->
+    <view class="section" wx:if="{{!hasAlumniConfig || currentStep === 1}}">
+      <view class="section-title">业务介绍</view>
+      <view class="add-link" bindtap="onAddBusinessIntro">+ 添加图文介绍</view>
+      <text class="section-hint">支持添加文字、图片、视频</text>
+    </view>
+
+    <!-- 8. 企业介绍（第1步） -->
+    <view class="section" wx:if="{{!hasAlumniConfig || currentStep === 1}}">
+      <view class="section-title">企业介绍</view>
+      <view class="add-link" bindtap="onAddCompanyIntro">+ 添加企业介绍</view>
+      <text class="section-hint">支持添加文字、图片、视频</text>
+    </view>
+
+    <!-- 11. 工作经历（第1步） -->
+    <view class="section" wx:if="{{!hasAlumniConfig || currentStep === 1}}">
+      <view class="section-header">
+        <text class="section-title">工作经历</text>
+        <view class="add-btn" bindtap="onAddWorkExperience">
+          <text class="add-icon">+</text>
+          <text>添加</text>
+        </view>
+      </view>
+      <view class="experience-item" wx:for="{{workExperiences}}" wx:key="index" data-index="{{index}}" bindtap="onEditWork">
+        <view class="exp-icon">🏢</view>
+        <view class="exp-content">
+          <text class="exp-primary">{{item.company || '公司名称'}}</text>
+          <text class="exp-secondary">{{item.title || '职位'}}</text>
+          <text class="exp-tertiary">{{item.duration || '时间'}}</text>
+        </view>
+        <text class="form-arrow">></text>
+      </view>
+    </view>
+
+    <!-- 12. 教育经历（第1步） -->
+    <view class="section" wx:if="{{!hasAlumniConfig || currentStep === 1}}">
+      <view class="section-header">
+        <text class="section-title">教育经历</text>
+        <view class="add-btn" bindtap="onAddEduExperience">
+          <text class="add-icon">+</text>
+          <text>添加</text>
+        </view>
+      </view>
+      <view class="experience-item" wx:for="{{eduExperiences}}" wx:key="index" data-index="{{index}}" bindtap="onEditEdu">
+        <view class="exp-icon">🎓</view>
+        <view class="exp-content">
+          <text class="exp-primary">{{item.school || '学校名称'}}</text>
+          <text class="exp-secondary">{{item.degree || ''}}{{item.major ? ' · ' + item.major : ''}}</text>
+          <text class="exp-tertiary">{{item.duration || '时间'}}</text>
+        </view>
+        <text class="form-arrow">></text>
+      </view>
+    </view>
+
+    <!-- 14. 我的需求（第1步原位置 + 第2步均展示，数据同步） -->
+    <view class="section" wx:if="{{!hasAlumniConfig || currentStep === 1 || currentStep === 2}}">
+      <view class="section-title">我的需求</view>
+
+      <!-- 概况（挪到脱单之上） -->
+      <view class="form-row">
+        <text class="form-label">概况</text>
+        <textarea class="form-input multi-line" placeholder="自由补充（婚姻、求职、创业等）" value="{{needsText}}" data-field="needsText" bindinput="onInputChange" />
+      </view>
+
+      <!-- 脱单 -->
+      <view class="form-row">
+        <text class="form-label">脱单匹配</text>
+        <view class="add-btn" bindtap="openDatingSheet">
+          <text class="add-icon">+</text>
+          <text>添加</text>
+        </view>
+      </view>
+      <view class="section-hint" wx:if="{{(maritalStatusLabel && maritalStatusLabel !== '请选择') || datingPreferences}}">
+        {{maritalStatusLabel && maritalStatusLabel !== '请选择' ? ('婚姻状况：' + maritalStatusLabel + ' ') : ''}}{{datingPreferences ? ('偏好：' + datingPreferences) : ''}}
+      </view>
+
+      <!-- 求职 -->
+      <view class="form-row">
+        <text class="form-label">求职匹配</text>
+        <view class="add-btn" bindtap="openJobSheet">
+          <text class="add-icon">+</text>
+          <text>添加</text>
+        </view>
+      </view>
+      <view class="section-hint" wx:if="{{jobTargetPosition || jobTargetIndustry || jobPreferences}}">
+        {{jobTargetPosition ? ('目标职位：' + jobTargetPosition + ' ') : ''}}{{jobTargetIndustry ? ('目标行业：' + jobTargetIndustry + ' ') : ''}}{{jobPreferences ? ('偏好：' + jobPreferences) : ''}}
+      </view>
+
+      <!-- 创业 -->
+      <view class="form-row">
+        <text class="form-label">创业匹配</text>
+        <view class="add-btn" bindtap="openEntreSheet">
+          <text class="add-icon">+</text>
+          <text>添加</text>
+        </view>
+      </view>
+      <view class="section-hint" wx:if="{{(entrepreneurshipTypeLabel && entrepreneurshipTypeLabel !== '请选择') || entrepreneurshipDescription}}">
+        {{entrepreneurshipTypeLabel && entrepreneurshipTypeLabel !== '请选择' ? ('需求类型：' + entrepreneurshipTypeLabel + ' ') : ''}}{{entrepreneurshipDescription ? ('描述：' + entrepreneurshipDescription) : ''}}
+      </view>
+
+      <!-- 更多 / +添加 -->
+      <view class="form-row form-row-more">
+        <text class="form-label">更多</text>
+        <view class="add-btn" bindtap="onAddMoreNeed">
+          <text class="add-icon">+</text>
+          <text>添加</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 15. 我的资源（第1步原位置 + 第2步均展示，数据同步） -->
+    <view class="section" wx:if="{{!hasAlumniConfig || currentStep === 1 || currentStep === 2}}">
+      <view class="section-title">我的资源</view>
+      <view class="form-row">
+        <text class="form-label">概况</text>
+        <textarea class="form-input multi-line" placeholder="可简要描述你能提供的资源、希望对接的方向" value="{{resourcesText}}" data-field="resourcesText" bindinput="onInputChange" />
+      </view>
+
+      <view class="form-row section-header">
+        <text class="form-label">资源列表</text>
+        <view class="add-btn" bindtap="onAddResourceSheet">
+          <text class="add-icon">+</text>
+          <text>添加</text>
+        </view>
+      </view>
+
+      <view wx:if="{{resources && resources.length}}">
+        <view class="experience-item" wx:for="{{resources}}" wx:key="index" data-index="{{index}}" bindtap="onEditResource">
+          <view class="experience-main">
+            <view class="experience-title">
+              {{item._typeLabel || '未分类'}} · {{item.resource_title || '未命名资源'}}
+            </view>
+            <view class="experience-sub" wx:if="{{item.resource_description}}">
+              {{item.resource_description}}
+            </view>
+          </view>
+        </view>
+      </view>
+      <view class="section-hint" wx:if="{{false && (!resources || !resources.length)}}">暂未添加具体资源，可点击上方「添加」补充。</view>
+    </view>
+
+    <!-- 16. 上传纸质名片（第1步） -->
+    <view class="section" wx:if="{{!hasAlumniConfig || currentStep === 1}}">
+      <view class="section-title">上传纸质名片</view>
+      <scroll-view class="paper-cards" scroll-x>
+        <view class="paper-card" wx:for="{{paperCards}}" wx:key="index">
+          <image class="paper-card-img" src="{{item}}" mode="aspectFill" />
+          <view class="paper-card-del" data-index="{{index}}" catchtap="onRemovePaperCard">×</view>
+        </view>
+        <view class="paper-card-add" bindtap="onUploadPaperCard">+</view>
+      </scroll-view>
+    </view>
+
+    <!-- 17. 补充信息（第1步） -->
+    <view class="section" wx:if="{{!hasAlumniConfig || currentStep === 1}}">
+      <view class="section-title">补充信息（仅内部匹配使用）</view>
+      <view class="section-hint">可填写一些不便公开展示但对匹配有帮助的信息，仅用于后台或智能匹配逻辑。</view>
+      <view class="form-row">
+        <text class="form-label">内容</text>
+        <textarea class="form-input multi-line" placeholder="例如：目前偏低调、不希望对外展示行业信息；或一些仅供内部参考的备注。" value="{{extraInfo}}" data-field="extraInfo" bindinput="onInputChange" />
+      </view>
+    </view>
+
+    <view class="bottom-spacer"></view>
+  </scroll-view>
+
+  <!-- 底部按钮 -->
+  <view class="v3-footer">
+    <view class="btn-preview" bindtap="onPreview">
+      <text class="btn-preview-icon">👁</text>
+      <text>预览名片</text>
+    </view>
+    <button class="btn-save" bindtap="onSave">保存</button>
+  </view>
+
+  <!-- 半屏：添加联系方式 -->
+  <view class="sheet-mask" wx:if="{{showContactAddSheet}}" bindtap="closeContactAddSheet"></view>
+  <view class="sheet-panel contact-sheet {{showContactAddSheet ? 'sheet-show' : ''}}">
+    <view class="sheet-head">
+      <text class="sheet-close" bindtap="closeContactAddSheet">×</text>
+      <text class="sheet-title">添加联系方式</text>
+    </view>
+    <view class="contact-type-grid">
+      <view class="contact-type-item" wx:for="{{contactTypeGrid}}" wx:key="type" data-type="{{item.type}}" bindtap="onSelectContactType">
+        <view class="contact-type-icon">{{item.type === 'phone' ? '📱' : item.type === 'landline' ? '☎' : item.type === 'email' ? '✉' : item.type === 'fax' ? '📠' : item.type === 'wechat' ? '💬' : item.type === 'qq' ? '🐧' : item.type === 'weibo' ? '🐦' : item.type === 'address' ? '📍' : item.type === 'linkedin' ? 'in' : '🔗'}}</view>
+        <text class="contact-type-label">{{item.label}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 半屏：选择头像 -->
+  <view class="sheet-mask" wx:if="{{showAvatarSheet}}" bindtap="closeAvatarSheet"></view>
+  <view class="sheet-panel edu-sheet {{showAvatarSheet ? 'sheet-show' : ''}}">
+    <view class="sheet-head">
+      <text class="sheet-close" bindtap="closeAvatarSheet">×</text>
+      <text class="sheet-title">选择头像</text>
+    </view>
+    <scroll-view class="sheet-body" scroll-y>
+      <view class="avatar-grid">
+        <view class="avatar-grid-item" wx:for="{{avatarOptions}}" wx:key="value" data-url="{{item.value}}" bindtap="onSelectAvatar">
+          <image class="avatar-grid-img" src="{{item.value}}" mode="aspectFill" />
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 半屏：校董会职务选择（选项平铺） -->
+  <view class="sheet-mask" wx:if="{{showBoardPositionSheet}}" bindtap="closeBoardPositionSheet"></view>
+  <view class="sheet-panel edu-sheet {{showBoardPositionSheet ? 'sheet-show' : ''}}">
+    <view class="sheet-head">
+      <text class="sheet-close" bindtap="closeBoardPositionSheet">×</text>
+      <text class="sheet-title">校董会职务</text>
+    </view>
+    <scroll-view class="sheet-body" scroll-y>
+      <view class="board-option-row" wx:for="{{boardPositionOptions}}" wx:key="value" data-value="{{item.value}}" data-label="{{item.label}}" bindtap="onSelectBoardPosition">
+        <text class="board-option-label">{{item.label}}</text>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 半屏：添加/编辑教育经历 -->
+  <view class="sheet-mask" wx:if="{{showEduSheet}}" bindtap="closeEduSheet"></view>
+  <view class="sheet-panel edu-sheet {{showEduSheet ? 'sheet-show' : ''}}">
+    <view class="sheet-head">
+      <text class="sheet-close" bindtap="closeEduSheet">×</text>
+      <text class="sheet-title">{{eduEditIndex >= 0 ? '编辑教育经历' : '添加教育经历'}}</text>
+    </view>
+    <scroll-view class="sheet-body" scroll-y>
+      <view class="form-row">
+        <text class="form-label">学校 *</text>
+        <input class="form-input" placeholder="必填" value="{{eduForm.school}}" data-field="school" bindinput="onEduFormInput" />
+      </view>
+      <view class="form-row">
+        <text class="form-label">专业</text>
+        <input class="form-input" placeholder="请输入所读专业名称" value="{{eduForm.major}}" data-field="major" bindinput="onEduFormInput" />
+      </view>
+      <view class="form-row">
+        <text class="form-label">学历 *</text>
+        <picker class="form-picker" mode="selector" range="{{degreeOptions}}" bindchange="onEduDegreeChange">
+          <view class="form-input">{{degreeLabel}}</view>
+        </picker>
+        <text class="form-arrow">></text>
+      </view>
+      <view class="form-row">
+        <text class="form-label">入学时间</text>
+        <picker class="form-picker" mode="date" value="{{eduForm.enrollDate}}" start="1980-01" end="2030-12" bindchange="onEduEnrollDateChange">
+          <view class="form-input">{{eduForm.enrollDate || '请选择'}}</view>
+        </picker>
+        <text class="form-arrow">></text>
+      </view>
+      <view class="form-row">
+        <text class="form-label">毕业时间</text>
+        <picker class="form-picker" mode="date" value="{{eduForm.graduateDate}}" start="1980-01" end="2030-12" bindchange="onEduGraduateDateChange">
+          <view class="form-input">{{eduForm.graduateDate || '请选择'}}</view>
+        </picker>
+        <text class="form-arrow">></text>
+      </view>
+      <view class="sheet-actions">
+        <view class="sheet-btn-delete" bindtap="deleteEdu">删除</view>
+        <button class="sheet-btn-save" bindtap="saveEdu">保存</button>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 半屏：添加/编辑工作经历 -->
+  <view class="sheet-mask" wx:if="{{showWorkSheet}}" bindtap="closeWorkSheet"></view>
+  <view class="sheet-panel work-sheet {{showWorkSheet ? 'sheet-show' : ''}}">
+    <view class="sheet-head">
+      <text class="sheet-close" bindtap="closeWorkSheet">×</text>
+      <text class="sheet-title">{{workEditIndex >= 0 ? '编辑工作经历' : '添加工作经历'}}</text>
+    </view>
+    <scroll-view class="sheet-body" scroll-y>
+      <view class="form-row">
+        <text class="form-label">公司 *</text>
+        <input class="form-input" placeholder="必填" value="{{workForm.company}}" data-field="company" bindinput="onWorkFormInput" />
+      </view>
+      <view class="form-row">
+        <text class="form-label">职位 *</text>
+        <input class="form-input" placeholder="必填" value="{{workForm.title}}" data-field="title" bindinput="onWorkFormInput" />
+      </view>
+      <view class="form-row">
+        <text class="form-label">部门</text>
+        <input class="form-input" placeholder="请输入部门名称" value="{{workForm.department}}" data-field="department" bindinput="onWorkFormInput" />
+      </view>
+      <view class="form-row">
+        <text class="form-label">入职时间</text>
+        <picker class="form-picker" mode="date" value="{{workForm.startDate}}" start="1980-01" end="2030-12" bindchange="onWorkStartDateChange">
+          <view class="form-input">{{workForm.startDate || '请选择'}}</view>
+        </picker>
+        <text class="form-arrow">></text>
+      </view>
+      <view class="form-row form-row-with-switch">
+        <text class="form-label">离职时间</text>
+        <picker class="form-picker" mode="date" value="{{workForm.endDate}}" start="1980-01" end="2030-12" bindchange="onWorkEndDateChange">
+          <view class="form-input">{{workForm.endDate || '请选择'}}</view>
+        </picker>
+        <view class="work-current-wrap">
+          <switch class="work-current-switch" checked="{{workForm.currentJob}}" bindchange="onWorkFormSwitch" />
+          <text class="work-current-label">当前在职</text>
+        </view>
+      </view>
+      <view class="form-row">
+        <text class="form-label">经历描述</text>
+        <textarea class="form-input multi-line" placeholder="填写相关经历描述" value="{{workForm.description}}" data-field="description" bindinput="onWorkFormInput" />
+      </view>
+      <view class="sheet-actions">
+        <view class="sheet-btn-delete" bindtap="deleteWork">删除</view>
+        <button class="sheet-btn-save" bindtap="saveWork">保存</button>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 半屏：编辑脱单 -->
+  <view class="sheet-mask" wx:if="{{showDatingSheet}}" bindtap="closeDatingSheet"></view>
+  <view class="sheet-panel edu-sheet {{showDatingSheet ? 'sheet-show' : ''}}">
+    <view class="sheet-head">
+      <text class="sheet-close" bindtap="closeDatingSheet">×</text>
+      <text class="sheet-title">添加交友匹配需求</text>
+    </view>
+    <scroll-view class="sheet-body" scroll-y>
+      <view class="form-row">
+        <text class="form-label">婚姻状况</text>
+        <picker class="form-picker" mode="selector" range="{{maritalOptions}}" range-key="label" value="{{maritalStatusIndex}}" bindchange="onMaritalStatusChange">
+          <view class="form-input">{{maritalStatusLabel}}</view>
+        </picker>
+        <text class="form-arrow">></text>
+      </view>
+      <view class="form-row">
+        <text class="form-label">相亲偏好</text>
+        <textarea class="form-input multi-line" placeholder="请描述您的相亲偏好..." value="{{datingPreferences}}" data-field="datingPreferences" bindinput="onInputChange" />
+      </view>
+      <view class="sheet-actions">
+        <button class="sheet-btn-save" bindtap="saveDating">保存</button>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 半屏：编辑求职 -->
+  <view class="sheet-mask" wx:if="{{showJobSheet}}" bindtap="closeJobSheet"></view>
+  <view class="sheet-panel edu-sheet {{showJobSheet ? 'sheet-show' : ''}}">
+    <view class="sheet-head">
+      <text class="sheet-close" bindtap="closeJobSheet">×</text>
+      <text class="sheet-title">添加求职需求</text>
+    </view>
+    <scroll-view class="sheet-body" scroll-y>
+      <view class="form-row">
+        <text class="form-label">目标职位</text>
+        <input class="form-input" placeholder="目标职位" value="{{jobTargetPosition}}" data-field="jobTargetPosition" bindinput="onInputChange" />
+      </view>
+      <view class="form-row">
+        <text class="form-label">目标行业</text>
+        <input class="form-input" placeholder="目标行业" value="{{jobTargetIndustry}}" data-field="jobTargetIndustry" bindinput="onInputChange" />
+      </view>
+      <view class="form-row">
+        <text class="form-label">工作偏好</text>
+        <textarea class="form-input multi-line" placeholder="工作偏好" value="{{jobPreferences}}" data-field="jobPreferences" bindinput="onInputChange" />
+      </view>
+      <view class="sheet-actions">
+        <button class="sheet-btn-save" bindtap="saveJob">保存</button>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 半屏：编辑创业 -->
+  <view class="sheet-mask" wx:if="{{showEntreSheet}}" bindtap="closeEntreSheet"></view>
+  <view class="sheet-panel edu-sheet {{showEntreSheet ? 'sheet-show' : ''}}">
+    <view class="sheet-head">
+      <text class="sheet-close" bindtap="closeEntreSheet">×</text>
+      <text class="sheet-title">添加创业匹配需求</text>
+    </view>
+    <scroll-view class="sheet-body" scroll-y>
+      <view class="form-row">
+        <text class="form-label">需求类型</text>
+        <picker class="form-picker" mode="selector" range="{{entrepreneurshipTypeOptions}}" range-key="label" value="{{entrepreneurshipTypeIndex}}" bindchange="onEntrepreneurshipTypeChange">
+          <view class="form-input">{{entrepreneurshipTypeLabel}}</view>
+        </picker>
+        <text class="form-arrow">></text>
+      </view>
+      <view class="form-row">
+        <text class="form-label">创业描述</text>
+        <textarea class="form-input multi-line" placeholder="请描述您的创业需求..." value="{{entrepreneurshipDescription}}" data-field="entrepreneurshipDescription" bindinput="onInputChange" />
+      </view>
+      <view class="sheet-actions">
+        <button class="sheet-btn-save" bindtap="saveEntre">保存</button>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 半屏：添加/编辑资源 -->
+  <view class="sheet-mask" wx:if="{{showResourceSheet}}" bindtap="closeResourceSheet"></view>
+  <view class="sheet-panel edu-sheet {{showResourceSheet ? 'sheet-show' : ''}}">
+    <view class="sheet-head">
+      <text class="sheet-close" bindtap="closeResourceSheet">×</text>
+      <text class="sheet-title">{{resourceEditIndex >= 0 ? '编辑资源' : '添加资源'}}</text>
+    </view>
+    <scroll-view class="sheet-body" scroll-y>
+      <view class="form-row">
+        <text class="form-label">类型</text>
+        <picker class="form-picker" mode="selector" range="{{resourceTypeOptions}}" range-key="label" value="{{resourceForm.typeIndex}}" bindchange="onResourceFormTypeChange">
+          <view class="form-input">{{resourceForm.typeLabel || '请选择'}}</view>
+        </picker>
+        <text class="form-arrow">></text>
+      </view>
+      <view class="form-row">
+        <text class="form-label">标题</text>
+        <input class="form-input" placeholder="资源标题" value="{{resourceForm.resource_title}}" data-field="resource_title" bindinput="onResourceFormInput" />
+      </view>
+      <view class="form-row">
+        <text class="form-label">描述</text>
+        <textarea class="form-input multi-line" placeholder="资源描述" value="{{resourceForm.resource_description}}" data-field="resource_description" bindinput="onResourceFormInput" />
+      </view>
+      <view class="form-row">
+        <text class="form-label">分享方式</text>
+        <picker class="form-picker" mode="selector" range="{{sharingModeOptions}}" range-key="label" value="{{resourceForm.modeIndex}}" bindchange="onResourceFormModeChange">
+          <view class="form-input">{{resourceForm.modeLabel || '请选择'}}</view>
+        </picker>
+        <text class="form-arrow">></text>
+      </view>
+      <view class="sheet-actions">
+        <view class="sheet-btn-delete" wx:if="{{resourceEditIndex >= 0}}" bindtap="deleteResource">删除</view>
+        <button class="sheet-btn-save" bindtap="saveResource">保存</button>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 半屏：添加/编辑自我简介卡片 -->
+  <view class="sheet-mask" wx:if="{{showIntroSheet}}" bindtap="closeIntroSheet"></view>
+  <view class="sheet-panel edu-sheet {{showIntroSheet ? 'sheet-show' : ''}}">
+    <view class="sheet-head">
+      <text class="sheet-close" bindtap="closeIntroSheet">×</text>
+      <text class="sheet-title">{{introEditIndex >= 0 ? '编辑简介' : '添加简介'}}</text>
+    </view>
+    <scroll-view class="sheet-body" scroll-y>
+      <view class="form-row" bindtap="onIntroPhotoTap">
+        <text class="form-label">照片</text>
+        <image class="form-avatar" wx:if="{{introForm.photo}}" src="{{introForm.photo}}" mode="aspectFill" />
+        <text class="form-input form-input-placeholder" wx:else>点击选择</text>
+        <text class="form-arrow">></text>
+      </view>
+      <view class="form-row">
+        <text class="form-label">姓名</text>
+        <input class="form-input" placeholder="姓名" value="{{introForm.name}}" data-field="name" bindinput="onIntroFormInput" />
+      </view>
+      <view class="form-row">
+        <text class="form-label">简介文字</text>
+        <textarea class="form-input multi-line" placeholder="简介内容" value="{{introForm.introText}}" data-field="introText" bindinput="onIntroFormInput" />
+      </view>
+      <view class="form-row">
+        <text class="form-label">适用场景</text>
+        <input class="form-input" placeholder="如：线下活动、线上对接" value="{{introForm.scene}}" data-field="scene" bindinput="onIntroFormInput" />
+      </view>
+      <view class="sheet-actions">
+        <view class="sheet-btn-delete" wx:if="{{introEditIndex >= 0}}" bindtap="deleteIntroCard">删除</view>
+        <button class="sheet-btn-save" bindtap="saveIntroCard">保存</button>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 半屏：设置可见性（公开/私密/打码/好友/校友） -->
+  <view class="sheet-mask" wx:if="{{showVisibilitySheet}}" bindtap="closeVisibilitySheet"></view>
+  <view class="sheet-panel edu-sheet {{showVisibilitySheet ? 'sheet-show' : ''}}">
+    <view class="sheet-head">
+      <text class="sheet-close" bindtap="closeVisibilitySheet">×</text>
+      <text class="sheet-title">可见性：{{visibilityEditingLabel}}</text>
+    </view>
+    <scroll-view class="sheet-body" scroll-y>
+      <view class="visibility-option-row" wx:for="{{visibilityOptions}}" wx:key="value" data-value="{{item.value}}" bindtap="onSelectVisibility">
+        <text class="visibility-option-label">{{item.label}}</text>
+      </view>
+    </scroll-view>
+  </view>
+</view>
