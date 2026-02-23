@@ -29,90 +29,90 @@
         </view>
       </view>
       <view class="form-row">
+        <text class="form-label">姓名 *</text>
+        <input class="form-input" placeholder="请输入姓名" value="{{name}}" data-field="name" bindinput="onInputChange" bindblur="onFieldBlur" />
         <view class="visibility-cell" data-field="name" data-label="姓名" catchtap="onVisibilityTap">
           <text class="visibility-icon">{{fieldVisibilityIcons.name || '👁️'}}</text>
         </view>
-        <text class="form-label">姓名 *</text>
-        <input class="form-input" placeholder="请输入姓名" value="{{name}}" data-field="name" bindinput="onInputChange" bindblur="onFieldBlur" />
       </view>
       <view class="form-row" bindtap="onPickPhoto">
-        <view class="visibility-cell" data-field="photo" data-label="相片" catchtap="onVisibilityTap">
-          <text class="visibility-icon">{{fieldVisibilityIcons.photo || '👁️'}}</text>
-        </view>
         <text class="form-label">相片</text>
         <image class="form-avatar" wx:if="{{photoUrl}}" src="{{photoUrl}}" mode="aspectFill" />
         <text class="form-input form-input-placeholder" wx:else>点击选择相册或拍摄</text>
         <text class="form-arrow">></text>
+        <view class="visibility-cell" data-field="photo" data-label="相片" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityIcons.photo || '👁️'}}</text>
+        </view>
       </view>
       <view class="form-row">
+        <text class="form-label">微信昵称</text>
+        <input class="form-input" placeholder="可填写常用称呼" value="{{nickname}}" data-field="nickname" bindinput="onInputChange" bindblur="onFieldBlur" />
         <view class="visibility-cell" data-field="nickname" data-label="微信昵称" catchtap="onVisibilityTap">
           <text class="visibility-icon">{{fieldVisibilityIcons.nickname || '👁️'}}</text>
         </view>
-        <text class="form-label">微信昵称</text>
-        <input class="form-input" placeholder="可填写常用称呼" value="{{nickname}}" data-field="nickname" bindinput="onInputChange" bindblur="onFieldBlur" />
       </view>
       <view class="form-row">
+        <text class="form-label">微信id</text>
+        <input class="form-input" placeholder="选填，用于校友加友" value="{{wechatId}}" data-field="wechatId" bindinput="onInputChange" bindblur="onFieldBlur" />
         <view class="visibility-cell" data-field="wechatId" data-label="微信id" catchtap="onVisibilityTap">
           <text class="visibility-icon">{{fieldVisibilityIcons.wechatId || '👁️'}}</text>
         </view>
-        <text class="form-label">微信id</text>
-        <input class="form-input" placeholder="选填，用于校友加友" value="{{wechatId}}" data-field="wechatId" bindinput="onInputChange" bindblur="onFieldBlur" />
       </view>
       <view class="form-row" bindtap="onPickAvatar">
-        <view class="visibility-cell" data-field="avatar" data-label="头像" catchtap="onVisibilityTap">
-          <text class="visibility-icon">{{fieldVisibilityIcons.avatar || '👁️'}}</text>
-        </view>
         <text class="form-label">头像</text>
         <image class="form-avatar" src="{{avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}" mode="aspectFill" />
         <text class="form-arrow">></text>
+        <view class="visibility-cell" data-field="avatar" data-label="头像" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityIcons.avatar || '👁️'}}</text>
+        </view>
       </view>
       <view class="form-row">
-        <view class="visibility-cell" data-field="gender" data-label="性别" catchtap="onVisibilityTap">
-          <text class="visibility-icon">{{fieldVisibilityIcons.gender || '👁️'}}</text>
-        </view>
         <text class="form-label">性别</text>
         <picker class="form-picker" mode="selector" range="{{genderOptions}}" range-key="label" bindchange="onGenderChange">
           <view class="form-input">{{genderLabel}}</view>
         </picker>
         <text class="form-arrow">></text>
+        <view class="visibility-cell" data-field="gender" data-label="性别" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityIcons.gender || '👁️'}}</text>
+        </view>
       </view>
       <view class="form-row">
+        <text class="form-label">籍贯</text>
+        <input class="form-input" placeholder="如：福建泉州惠安" value="{{birthPlace}}" data-field="birthPlace" bindinput="onInputChange" bindblur="onFieldBlur" />
         <view class="visibility-cell" data-field="birthPlace" data-label="籍贯" catchtap="onVisibilityTap">
           <text class="visibility-icon">{{fieldVisibilityIcons.birthPlace || '👁️'}}</text>
         </view>
-        <text class="form-label">籍贯</text>
-        <input class="form-input" placeholder="如：福建泉州惠安" value="{{birthPlace}}" data-field="birthPlace" bindinput="onInputChange" bindblur="onFieldBlur" />
       </view>
       <view class="form-row">
-        <view class="visibility-cell" data-field="company" data-label="公司" catchtap="onVisibilityTap">
-          <text class="visibility-icon">{{fieldVisibilityIcons.company || '👁️'}}</text>
-        </view>
         <text class="form-label">公司 *</text>
         <input class="form-input" placeholder="请输入公司" value="{{company}}" data-field="company" bindinput="onInputChange" bindblur="onFieldBlur" />
         <text class="form-arrow">></text>
+        <view class="visibility-cell" data-field="company" data-label="公司" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityIcons.company || '👁️'}}</text>
+        </view>
       </view>
       <view class="form-row">
-        <view class="visibility-cell" data-field="title" data-label="职位" catchtap="onVisibilityTap">
-          <text class="visibility-icon">{{fieldVisibilityIcons.title || '👁️'}}</text>
-        </view>
         <text class="form-label">职位 *</text>
         <input class="form-input" placeholder="请输入职位" value="{{title}}" data-field="title" bindinput="onInputChange" bindblur="onFieldBlur" />
         <view class="add-icon-sm" catchtap="onAddCompanyPosition">+</view>
+        <view class="visibility-cell" data-field="title" data-label="职位" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityIcons.title || '👁️'}}</text>
+        </view>
       </view>
       <view class="form-row">
+        <text class="form-label">社会团体</text>
+        <textarea class="form-input multi-line" placeholder="可多行填写多个头衔" value="{{association_title}}" data-field="association_title" bindinput="onInputChange" bindblur="onFieldBlur" />
         <view class="visibility-cell" data-field="association_title" data-label="社会团体" catchtap="onVisibilityTap">
           <text class="visibility-icon">{{fieldVisibilityIcons.association_title || '👁️'}}</text>
         </view>
-        <text class="form-label">社会团体</text>
-        <textarea class="form-input multi-line" placeholder="可多行填写多个头衔" value="{{association_title}}" data-field="association_title" bindinput="onInputChange" bindblur="onFieldBlur" />
       </view>
       <view class="form-row">
-        <view class="visibility-cell" data-field="industry" data-label="行业" catchtap="onVisibilityTap">
-          <text class="visibility-icon">{{fieldVisibilityIcons.industry || '👁️'}}</text>
-        </view>
         <text class="form-label">行业</text>
         <input class="form-input" placeholder="请选择行业" value="{{industry}}" data-field="industry" bindinput="onInputChange" bindblur="onFieldBlur" />
         <text class="form-arrow">></text>
+        <view class="visibility-cell" data-field="industry" data-label="行业" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityIcons.industry || '👁️'}}</text>
+        </view>
       </view>
       <!-- 认证状态（暂时不用） -->
       <view class="form-row" wx:if="{{false}}">
