@@ -155,7 +155,8 @@
           <view wx:else class="card-preview-avatar card-preview-placeholder"><text class="card-preview-placeholder-text">头像</text></view>
           <view class="card-preview-main">
             <text class="card-preview-name {{!name ? 'card-preview-placeholder' : ''}}" wx:if="{{fieldVisibility.name !== 'private'}}">{{name || '姓名'}}</text>
-            <text class="card-preview-company {{!company && !title && !association_title ? 'card-preview-placeholder' : ''}}" wx:if="{{fieldVisibility.company !== 'private' || fieldVisibility.title !== 'private' || fieldVisibility.association_title !== 'private'}}">{{company || title || association_title ? (company || '') + (company && title ? ' ' : '') + (title || '') + (association_title ? (company || title ? ' · ' : '') + association_title : '') : '公司 · 职位 · 社会团体'}}</text>
+            <text class="card-preview-company {{!company && !title ? 'card-preview-placeholder' : ''}}" wx:if="{{fieldVisibility.company !== 'private' || fieldVisibility.title !== 'private'}}">{{company && title ? company + ' ' + title : (company || title || '公司 · 职位')}}</text>
+            <text class="card-preview-company {{!association_title ? 'card-preview-placeholder' : ''}}" wx:if="{{fieldVisibility.association_title !== 'private'}}">{{association_title || '社会团体'}}</text>
             <text class="card-preview-meta {{!wechatId ? 'card-preview-placeholder' : ''}}" wx:if="{{fieldVisibility.wechatId !== 'private'}}">{{wechatId || '微信id'}}</text>
             <text class="card-preview-meta {{!previewPhoneValue ? 'card-preview-placeholder' : ''}}" wx:if="{{previewPhoneVisible}}">{{previewPhoneValue || '手机'}}</text>
             <text class="card-preview-meta {{!previewEmailValue ? 'card-preview-placeholder' : ''}}" wx:if="{{previewEmailVisible}}">{{previewEmailValue || '邮箱'}}</text>
@@ -271,7 +272,9 @@
       <scroll-view class="intro-cards-scroll" scroll-x>
         <view class="intro-card intro-card-with-visibility" wx:for="{{introCards}}" wx:key="index" data-index="{{index}}" bindtap="onEditIntroCard">
           <text class="intro-card-name">{{item.name || '示例姓名'}}</text>
-          <image class="intro-card-photo" src="{{item.photo || avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}" mode="aspectFill" />
+          <view class="intro-card-photo-wrap">
+            <image class="intro-card-photo" src="{{item.photo || avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}" mode="aspectFill" />
+          </view>
           <text class="intro-card-desc">{{item.introText || '简介文字'}}</text>
           <text class="intro-card-scene" wx:if="{{item.scene}}">{{item.scene}}</text>
           <view class="visibility-cell visibility-cell-intro" data-field="intro_{{index}}" data-label="个人介绍-{{index + 1}}" catchtap="onVisibilityTap">

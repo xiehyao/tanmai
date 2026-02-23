@@ -875,7 +875,7 @@ Page({
     const items = (this.data.contactItems || []).map((item, i) => (i === index ? { ...item, value } : item))
     const upd = { contactItems: items, ..._previewFromContactItems(items) }
     if (items[index] && items[index].type === 'address') upd.address = value
-    this.setData(upd)
+    this.setData(upd, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
   },
   onRemoveContact(e) {
     const index = parseInt(e.currentTarget.dataset.index, 10)

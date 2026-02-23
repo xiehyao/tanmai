@@ -247,27 +247,30 @@
   height: 100%;
 }
 
-/* 名片预览（参考名片夹） */
+/* 名片预览（参考名片夹）：高度自适应，占位无深色底纹 */
 .card-preview-block {
   padding: 24rpx 0;
   background: #f8f8f8;
   border-radius: 16rpx;
+  min-height: auto;
 }
 .card-preview-row {
   display: flex;
   padding: 0 24rpx;
+  align-items: flex-start;
 }
 .card-preview-avatar {
   width: 160rpx;
   height: 160rpx;
   border-radius: 16rpx;
   margin-right: 24rpx;
-  background: #e5e7eb;
+  background: #eee;
   flex-shrink: 0;
 }
 .card-preview-main {
   flex: 1;
   min-width: 0;
+  padding-bottom: 16rpx;
 }
 .card-preview-name {
   display: block;
@@ -288,19 +291,19 @@
   color: #888;
   margin-bottom: 4rpx;
 }
-/* 名片预览：未填写时为灰底占位 */
+/* 名片预览：占位仅用浅色文字，无深色底纹 */
 .card-preview-placeholder {
-  background: #e5e7eb !important;
-  color: #9ca3af !important;
+  color: #aaa !important;
 }
 .card-preview-avatar.card-preview-placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
+  background: #eee !important;
 }
 .card-preview-placeholder-text {
   font-size: 24rpx;
-  color: #9ca3af;
+  color: #aaa;
 }
 
 .form-arrow {
@@ -778,7 +781,7 @@
 /* 个人介绍卡片（参考通讯录近期生日简介卡：姓名在上、相片、简介文字） */
 .intro-card {
   display: inline-block;
-  width: 280rpx;
+  width: 420rpx;
   margin-left: 24rpx;
   padding: 24rpx;
   background: #fff;
@@ -800,13 +803,24 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.intro-card-photo {
+.intro-card-photo-wrap {
   width: 100%;
-  height: 200rpx;
+  padding-bottom: 50%;
+  position: relative;
   border-radius: 12rpx;
   background: #eee;
-  display: block;
   margin-bottom: 16rpx;
+  overflow: hidden;
+}
+.intro-card-photo-wrap .intro-card-photo {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 12rpx;
+  display: block;
+  margin-bottom: 0;
 }
 .intro-card-desc {
   font-size: 24rpx;
