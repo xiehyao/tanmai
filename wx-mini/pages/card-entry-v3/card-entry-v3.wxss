@@ -159,12 +159,13 @@
   justify-content: center;
   margin-right: 8rpx;
 }
-/* 隐私状态用 emoji 展示：👁️公开 🔒私密 🎭打码 🎓校友 👥好友 */
+/* 隐私状态用 emoji 展示：👁️公开 🔒私密 🎭打码 🎓校友 👥好友，缩小+灰化不抢眼 */
 .visibility-icon {
-  font-size: 32rpx;
-  padding: 4rpx 8rpx;
-  background: rgba(102, 126, 234, 0.1);
-  border-radius: 8rpx;
+  font-size: 24rpx;
+  padding: 2rpx 6rpx;
+  opacity: 0.65;
+  background: rgba(102, 126, 234, 0.06);
+  border-radius: 6rpx;
 }
 .visibility-option-row {
   padding: 28rpx 24rpx;
