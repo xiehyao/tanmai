@@ -296,6 +296,7 @@ Page({
     previewEmail: '',
     previewAddress: '',
     previewAddressListVisible: [],
+    showAddressPlaceholder: false,
     previewPhoneVisible: false,
     previewPhoneValue: '',
     previewEmailVisible: false,
@@ -457,6 +458,7 @@ Page({
       .map(x => x.value)
     const phoneItem = items.map((c, i) => ({ c, i })).find(x => x.c.type === 'phone' && vis['contact_' + x.i] !== 'private')
     const emailItem = items.map((c, i) => ({ c, i })).find(x => x.c.type === 'email' && vis['contact_' + x.i] !== 'private')
+    const showAddressPlaceholder = previewAddressListVisible.length === 0 && items.length > 0
     this.setData({
       contactVisibilityIcons: _visibilityIconsArray(icons, 'contact_', items.length),
       introVisibilityIcons: _visibilityIconsArray(icons, 'intro_', (this.data.introCards || []).length),
@@ -464,6 +466,7 @@ Page({
       eduVisibilityIcons: _visibilityIconsArray(icons, 'edu_', (this.data.eduExperiences || []).length),
       resourceVisibilityIcons: _visibilityIconsArray(icons, 'resource_', (this.data.resources || []).length),
       previewAddressListVisible,
+      showAddressPlaceholder,
       previewPhoneVisible: !!phoneItem,
       previewPhoneValue: phoneItem ? (phoneItem.c.value || '') : '',
       previewEmailVisible: !!emailItem,
