@@ -43,11 +43,13 @@ const VISIBILITY_OPTIONS = [
   { label: '只对校友可见', value: 'alumni' }
 ]
 const VISIBILITY_LABELS = { public: '公开', private: '私密', masked: '打码', friend: '好友', alumni: '校友' }
+// 方案一：列表用 emoji 展示（公开👁️ 私密🔒 打码🎭 校友🎓 好友👥）
+const VISIBILITY_ICONS = { public: '👁️', private: '🔒', masked: '🎭', friend: '👥', alumni: '🎓' }
 function _defaultFieldVisibility() {
   const keys = ['name', 'photo', 'nickname', 'wechatId', 'avatar', 'gender', 'birthPlace', 'company', 'title', 'association_title', 'industry']
-  const o = {}; const l = {}
-  keys.forEach(k => { o[k] = 'public'; l[k] = '公开' })
-  return { fieldVisibility: o, fieldVisibilityLabels: l }
+  const o = {}; const l = {}; const i = {}
+  keys.forEach(k => { o[k] = 'public'; l[k] = '公开'; i[k] = VISIBILITY_ICONS.public })
+  return { fieldVisibility: o, fieldVisibilityLabels: l, fieldVisibilityIcons: i }
 }
 
 // 头像选项（与 card-entry v1 同源 COS）
@@ -215,6 +217,7 @@ Page({
     // 子项可见性（公开/私密/打码/好友/校友）
     fieldVisibility: (() => { const d = _defaultFieldVisibility(); return d.fieldVisibility })(),
     fieldVisibilityLabels: (() => { const d = _defaultFieldVisibility(); return d.fieldVisibilityLabels })(),
+    fieldVisibilityIcons: (() => { const d = _defaultFieldVisibility(); return d.fieldVisibilityIcons })(),
     visibilityOptions: VISIBILITY_OPTIONS,
     showVisibilitySheet: false,
     visibilityEditingField: '',
@@ -384,9 +387,11 @@ Page({
     const field = this.data.visibilityEditingField
     if (!field) { this.closeVisibilitySheet(); return }
     const label = VISIBILITY_LABELS[value] || '公开'
+    const icon = VISIBILITY_ICONS[value] || VISIBILITY_ICONS.public
     this.setData({
       fieldVisibility: { ...this.data.fieldVisibility, [field]: value },
       fieldVisibilityLabels: { ...this.data.fieldVisibilityLabels, [field]: label },
+      fieldVisibilityIcons: { ...this.data.fieldVisibilityIcons, [field]: icon },
       showVisibilitySheet: false,
       visibilityEditingField: '',
       visibilityEditingLabel: ''
