@@ -25,10 +25,12 @@ function _buildContactItems(phone, wechat, email, address) {
 }
 function _previewFromContactItems(items) {
   const arr = items || []
+  const addresses = (arr.filter(c => c.type === 'address') || []).map(c => c.value).filter(Boolean)
   return {
     previewPhone: (arr.find(c => c.type === 'phone') || {}).value || '',
     previewEmail: (arr.find(c => c.type === 'email') || {}).value || '',
-    previewAddress: (arr.find(c => c.type === 'address') || {}).value || ''
+    previewAddress: (arr.find(c => c.type === 'address') || {}).value || '',
+    previewAddressList: addresses.length ? addresses : []
   }
 }
 
@@ -293,10 +295,17 @@ Page({
     previewPhone: '',
     previewEmail: '',
     previewAddress: '',
+    previewAddressListVisible: [],
+    previewPhoneVisible: false,
+    previewPhoneValue: '',
+    previewEmailVisible: false,
+    previewEmailValue: '',
     // 名片附件
     pdfFiles: [],
-    // 个人介绍：多张自我简介卡片（横向滚动）
-    introCards: [],
+    // 个人介绍：多张自我简介卡片（横向滚动），初始一条模拟数据
+    introCards: [
+      { name: '示例姓名', photo: '', introText: '北邮00级电院通信工程 04级移动通信工程\n现在鹏城实验室做研究工作，常驻深圳\n喜欢踢球和各类运动，欢迎大家约起~', scene: '线下活动、线上对接' }
+    ],
     showIntroSheet: false,
     introEditIndex: -1,
     introForm: { name: '', photo: '', introText: '', scene: '' },
@@ -350,7 +359,15 @@ Page({
     associationNeedsOther: '',
     // 补充信息（step6）
     extraInfo: '',
-    // 我的需求弹窗
+    // 我的需求弹窗 + 添加类型九宫格
+    needTypeGrid: [
+      { type: 'dating', label: '脱单', icon: '💕' },
+      { type: 'friend', label: '交友', icon: '👥' },
+      { type: 'org', label: '找组织', icon: '🏘' },
+      { type: 'job', label: '求职', icon: '💼' },
+      { type: 'entre', label: '创业', icon: '🚀' }
+    ],
+    showNeedTypeSheet: false,
     showDatingSheet: false,
     showJobSheet: false,
     showEntreSheet: false,
@@ -432,12 +449,25 @@ Page({
   },
   _syncVisibilityIconArrays() {
     const icons = this.data.fieldVisibilityIcons || {}
+    const items = this.data.contactItems || []
+    const vis = this.data.fieldVisibility || {}
+    const previewAddressListVisible = items.map((c, i) => ({ type: c.type, value: c.value, i }))
+      .filter(x => x.type === 'address')
+      .filter(x => vis['contact_' + x.i] !== 'private')
+      .map(x => x.value)
+    const phoneItem = items.map((c, i) => ({ c, i })).find(x => x.c.type === 'phone' && vis['contact_' + x.i] !== 'private')
+    const emailItem = items.map((c, i) => ({ c, i })).find(x => x.c.type === 'email' && vis['contact_' + x.i] !== 'private')
     this.setData({
-      contactVisibilityIcons: _visibilityIconsArray(icons, 'contact_', (this.data.contactItems || []).length),
+      contactVisibilityIcons: _visibilityIconsArray(icons, 'contact_', items.length),
       introVisibilityIcons: _visibilityIconsArray(icons, 'intro_', (this.data.introCards || []).length),
       workVisibilityIcons: _visibilityIconsArray(icons, 'work_', (this.data.workExperiences || []).length),
       eduVisibilityIcons: _visibilityIconsArray(icons, 'edu_', (this.data.eduExperiences || []).length),
-      resourceVisibilityIcons: _visibilityIconsArray(icons, 'resource_', (this.data.resources || []).length)
+      resourceVisibilityIcons: _visibilityIconsArray(icons, 'resource_', (this.data.resources || []).length),
+      previewAddressListVisible,
+      previewPhoneVisible: !!phoneItem,
+      previewPhoneValue: phoneItem ? (phoneItem.c.value || '') : '',
+      previewEmailVisible: !!emailItem,
+      previewEmailValue: emailItem ? (emailItem.c.value || '') : ''
     })
   },
   // 自动保存：失焦存草稿，切换步骤存服务器
@@ -1035,6 +1065,20 @@ Page({
   },
 
   // 我的需求：脱单 / 求职 / 创业
+  openNeedTypeSheet() {
+    this.setData({ showNeedTypeSheet: true })
+  },
+  closeNeedTypeSheet() {
+    this.setData({ showNeedTypeSheet: false })
+  },
+  onSelectNeedType(e) {
+    const type = e.currentTarget.dataset.type
+    this.closeNeedTypeSheet()
+    if (type === 'dating' || type === 'friend') this.openDatingSheet()
+    else if (type === 'job') this.openJobSheet()
+    else if (type === 'entre') this.openEntreSheet()
+    else if (type === 'org') wx.showToast({ title: '找组织（待完善）', icon: 'none' })
+  },
   openDatingSheet() {
     this.setData({ showDatingSheet: true })
   },
@@ -1195,7 +1239,6 @@ Page({
   async onSave() {
     wx.showLoading({ title: '保存中...' })
     try {
-      // 尝试调用后端保存（若接口存在）
       const items = this.data.contactItems || []
       const first = (type) => (items.find(c => c.type === type) || {}).value
       const payload = {
@@ -1204,7 +1247,7 @@ Page({
         gender: this.data.gender,
         birth_place: this.data.birthPlace,
         company: this.data.company,
-        title: this.data.title || this.data.positions[0]?.title || '',
+        title: this.data.title || this.data.positions?.[0]?.title || '',
         phone: first('phone'),
         wechat_id: this.data.wechatId || first('wechat'),
         email: first('email'),
@@ -1214,9 +1257,16 @@ Page({
       await request.post('/api/card-entry/save-step/1', payload)
       wx.hideLoading()
       wx.showToast({ title: '保存成功', icon: 'success' })
+      // 第1步保存成功后若有第2步则跳下一步
+      if (this.data.hasAlumniConfig && this.data.currentStep === 1) {
+        this.setData({ currentStep: 2 })
+      }
     } catch (e) {
       wx.hideLoading()
       wx.showToast({ title: '保存成功（本地）', icon: 'success' })
+      if (this.data.hasAlumniConfig && this.data.currentStep === 1) {
+        this.setData({ currentStep: 2 })
+      }
     }
   }
 })

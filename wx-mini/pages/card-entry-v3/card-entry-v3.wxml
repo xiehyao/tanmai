@@ -146,18 +146,21 @@
       </view>
     </view>
 
-    <!-- 4. 名片预览（第1步） -->
+    <!-- 4. 名片预览（第1步）：未填为灰底占位，已填正常色；不展示私密字段；社会团体/微信id/多地址 -->
     <view class="section" wx:if="{{!hasAlumniConfig || currentStep === 1}}">
       <view class="section-title">名片预览</view>
       <view class="card-preview-block">
         <view class="card-preview-row">
-          <image class="card-preview-avatar" src="{{avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}" mode="aspectFill" />
+          <image wx:if="{{fieldVisibility.avatar !== 'private'}}" class="card-preview-avatar {{!avatar ? 'card-preview-placeholder' : ''}}" src="{{avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}" mode="aspectFill" />
+          <view wx:else class="card-preview-avatar card-preview-placeholder"><text class="card-preview-placeholder-text">头像</text></view>
           <view class="card-preview-main">
-            <text class="card-preview-name">{{name || '姓名'}}</text>
-            <text class="card-preview-company">{{company || ''}}{{company && title ? ' ' : ''}}{{title || ''}}</text>
-            <text class="card-preview-meta" wx:if="{{previewPhone}}">{{previewPhone}}</text>
-            <text class="card-preview-meta" wx:if="{{previewEmail}}">{{previewEmail}}</text>
-            <text class="card-preview-meta" wx:if="{{previewAddress}}">{{previewAddress}}</text>
+            <text class="card-preview-name {{!name ? 'card-preview-placeholder' : ''}}" wx:if="{{fieldVisibility.name !== 'private'}}">{{name || '姓名'}}</text>
+            <text class="card-preview-company {{!company && !title && !association_title ? 'card-preview-placeholder' : ''}}" wx:if="{{fieldVisibility.company !== 'private' || fieldVisibility.title !== 'private' || fieldVisibility.association_title !== 'private'}}">{{company || title || association_title ? (company || '') + (company && title ? ' ' : '') + (title || '') + (association_title ? (company || title ? ' · ' : '') + association_title : '') : '公司 · 职位 · 社会团体'}}</text>
+            <text class="card-preview-meta {{!wechatId ? 'card-preview-placeholder' : ''}}" wx:if="{{fieldVisibility.wechatId !== 'private'}}">{{wechatId || '微信id'}}</text>
+            <text class="card-preview-meta {{!previewPhoneValue ? 'card-preview-placeholder' : ''}}" wx:if="{{previewPhoneVisible}}">{{previewPhoneValue || '手机'}}</text>
+            <text class="card-preview-meta {{!previewEmailValue ? 'card-preview-placeholder' : ''}}" wx:if="{{previewEmailVisible}}">{{previewEmailValue || '邮箱'}}</text>
+            <text class="card-preview-meta" wx:for="{{previewAddressListVisible}}" wx:key="*this">{{item}}</text>
+            <text class="card-preview-meta card-preview-placeholder" wx:if="{{previewAddressListVisible.length === 0 && (contactItems || []).length > 0}}">地址</text>
           </view>
         </view>
       </view>
@@ -209,22 +212,22 @@
         </view>
       </view>
       <view class="form-row" bindtap="openBoardPositionSheet">
-        <text class="form-label">校董会职务</text>
+        <text class="form-label">愿意/希望担任校董会职务</text>
         <view class="form-input">{{boardPositionLabel}}</view>
         <text class="form-arrow">></text>
-        <view class="visibility-cell" data-field="board_position" data-label="校董会职务" catchtap="onVisibilityTap">
+        <view class="visibility-cell" data-field="board_position" data-label="愿意/希望担任校董会职务" catchtap="onVisibilityTap">
           <text class="visibility-icon">{{fieldVisibilityIcons.board_position || '👁️'}}</text>
         </view>
       </view>
       <view class="form-row">
-        <text class="form-label">校友会职务</text>
+        <text class="form-label">愿意/希望担任校友会职务</text>
         <view class="checkbox-wrap">
           <view class="checkbox-item" wx:for="{{associationPositionOptions}}" wx:key="value">
             <checkbox value="{{item.value}}" checked="{{item.checked}}" bindtap="onAssociationPositionTap" data-value="{{item.value}}" />
             <text>{{item.label}}</text>
           </view>
         </view>
-        <view class="visibility-cell" data-field="association_positions" data-label="校友会职务" catchtap="onVisibilityTap">
+        <view class="visibility-cell" data-field="association_positions" data-label="愿意/希望担任校友会职务" catchtap="onVisibilityTap">
           <text class="visibility-icon">{{fieldVisibilityIcons.association_positions || '👁️'}}</text>
         </view>
       </view>
@@ -267,9 +270,9 @@
       </view>
       <scroll-view class="intro-cards-scroll" scroll-x>
         <view class="intro-card intro-card-with-visibility" wx:for="{{introCards}}" wx:key="index" data-index="{{index}}" bindtap="onEditIntroCard">
+          <text class="intro-card-name">{{item.name || '示例姓名'}}</text>
           <image class="intro-card-photo" src="{{item.photo || avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}" mode="aspectFill" />
-          <text class="intro-card-name">{{item.name || '姓名'}}</text>
-          <text class="intro-card-desc">{{item.introText || '简介'}}</text>
+          <text class="intro-card-desc">{{item.introText || '简介文字'}}</text>
           <text class="intro-card-scene" wx:if="{{item.scene}}">{{item.scene}}</text>
           <view class="visibility-cell visibility-cell-intro" data-field="intro_{{index}}" data-label="个人介绍-{{index + 1}}" catchtap="onVisibilityTap">
             <text class="visibility-icon">{{introVisibilityIcons[index] || '👁️'}}</text>
@@ -364,7 +367,13 @@
 
     <!-- 14. 我的需求（第1步原位置 + 第2步均展示，数据同步） -->
     <view class="section" wx:if="{{!hasAlumniConfig || currentStep === 1 || currentStep === 2}}">
-      <view class="section-title">我的需求</view>
+      <view class="section-header">
+        <text class="section-title">我的需求</text>
+        <view class="add-btn" bindtap="openNeedTypeSheet">
+          <text class="add-icon">+</text>
+          <text>添加</text>
+        </view>
+      </view>
 
       <!-- 概况（挪到脱单之上） -->
       <view class="form-row">
@@ -793,6 +802,21 @@
         <button class="sheet-btn-save" bindtap="saveIntroCard">保存</button>
       </view>
     </scroll-view>
+  </view>
+
+  <!-- 半屏：我的需求 - 选择添加类型（九宫格 icon+文字） -->
+  <view class="sheet-mask" wx:if="{{showNeedTypeSheet}}" bindtap="closeNeedTypeSheet"></view>
+  <view class="sheet-panel edu-sheet {{showNeedTypeSheet ? 'sheet-show' : ''}}">
+    <view class="sheet-head">
+      <text class="sheet-close" bindtap="closeNeedTypeSheet">×</text>
+      <text class="sheet-title">添加需求类型</text>
+    </view>
+    <view class="need-type-grid">
+      <view class="need-type-item" wx:for="{{needTypeGrid}}" wx:key="type" data-type="{{item.type}}" bindtap="onSelectNeedType">
+        <text class="need-type-icon">{{item.icon}}</text>
+        <text class="need-type-label">{{item.label}}</text>
+      </view>
+    </view>
   </view>
 
   <!-- 半屏：设置可见性（公开/私密/打码/好友/校友） -->
