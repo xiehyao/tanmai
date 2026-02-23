@@ -168,8 +168,17 @@
   border-radius: 6rpx;
 }
 .visibility-option-row {
+  display: flex;
+  align-items: center;
   padding: 28rpx 24rpx;
   border-bottom: 1rpx solid #eee;
+}
+.visibility-option-row.visibility-option-selected {
+  background: rgba(102, 126, 234, 0.12);
+}
+.visibility-option-icon {
+  font-size: 32rpx;
+  margin-right: 16rpx;
 }
 .visibility-option-label {
   font-size: 28rpx;

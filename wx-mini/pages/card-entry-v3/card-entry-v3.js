@@ -34,17 +34,16 @@ function _previewFromContactItems(items) {
 
 const CONTACT_TYPE_LABELS = { phone: '手机', landline: '座机', email: '邮箱', fax: '传真', wechat: '微信', qq: 'QQ', weibo: '微博', address: '地址', linkedin: 'LinkedIn', homepage: '个人主页' }
 
-// 子项可见性：公开｜完全私密｜部分打码｜只对好友可见｜只对校友可见
+// 子项可见性：公开｜完全私密｜部分打码｜只对好友可见｜只对校友可见（含 icon 供半屏展示）
+const VISIBILITY_ICONS = { public: '👁️', private: '🔒', masked: '🎭', friend: '👥', alumni: '🎓' }
 const VISIBILITY_OPTIONS = [
-  { label: '公开', value: 'public' },
-  { label: '完全私密（仅用于AI匹配）', value: 'private' },
-  { label: '部分隐藏（*打码）', value: 'masked' },
-  { label: '只对好友可见', value: 'friend' },
-  { label: '只对校友可见', value: 'alumni' }
+  { label: '公开', value: 'public', icon: VISIBILITY_ICONS.public },
+  { label: '完全私密（仅用于AI匹配）', value: 'private', icon: VISIBILITY_ICONS.private },
+  { label: '部分隐藏（*打码）', value: 'masked', icon: VISIBILITY_ICONS.masked },
+  { label: '只对好友可见', value: 'friend', icon: VISIBILITY_ICONS.friend },
+  { label: '只对校友可见', value: 'alumni', icon: VISIBILITY_ICONS.alumni }
 ]
 const VISIBILITY_LABELS = { public: '公开', private: '私密', masked: '打码', friend: '好友', alumni: '校友' }
-// 方案一：列表用 emoji 展示（公开👁️ 私密🔒 打码🎭 校友🎓 好友👥）
-const VISIBILITY_ICONS = { public: '👁️', private: '🔒', masked: '🎭', friend: '👥', alumni: '🎓' }
 function _defaultFieldVisibility() {
   const keys = ['name', 'photo', 'nickname', 'wechatId', 'avatar', 'gender', 'birthPlace', 'company', 'title', 'association_title', 'industry']
   const o = {}; const l = {}; const i = {}
@@ -222,6 +221,7 @@ Page({
     showVisibilitySheet: false,
     visibilityEditingField: '',
     visibilityEditingLabel: '',
+    visibilityEditingValue: '', // 当前编辑字段的可见性值，用于半屏高亮选中项
     // 基本信息（step1）
     avatar: '',
     photoUrl: '', // 相片（相册/拍摄）
@@ -377,10 +377,15 @@ Page({
   onVisibilityTap(e) {
     const field = e.currentTarget.dataset.field
     const label = e.currentTarget.dataset.label || field
-    this.setData({ showVisibilitySheet: true, visibilityEditingField: field, visibilityEditingLabel: label })
+    this.setData({
+      showVisibilitySheet: true,
+      visibilityEditingField: field,
+      visibilityEditingLabel: label,
+      visibilityEditingValue: this.data.fieldVisibility[field] || 'public'
+    })
   },
   closeVisibilitySheet() {
-    this.setData({ showVisibilitySheet: false, visibilityEditingField: '', visibilityEditingLabel: '' })
+    this.setData({ showVisibilitySheet: false, visibilityEditingField: '', visibilityEditingLabel: '', visibilityEditingValue: '' })
   },
   onSelectVisibility(e) {
     const value = e.currentTarget.dataset.value
@@ -394,7 +399,8 @@ Page({
       fieldVisibilityIcons: { ...this.data.fieldVisibilityIcons, [field]: icon },
       showVisibilitySheet: false,
       visibilityEditingField: '',
-      visibilityEditingLabel: ''
+      visibilityEditingLabel: '',
+      visibilityEditingValue: ''
     })
   },
   // 自动保存：失焦存草稿，切换步骤存服务器
