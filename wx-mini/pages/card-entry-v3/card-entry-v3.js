@@ -44,11 +44,27 @@ const VISIBILITY_OPTIONS = [
   { label: '只对校友可见', value: 'alumni', icon: VISIBILITY_ICONS.alumni }
 ]
 const VISIBILITY_LABELS = { public: '公开', private: '私密', masked: '打码', friend: '好友', alumni: '校友' }
+// 所有需要隐私状态的子项 key：基本信息 + 联系方式(按索引) + 各卡片子项
+function _visibilityKeys() {
+  const base = ['name', 'photo', 'nickname', 'wechatId', 'avatar', 'gender', 'birthPlace', 'company', 'title', 'association_title', 'industry']
+  const contact = Array.from({ length: 12 }, (_, i) => 'contact_' + i)
+  const association = ['associationOrgs', 'associationNeeds', 'associationNeedsOther', 'associationWilling', 'board_position', 'association_positions', 'support_offerings', 'contributionTypes', 'contributionDescription']
+  const intro = Array.from({ length: 10 }, (_, i) => 'intro_' + i)
+  const work = Array.from({ length: 10 }, (_, i) => 'work_' + i)
+  const edu = Array.from({ length: 10 }, (_, i) => 'edu_' + i)
+  const resource = Array.from({ length: 10 }, (_, i) => 'resource_' + i)
+  const extra = ['card_attachment', 'business_intro', 'company_intro', 'needsText', 'dating', 'job', 'entrepreneurship', 'more_needs', 'resourcesText', 'paper_cards', 'extraInfo']
+  return [...base, ...contact, ...association, ...intro, ...work, ...edu, ...resource, ...extra]
+}
 function _defaultFieldVisibility() {
-  const keys = ['name', 'photo', 'nickname', 'wechatId', 'avatar', 'gender', 'birthPlace', 'company', 'title', 'association_title', 'industry']
+  const keys = _visibilityKeys()
   const o = {}; const l = {}; const i = {}
   keys.forEach(k => { o[k] = 'public'; l[k] = '公开'; i[k] = VISIBILITY_ICONS.public })
   return { fieldVisibility: o, fieldVisibilityLabels: l, fieldVisibilityIcons: i }
+}
+// 根据当前列表长度和 fieldVisibilityIcons 生成动态子项的 icon 数组（用于 wxml 中 wx:for 的 index）
+function _visibilityIconsArray(icons, prefix, length) {
+  const arr = []; for (let j = 0; j < (length || 0); j++) arr.push(icons[prefix + j] || VISIBILITY_ICONS.public); return arr
 }
 
 // 头像选项（与 card-entry v1 同源 COS）
@@ -217,6 +233,11 @@ Page({
     fieldVisibility: (() => { const d = _defaultFieldVisibility(); return d.fieldVisibility })(),
     fieldVisibilityLabels: (() => { const d = _defaultFieldVisibility(); return d.fieldVisibilityLabels })(),
     fieldVisibilityIcons: (() => { const d = _defaultFieldVisibility(); return d.fieldVisibilityIcons })(),
+    contactVisibilityIcons: [],
+    introVisibilityIcons: [],
+    workVisibilityIcons: [],
+    eduVisibilityIcons: [],
+    resourceVisibilityIcons: [],
     visibilityOptions: VISIBILITY_OPTIONS,
     showVisibilitySheet: false,
     visibilityEditingField: '',
@@ -393,14 +414,30 @@ Page({
     if (!field) { this.closeVisibilitySheet(); return }
     const label = VISIBILITY_LABELS[value] || '公开'
     const icon = VISIBILITY_ICONS[value] || VISIBILITY_ICONS.public
+    const icons = { ...this.data.fieldVisibilityIcons, [field]: icon }
     this.setData({
       fieldVisibility: { ...this.data.fieldVisibility, [field]: value },
       fieldVisibilityLabels: { ...this.data.fieldVisibilityLabels, [field]: label },
-      fieldVisibilityIcons: { ...this.data.fieldVisibilityIcons, [field]: icon },
+      fieldVisibilityIcons: icons,
       showVisibilitySheet: false,
       visibilityEditingField: '',
       visibilityEditingLabel: '',
-      visibilityEditingValue: ''
+      visibilityEditingValue: '',
+      contactVisibilityIcons: _visibilityIconsArray(icons, 'contact_', (this.data.contactItems || []).length),
+      introVisibilityIcons: _visibilityIconsArray(icons, 'intro_', (this.data.introCards || []).length),
+      workVisibilityIcons: _visibilityIconsArray(icons, 'work_', (this.data.workExperiences || []).length),
+      eduVisibilityIcons: _visibilityIconsArray(icons, 'edu_', (this.data.eduExperiences || []).length),
+      resourceVisibilityIcons: _visibilityIconsArray(icons, 'resource_', (this.data.resources || []).length)
+    })
+  },
+  _syncVisibilityIconArrays() {
+    const icons = this.data.fieldVisibilityIcons || {}
+    this.setData({
+      contactVisibilityIcons: _visibilityIconsArray(icons, 'contact_', (this.data.contactItems || []).length),
+      introVisibilityIcons: _visibilityIconsArray(icons, 'intro_', (this.data.introCards || []).length),
+      workVisibilityIcons: _visibilityIconsArray(icons, 'work_', (this.data.workExperiences || []).length),
+      eduVisibilityIcons: _visibilityIconsArray(icons, 'edu_', (this.data.eduExperiences || []).length),
+      resourceVisibilityIcons: _visibilityIconsArray(icons, 'resource_', (this.data.resources || []).length)
     })
   },
   // 自动保存：失焦存草稿，切换步骤存服务器
@@ -557,7 +594,7 @@ Page({
             '',
           // 教育经历列表
           eduExperiences: eduList.length ? eduList : this.data.eduExperiences
-        })
+        }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
         return
       }
     } catch (e) {
@@ -586,11 +623,12 @@ Page({
             (u.locations && u.locations[0] && u.locations[0].address) ||
             '',
           personalIntro: u.bio || ''
-        })
+        }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
       }
     } catch (e) {
       console.error('Load cards/my data error (v3):', e)
     }
+    this._syncVisibilityIconArrays && this._syncVisibilityIconArrays()
   },
 
   onInputChange(e) {
@@ -708,7 +746,7 @@ Page({
       if (i !== resIndex) return r
       return { ...r, resource_type: o ? o.value : '', _typeIndex: index, _typeLabel: o ? o.label : '请选择' }
     })
-    this.setData({ resources })
+    this.setData({ resources }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
   },
   onResourceModeChange(e) {
     const index = parseInt(e.detail.value, 10)
@@ -719,14 +757,14 @@ Page({
       if (i !== resIndex) return r
       return { ...r, sharing_mode: o ? o.value : '', _modeIndex: index, _modeLabel: o ? o.label : '请选择' }
     })
-    this.setData({ resources })
+    this.setData({ resources }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
   },
   onResourceInput(e) {
     const resIndex = parseInt(e.currentTarget.dataset.index, 10)
     const field = e.currentTarget.dataset.field
     const value = e.detail.value
     const resources = (this.data.resources || []).map((r, i) => (i !== resIndex ? r : { ...r, [field]: value }))
-    this.setData({ resources })
+    this.setData({ resources }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
   },
   onAddResource() {
     const resources = [...(this.data.resources || []), {
@@ -739,12 +777,12 @@ Page({
       _modeIndex: 0,
       _modeLabel: '请选择'
     }]
-    this.setData({ resources })
+    this.setData({ resources }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
   },
   onRemoveResource(e) {
     const index = parseInt(e.currentTarget.dataset.index, 10)
     const resources = this.data.resources.filter((_, i) => i !== index)
-    this.setData({ resources })
+    this.setData({ resources }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
   },
 
   onPickPhoto() {
@@ -796,7 +834,7 @@ Page({
     const label = CONTACT_TYPE_LABELS[type] || type
     const items = [...(this.data.contactItems || [])]
     items.push({ id: type + '-' + Date.now(), type, label, value: '', required: false })
-    this.setData({ contactItems: items, ..._previewFromContactItems(items), showContactAddSheet: false })
+    this.setData({ contactItems: items, ..._previewFromContactItems(items), showContactAddSheet: false }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
   },
   onContactItemInput(e) {
     const index = parseInt(e.currentTarget.dataset.index, 10)
@@ -809,11 +847,11 @@ Page({
   onRemoveContact(e) {
     const index = parseInt(e.currentTarget.dataset.index, 10)
     const items = this.data.contactItems.filter((_, i) => i !== index)
-    this.setData({ contactItems: items, ..._previewFromContactItems(items) })
+    this.setData({ contactItems: items, ..._previewFromContactItems(items) }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
   },
   onAddAddress() {
     const items = [...this.data.contactItems, { id: 'address-' + Date.now(), type: 'address', label: '地址', value: '', required: false }]
-    this.setData({ contactItems: items, ..._previewFromContactItems(items) })
+    this.setData({ contactItems: items, ..._previewFromContactItems(items) }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
   },
 
   onAddPdf() {
@@ -866,13 +904,13 @@ Page({
     const list = [...(introCards || [])]
     if (introEditIndex >= 0) list[introEditIndex] = item
     else list.push(item)
-    this.setData({ introCards: list, showIntroSheet: false, introEditIndex: -1 })
+    this.setData({ introCards: list, showIntroSheet: false, introEditIndex: -1 }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
   },
   deleteIntroCard() {
     const { introCards, introEditIndex } = this.data
     if (introEditIndex < 0) { this.closeIntroSheet(); return }
     const list = introCards.filter((_, i) => i !== introEditIndex)
-    this.setData({ introCards: list, showIntroSheet: false, introEditIndex: -1 })
+    this.setData({ introCards: list, showIntroSheet: false, introEditIndex: -1 }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
   },
 
   onAddBusinessIntro() {
@@ -885,7 +923,7 @@ Page({
 
   onAddWorkExperience() {
     const workExperiences = [...this.data.workExperiences, { company: '', title: '', duration: '' }]
-    this.setData({ workExperiences })
+    this.setData({ workExperiences }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
   },
 
   openEduSheet(editIndex) {
@@ -925,13 +963,13 @@ Page({
     const list = [...(eduExperiences || [])]
     if (eduEditIndex >= 0) list[eduEditIndex] = item
     else list.push(item)
-    this.setData({ eduExperiences: list, showEduSheet: false, eduEditIndex: -1 })
+    this.setData({ eduExperiences: list, showEduSheet: false, eduEditIndex: -1 }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
   },
   deleteEdu() {
     const { eduExperiences, eduEditIndex } = this.data
     if (eduEditIndex < 0) { this.closeEduSheet(); return }
     const list = eduExperiences.filter((_, i) => i !== eduEditIndex)
-    this.setData({ eduExperiences: list, showEduSheet: false, eduEditIndex: -1 })
+    this.setData({ eduExperiences: list, showEduSheet: false, eduEditIndex: -1 }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
   },
 
   onAddEduExperience() {
@@ -978,13 +1016,13 @@ Page({
     const list = [...(workExperiences || [])]
     if (workEditIndex >= 0) list[workEditIndex] = item
     else list.push(item)
-    this.setData({ workExperiences: list, showWorkSheet: false, workEditIndex: -1 })
+    this.setData({ workExperiences: list, showWorkSheet: false, workEditIndex: -1 }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
   },
   deleteWork() {
     const { workExperiences, workEditIndex } = this.data
     if (workEditIndex < 0) { this.closeWorkSheet(); return }
     const list = workExperiences.filter((_, i) => i !== workEditIndex)
-    this.setData({ workExperiences: list, showWorkSheet: false, workEditIndex: -1 })
+    this.setData({ workExperiences: list, showWorkSheet: false, workEditIndex: -1 }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
   },
 
   onAddWorkExperience() {
@@ -1122,13 +1160,13 @@ Page({
     const list = [...(resources || [])]
     if (resourceEditIndex >= 0) list[resourceEditIndex] = item
     else list.push(item)
-    this.setData({ resources: list, showResourceSheet: false, resourceEditIndex: -1 })
+    this.setData({ resources: list, showResourceSheet: false, resourceEditIndex: -1 }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
   },
   deleteResource() {
     const { resources, resourceEditIndex } = this.data
     if (resourceEditIndex < 0) { this.closeResourceSheet(); return }
     const list = (resources || []).filter((_, i) => i !== resourceEditIndex)
-    this.setData({ resources: list, showResourceSheet: false, resourceEditIndex: -1 })
+    this.setData({ resources: list, showResourceSheet: false, resourceEditIndex: -1 }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
   },
 
   onUploadPaperCard() {

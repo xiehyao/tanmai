@@ -140,6 +140,9 @@
         <view class="contact-add-address" wx:if="{{item.type === 'address'}}" catchtap="onAddAddress">+</view>
         <view class="contact-remove" wx:if="{{!item.required}}" data-index="{{index}}" catchtap="onRemoveContact">−</view>
         <text class="form-arrow" wx:elif="{{item.type === 'wechat'}}">></text>
+        <view class="visibility-cell" data-field="contact_{{index}}" data-label="{{item.label}}" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{contactVisibilityIcons[index] || '👁️'}}</text>
+        </view>
       </view>
     </view>
 
@@ -166,6 +169,9 @@
       <view class="form-row">
         <text class="form-label">组织</text>
         <input class="form-input" placeholder="如：惠安一中大湾区校友会" value="{{associationOrgs}}" data-field="associationOrgs" bindinput="onInputChange" />
+        <view class="visibility-cell" data-field="associationOrgs" data-label="组织" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityIcons.associationOrgs || '👁️'}}</text>
+        </view>
       </view>
       <!-- 子部分：对校友会需求 -->
       <view class="subsection-title">对校友会需求</view>
@@ -182,21 +188,33 @@
             </view>
           </view>
         </view>
+        <view class="visibility-cell" data-field="associationNeeds" data-label="需求调研" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityIcons.associationNeeds || '👁️'}}</text>
+        </view>
       </view>
       <view class="form-row" wx:if="{{associationNeedsOtherVisible}}">
         <text class="form-label">其它需求</text>
         <textarea class="form-input multi-line" placeholder="其它说明" value="{{associationNeedsOther}}" data-field="associationNeedsOther" bindinput="onInputChange" />
+        <view class="visibility-cell" data-field="associationNeedsOther" data-label="其它需求" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityIcons.associationNeedsOther || '👁️'}}</text>
+        </view>
       </view>
       <!-- 子部分：为校友会服务意愿 -->
       <view class="subsection-title">为校友会服务意愿</view>
       <view class="form-row">
         <text class="form-label">愿意服务校友</text>
         <switch checked="{{associationWilling}}" data-field="associationWilling" bindchange="onSwitchChange" />
+        <view class="visibility-cell" data-field="associationWilling" data-label="愿意服务校友" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityIcons.associationWilling || '👁️'}}</text>
+        </view>
       </view>
       <view class="form-row" bindtap="openBoardPositionSheet">
         <text class="form-label">校董会职务</text>
         <view class="form-input">{{boardPositionLabel}}</view>
         <text class="form-arrow">></text>
+        <view class="visibility-cell" data-field="board_position" data-label="校董会职务" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityIcons.board_position || '👁️'}}</text>
+        </view>
       </view>
       <view class="form-row">
         <text class="form-label">校友会职务</text>
@@ -205,6 +223,9 @@
             <checkbox value="{{item.value}}" checked="{{item.checked}}" bindtap="onAssociationPositionTap" data-value="{{item.value}}" />
             <text>{{item.label}}</text>
           </view>
+        </view>
+        <view class="visibility-cell" data-field="association_positions" data-label="校友会职务" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityIcons.association_positions || '👁️'}}</text>
         </view>
       </view>
       <view class="form-row">
@@ -215,14 +236,23 @@
             <text>{{item.label}}</text>
           </view>
         </view>
+        <view class="visibility-cell" data-field="support_offerings" data-label="可提供支持" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityIcons.support_offerings || '👁️'}}</text>
+        </view>
       </view>
       <view class="form-row">
         <text class="form-label">可承担工作</text>
         <input class="form-input" placeholder="如 具体校友活动的策划和组织" value="{{contributionTypes}}" data-field="contributionTypes" bindinput="onInputChange" />
+        <view class="visibility-cell" data-field="contributionTypes" data-label="可承担工作" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityIcons.contributionTypes || '👁️'}}</text>
+        </view>
       </view>
       <view class="form-row">
         <text class="form-label">具体描述</text>
         <textarea class="form-input multi-line" placeholder="如 在外企工作，时间宽裕；市场营销策划岗位，可协助校友活动的具体策划和组织工作" value="{{contributionDescription}}" data-field="contributionDescription" bindinput="onInputChange" />
+        <view class="visibility-cell" data-field="contributionDescription" data-label="具体描述" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityIcons.contributionDescription || '👁️'}}</text>
+        </view>
       </view>
     </view>
 
@@ -236,11 +266,14 @@
         </view>
       </view>
       <scroll-view class="intro-cards-scroll" scroll-x>
-        <view class="intro-card" wx:for="{{introCards}}" wx:key="index" data-index="{{index}}" bindtap="onEditIntroCard">
+        <view class="intro-card intro-card-with-visibility" wx:for="{{introCards}}" wx:key="index" data-index="{{index}}" bindtap="onEditIntroCard">
           <image class="intro-card-photo" src="{{item.photo || avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}" mode="aspectFill" />
           <text class="intro-card-name">{{item.name || '姓名'}}</text>
           <text class="intro-card-desc">{{item.introText || '简介'}}</text>
           <text class="intro-card-scene" wx:if="{{item.scene}}">{{item.scene}}</text>
+          <view class="visibility-cell visibility-cell-intro" data-field="intro_{{index}}" data-label="个人介绍-{{index + 1}}" catchtap="onVisibilityTap">
+            <text class="visibility-icon">{{introVisibilityIcons[index] || '👁️'}}</text>
+          </view>
         </view>
         <view class="intro-card intro-card-add" bindtap="openIntroSheet">+</view>
       </scroll-view>
@@ -249,7 +282,12 @@
     <!-- 6. 名片附件（第1步） -->
     <view class="section" wx:if="{{!hasAlumniConfig || currentStep === 1}}">
       <view class="section-title">名片附件</view>
-      <view class="add-link" bindtap="onAddPdf">+ 添加 PDF 文件</view>
+      <view class="form-row form-row-add-link">
+        <view class="add-link" bindtap="onAddPdf">+ 添加 PDF 文件</view>
+        <view class="visibility-cell" data-field="card_attachment" data-label="名片附件" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityIcons.card_attachment || '👁️'}}</text>
+        </view>
+      </view>
       <text class="section-hint">可添加对外合作方案、个人作品、产品介绍等文档</text>
       <text class="section-hint">仅支持单个PDF上传, 最大10MB</text>
     </view>
@@ -257,14 +295,24 @@
     <!-- 7. 业务介绍（第1步） -->
     <view class="section" wx:if="{{!hasAlumniConfig || currentStep === 1}}">
       <view class="section-title">业务介绍</view>
-      <view class="add-link" bindtap="onAddBusinessIntro">+ 添加图文介绍</view>
+      <view class="form-row form-row-add-link">
+        <view class="add-link" bindtap="onAddBusinessIntro">+ 添加图文介绍</view>
+        <view class="visibility-cell" data-field="business_intro" data-label="业务介绍" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityIcons.business_intro || '👁️'}}</text>
+        </view>
+      </view>
       <text class="section-hint">支持添加文字、图片、视频</text>
     </view>
 
     <!-- 8. 企业介绍（第1步） -->
     <view class="section" wx:if="{{!hasAlumniConfig || currentStep === 1}}">
       <view class="section-title">企业介绍</view>
-      <view class="add-link" bindtap="onAddCompanyIntro">+ 添加企业介绍</view>
+      <view class="form-row form-row-add-link">
+        <view class="add-link" bindtap="onAddCompanyIntro">+ 添加企业介绍</view>
+        <view class="visibility-cell" data-field="company_intro" data-label="企业介绍" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityIcons.company_intro || '👁️'}}</text>
+        </view>
+      </view>
       <text class="section-hint">支持添加文字、图片、视频</text>
     </view>
 
@@ -285,6 +333,9 @@
           <text class="exp-tertiary">{{item.duration || '时间'}}</text>
         </view>
         <text class="form-arrow">></text>
+        <view class="visibility-cell" data-field="work_{{index}}" data-label="工作经历-{{index + 1}}" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{workVisibilityIcons[index] || '👁️'}}</text>
+        </view>
       </view>
     </view>
 
@@ -305,6 +356,9 @@
           <text class="exp-tertiary">{{item.duration || '时间'}}</text>
         </view>
         <text class="form-arrow">></text>
+        <view class="visibility-cell" data-field="edu_{{index}}" data-label="教育经历-{{index + 1}}" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{eduVisibilityIcons[index] || '👁️'}}</text>
+        </view>
       </view>
     </view>
 
@@ -316,6 +370,9 @@
       <view class="form-row">
         <text class="form-label">概况</text>
         <textarea class="form-input multi-line" placeholder="自由补充（婚姻、求职、创业等）" value="{{needsText}}" data-field="needsText" bindinput="onInputChange" />
+        <view class="visibility-cell" data-field="needsText" data-label="概况" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityIcons.needsText || '👁️'}}</text>
+        </view>
       </view>
 
       <!-- 脱单 -->
@@ -324,6 +381,9 @@
         <view class="add-btn" bindtap="openDatingSheet">
           <text class="add-icon">+</text>
           <text>添加</text>
+        </view>
+        <view class="visibility-cell" data-field="dating" data-label="脱单匹配" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityIcons.dating || '👁️'}}</text>
         </view>
       </view>
       <view class="section-hint" wx:if="{{(maritalStatusLabel && maritalStatusLabel !== '请选择') || datingPreferences}}">
@@ -337,6 +397,9 @@
           <text class="add-icon">+</text>
           <text>添加</text>
         </view>
+        <view class="visibility-cell" data-field="job" data-label="求职匹配" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityIcons.job || '👁️'}}</text>
+        </view>
       </view>
       <view class="section-hint" wx:if="{{jobTargetPosition || jobTargetIndustry || jobPreferences}}">
         {{jobTargetPosition ? ('目标职位：' + jobTargetPosition + ' ') : ''}}{{jobTargetIndustry ? ('目标行业：' + jobTargetIndustry + ' ') : ''}}{{jobPreferences ? ('偏好：' + jobPreferences) : ''}}
@@ -348,6 +411,9 @@
         <view class="add-btn" bindtap="openEntreSheet">
           <text class="add-icon">+</text>
           <text>添加</text>
+        </view>
+        <view class="visibility-cell" data-field="entrepreneurship" data-label="创业匹配" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityIcons.entrepreneurship || '👁️'}}</text>
         </view>
       </view>
       <view class="section-hint" wx:if="{{(entrepreneurshipTypeLabel && entrepreneurshipTypeLabel !== '请选择') || entrepreneurshipDescription}}">
@@ -361,6 +427,9 @@
           <text class="add-icon">+</text>
           <text>添加</text>
         </view>
+        <view class="visibility-cell" data-field="more_needs" data-label="更多" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityIcons.more_needs || '👁️'}}</text>
+        </view>
       </view>
     </view>
 
@@ -370,6 +439,9 @@
       <view class="form-row">
         <text class="form-label">概况</text>
         <textarea class="form-input multi-line" placeholder="可简要描述你能提供的资源、希望对接的方向" value="{{resourcesText}}" data-field="resourcesText" bindinput="onInputChange" />
+        <view class="visibility-cell" data-field="resourcesText" data-label="概况" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityIcons.resourcesText || '👁️'}}</text>
+        </view>
       </view>
 
       <view class="form-row section-header">
@@ -390,6 +462,9 @@
               {{item.resource_description}}
             </view>
           </view>
+          <view class="visibility-cell" data-field="resource_{{index}}" data-label="资源-{{index + 1}}" catchtap="onVisibilityTap">
+            <text class="visibility-icon">{{resourceVisibilityIcons[index] || '👁️'}}</text>
+          </view>
         </view>
       </view>
       <view class="section-hint" wx:if="{{false && (!resources || !resources.length)}}">暂未添加具体资源，可点击上方「添加」补充。</view>
@@ -398,13 +473,18 @@
     <!-- 16. 上传纸质名片（第1步） -->
     <view class="section" wx:if="{{!hasAlumniConfig || currentStep === 1}}">
       <view class="section-title">上传纸质名片</view>
-      <scroll-view class="paper-cards" scroll-x>
-        <view class="paper-card" wx:for="{{paperCards}}" wx:key="index">
-          <image class="paper-card-img" src="{{item}}" mode="aspectFill" />
-          <view class="paper-card-del" data-index="{{index}}" catchtap="onRemovePaperCard">×</view>
+      <view class="form-row form-row-add-link">
+        <scroll-view class="paper-cards paper-cards-inline" scroll-x>
+          <view class="paper-card" wx:for="{{paperCards}}" wx:key="index">
+            <image class="paper-card-img" src="{{item}}" mode="aspectFill" />
+            <view class="paper-card-del" data-index="{{index}}" catchtap="onRemovePaperCard">×</view>
+          </view>
+          <view class="paper-card-add" bindtap="onUploadPaperCard">+</view>
+        </scroll-view>
+        <view class="visibility-cell" data-field="paper_cards" data-label="上传纸质名片" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityIcons.paper_cards || '👁️'}}</text>
         </view>
-        <view class="paper-card-add" bindtap="onUploadPaperCard">+</view>
-      </scroll-view>
+      </view>
     </view>
 
     <!-- 17. 补充信息（第1步） -->
@@ -414,6 +494,9 @@
       <view class="form-row">
         <text class="form-label">内容</text>
         <textarea class="form-input multi-line" placeholder="例如：目前偏低调、不希望对外展示行业信息；或一些仅供内部参考的备注。" value="{{extraInfo}}" data-field="extraInfo" bindinput="onInputChange" />
+        <view class="visibility-cell" data-field="extraInfo" data-label="补充信息" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityIcons.extraInfo || '👁️'}}</text>
+        </view>
       </view>
     </view>
 

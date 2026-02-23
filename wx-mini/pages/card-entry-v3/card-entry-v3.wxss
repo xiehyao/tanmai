@@ -201,6 +201,17 @@
   height: 72rpx;  /* 固定约两行高度，内容超出可滚动 */
 }
 
+.form-row-add-link {
+  align-items: center;
+}
+.form-row-add-link .add-link {
+  flex: 1;
+}
+.paper-cards-inline {
+  flex: 1;
+  min-width: 0;
+}
+
 .form-picker {
   flex: 1;
 }
@@ -823,4 +834,13 @@
   color: #667eea;
   background: rgba(102, 126, 234, 0.08);
   border: 2rpx dashed #667eea;
+}
+.intro-card-with-visibility {
+  position: relative;
+}
+.visibility-cell-intro {
+  position: absolute;
+  top: 12rpx;
+  right: 12rpx;
+  margin-left: 0;
 }
