@@ -44,6 +44,10 @@ Page({
     wx.navigateTo({ url: '/pages/card-entry-v3/card-entry-v3' })
   },
 
+  goToStaffCardEntryV3() {
+    wx.navigateTo({ url: '/pages/card-entry-v3/card-entry-v3?mode=staff' })
+  },
+
   goToCard() {
     wx.navigateTo({ url: '/pages/card/card' })
   },

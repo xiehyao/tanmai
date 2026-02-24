@@ -23,6 +23,10 @@
       <text>填写/编辑名片v3</text>
       <text class="arrow">›</text>
     </view>
+    <view class="menu-item" bindtap="goToStaffCardEntryV3">
+      <text>工作人员代填/内评</text>
+      <text class="arrow">›</text>
+    </view>
     <view class="menu-item" bindtap="goToCard">
       <text>查看我的名片</text>
       <text class="arrow">›</text>
