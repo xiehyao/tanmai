@@ -510,11 +510,25 @@ Page({
       modeLabel: '请选择'
     },
     // 上传纸质名片
-    paperCards: []
+    paperCards: [],
+    // 当前登录用户 id（用于 save-step/2/3/4/6 的 target_user_id）
+    selfUserId: null
   },
 
   onLoad() {
     this.loadData()
+    this._ensureSelfUserId()
+  },
+  async _ensureSelfUserId() {
+    if (this.data.selfUserId) return
+    try {
+      const res = await request.get('/api/cards/my')
+      if (res && res.success && res.data && res.data.user_id) {
+        this.setData({ selfUserId: res.data.user_id })
+      }
+    } catch (e) {
+      console.error('load self user id failed:', e)
+    }
   },
   goToStep(e) {
     const step = parseInt(e.currentTarget.dataset.step, 10)
@@ -1511,6 +1525,8 @@ Page({
   async onSave() {
     wx.showLoading({ title: '保存中...' })
     try {
+      await this._ensureSelfUserId()
+      const qs = this.data.selfUserId ? `?target_user_id=${this.data.selfUserId}` : ''
       const items = this.data.contactItems || []
       const first = (type) => (items.find(c => c.type === type) || {}).value
       const payload = {
@@ -1529,7 +1545,18 @@ Page({
         selected_avatar: this.data.avatar || '',
         personal_photos: Array.isArray(this.data.personal_photos) ? this.data.personal_photos : []
       }
-      await request.post('/api/card-entry/save-step/1', payload)
+      await request.post('/api/card-entry/save-step/1' + qs, payload)
+      // 同步保存 step2/3/4/6（教育、需求、资源、补充信息）
+      const step2Body = _buildStep2FromEdu(this.data.eduExperiences || [])
+      const step3Body = _buildStep3FromState(this.data)
+      const step4Body = _buildStep4FromState(this.data.resources || [], this.data.resourcesText || '')
+      const step6Body = _buildStep6FromExtra(this.data.extraInfo || '')
+      await Promise.all([
+        request.post('/api/card-entry/save-step/2' + qs, step2Body),
+        request.post('/api/card-entry/save-step/3' + qs, step3Body),
+        request.post('/api/card-entry/save-step/4' + qs, step4Body),
+        request.post('/api/card-entry/save-step/6' + qs, step6Body)
+      ])
       wx.hideLoading()
       wx.showToast({ title: '保存成功', icon: 'success' })
       // 第1步保存成功后若有第2步则跳下一步
