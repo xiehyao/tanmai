@@ -226,6 +226,95 @@ function _buildResourcesList(resources) {
   })
 }
 
+// —— 下行映射辅助：V3 → card-entry step2/3/4/6 payload（仅前端构造，不直接发请求） ——
+function _yearFromDateStr(str) {
+  if (!str) return undefined
+  const y = parseInt(String(str).slice(0, 4), 10)
+  return Number.isNaN(y) ? undefined : y
+}
+function _buildStep2FromEdu(eduExperiences) {
+  const step2 = {
+    primary_school: '', primary_graduation_year: undefined,
+    middle_school: '', middle_graduation_year: undefined,
+    high_school: '', high_graduation_year: undefined,
+    bachelor_university: '', bachelor_major: '', bachelor_graduation_year: undefined,
+    master_university: '', master_major: '', master_graduation_year: undefined,
+    doctor_university: '', doctor_major: '', doctor_graduation_year: undefined,
+    highest_degree: ''
+  }
+  const degreeOrder = ['小学', '初中', '高中', '本科', '硕士', '博士']
+  let maxIdx = -1
+  ;(eduExperiences || []).forEach(item => {
+    if (!item || !item.degree) return
+    const d = item.degree
+    const y = _yearFromDateStr(item.graduateDate) || _yearFromDateStr(item.duration && item.duration.split(' - ')[1])
+    if (d === '小学') {
+      if (item.school) step2.primary_school = item.school
+      if (y) step2.primary_graduation_year = y
+    } else if (d === '初中') {
+      if (item.school) step2.middle_school = item.school
+      if (y) step2.middle_graduation_year = y
+    } else if (d === '高中') {
+      if (item.school) step2.high_school = item.school
+      if (y) step2.high_graduation_year = y
+    } else if (d === '本科') {
+      if (item.school) step2.bachelor_university = item.school
+      if (item.major) step2.bachelor_major = item.major
+      if (y) step2.bachelor_graduation_year = y
+    } else if (d === '硕士') {
+      if (item.school) step2.master_university = item.school
+      if (item.major) step2.master_major = item.major
+      if (y) step2.master_graduation_year = y
+    } else if (d === '博士') {
+      if (item.school) step2.doctor_university = item.school
+      if (item.major) step2.doctor_major = item.major
+      if (y) step2.doctor_graduation_year = y
+    }
+    const idx = degreeOrder.indexOf(d)
+    if (idx > maxIdx) {
+      maxIdx = idx
+      step2.highest_degree = d
+    }
+  })
+  return step2
+}
+function _buildStep3FromState(data) {
+  return {
+    marital_status: data.marital_status || '',
+    dating_need: !!data.datingNeed,
+    dating_preferences: data.datingPreferences || '',
+    job_seeking: !!data.jobSeeking,
+    job_target_position: data.jobTargetPosition || '',
+    job_target_industry: data.jobTargetIndustry || '',
+    job_preferences: data.jobPreferences || '',
+    entrepreneurship_need: !!data.entrepreneurshipNeed,
+    entrepreneurship_type: data.entrepreneurship_type || '',
+    entrepreneurship_description: data.entrepreneurshipDescription || ''
+  }
+}
+function _buildStep4FromState(resources, rawText) {
+  const ress = (resources || []).map(r => {
+    const { _typeIndex, _typeLabel, _modeIndex, _modeLabel, ...rest } = r
+    return { ...rest }
+  })
+  if (rawText && String(rawText).trim()) {
+    ress.push({
+      resource_type: 'other',
+      resource_title: '自由填写',
+      resource_description: String(rawText).trim(),
+      sharing_mode: 'free'
+    })
+  }
+  return { resources: ress }
+}
+function _buildStep6FromExtra(extraInfo) {
+  const desc = extraInfo || ''
+  return {
+    hidden_info: { description: desc },
+    field_visibility: {}
+  }
+}
+
 Page({
   data: {
     // 两步结构：仅当配置了校友会/商会时显示第2步，默认惠安一中大湾区校友会
