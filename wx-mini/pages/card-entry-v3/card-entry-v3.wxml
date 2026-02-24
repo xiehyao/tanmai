@@ -35,11 +35,17 @@
           <text class="visibility-icon">{{fieldVisibilityIcons.name || '👁️'}}</text>
         </view>
       </view>
-      <view class="form-row" bindtap="onPickPhoto">
+      <view class="form-row form-row-photos">
         <text class="form-label">相片</text>
-        <image class="form-avatar" wx:if="{{photoUrl}}" src="{{photoUrl}}" mode="aspectFill" />
-        <text class="form-input form-input-placeholder" wx:else>点击选择相册或拍摄</text>
-        <text class="form-arrow">></text>
+        <scroll-view class="personal-photos-scroll" scroll-x>
+          <view class="personal-photo-item personal-photo-add" bindtap="onPickPhoto">
+            <text class="photo-add-text">+ 添加</text>
+          </view>
+          <view class="personal-photo-item" wx:for="{{personal_photos}}" wx:key="index">
+            <image class="personal-photo-img" src="{{item}}" mode="aspectFill" />
+            <view class="personal-photo-del" data-index="{{index}}" catchtap="onRemovePersonalPhoto">×</view>
+          </view>
+        </scroll-view>
         <view class="visibility-cell" data-field="photo" data-label="相片" catchtap="onVisibilityTap">
           <text class="visibility-icon">{{fieldVisibilityIcons.photo || '👁️'}}</text>
         </view>
@@ -230,6 +236,20 @@
         </view>
         <view class="visibility-cell" data-field="association_positions" data-label="愿意/希望担任校友会职务" catchtap="onVisibilityTap">
           <text class="visibility-icon">{{fieldVisibilityIcons.association_positions || '👁️'}}</text>
+        </view>
+      </view>
+      <view class="form-row">
+        <text class="form-label">期望担任的职务（整体）</text>
+        <input class="form-input" placeholder="如：会长、秘书长、技术顾问" value="{{desired_position}}" data-field="desired_position" bindinput="onInputChange" />
+        <view class="visibility-cell" data-field="desired_position" data-label="期望担任的职务" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityIcons.desired_position || '👁️'}}</text>
+        </view>
+      </view>
+      <view class="form-row">
+        <text class="form-label">职务偏好和说明</text>
+        <textarea class="form-input multi-line" placeholder="如：希望能在科技委员会任职" value="{{position_preferences}}" data-field="position_preferences" bindinput="onInputChange" />
+        <view class="visibility-cell" data-field="position_preferences" data-label="职务偏好和说明" catchtap="onVisibilityTap">
+          <text class="visibility-icon">{{fieldVisibilityIcons.position_preferences || '👁️'}}</text>
         </view>
       </view>
       <view class="form-row">
@@ -532,9 +552,26 @@
       <text class="sheet-title">添加联系方式</text>
     </view>
     <view class="contact-type-grid">
-      <view class="contact-type-item" wx:for="{{contactTypeGrid}}" wx:key="type" data-type="{{item.type}}" bindtap="onSelectContactType">
-        <view class="contact-type-icon">{{item.type === 'phone' ? '📱' : item.type === 'landline' ? '☎' : item.type === 'email' ? '✉' : item.type === 'fax' ? '📠' : item.type === 'wechat' ? '💬' : item.type === 'qq' ? '🐧' : item.type === 'weibo' ? '🐦' : item.type === 'address' ? '📍' : item.type === 'linkedin' ? 'in' : '🔗'}}</view>
+      <view class="contact-type-item" wx:for="{{contactTypeGrid}}" wx:key="label" data-type="{{item.type}}" data-label="{{item.label}}" data-location-type="{{item.location_type}}" bindtap="onSelectContactType">
+        <view class="contact-type-icon">{{item.type === 'phone' ? '📱' : item.type === 'landline' ? '☎' : item.type === 'email' ? '✉' : item.type === 'fax' ? '📠' : item.type === 'wechat' ? '💬' : item.type === 'qq' ? '🐧' : item.type === 'weibo' ? '🐦' : item.type === 'address' ? (item.location_type === 'residence' ? '🏠' : item.location_type === 'work' ? '🏢' : item.location_type === 'temp_event' ? '📍' : '📌') : item.type === 'linkedin' ? 'in' : '🔗'}}</view>
         <text class="contact-type-label">{{item.label}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 半屏：选择地址类型（点击某条地址右侧 + 时） -->
+  <view class="sheet-mask" wx:if="{{showAddressTypeSheet}}" bindtap="closeAddressTypeSheet"></view>
+  <view class="sheet-panel {{showAddressTypeSheet ? 'sheet-show' : ''}}" wx:if="{{showAddressTypeSheet}}">
+    <view class="sheet-head">
+      <text class="sheet-close" bindtap="closeAddressTypeSheet">×</text>
+      <text class="sheet-title">添加地址</text>
+    </view>
+    <view class="sheet-body need-type-grid-wrap">
+      <view class="need-type-grid">
+        <view class="need-type-item" wx:for="{{addressTypeGrid}}" wx:key="location_type" data-label="{{item.label}}" data-location-type="{{item.location_type}}" bindtap="onSelectAddressType">
+          <text class="need-type-icon">{{item.icon}}</text>
+          <text class="need-type-label">{{item.label}}</text>
+        </view>
       </view>
     </view>
   </view>
@@ -567,6 +604,23 @@
         <text class="board-option-label">{{item.label}}</text>
       </view>
     </scroll-view>
+  </view>
+
+  <!-- 半屏：教育经历 - 先选学历层级（九宫格） -->
+  <view class="sheet-mask" wx:if="{{showEduLevelSheet}}" bindtap="closeEduLevelSheet"></view>
+  <view class="sheet-panel {{showEduLevelSheet ? 'sheet-show' : ''}}" wx:if="{{showEduLevelSheet}}">
+    <view class="sheet-head">
+      <text class="sheet-close" bindtap="closeEduLevelSheet">×</text>
+      <text class="sheet-title">选择学历层级</text>
+    </view>
+    <view class="sheet-body need-type-grid-wrap">
+      <view class="need-type-grid">
+        <view class="need-type-item" wx:for="{{eduLevelGrid}}" wx:key="degree" data-degree="{{item.degree}}" data-label="{{item.label}}" bindtap="onSelectEduLevel">
+          <text class="need-type-icon">{{item.icon}}</text>
+          <text class="need-type-label">{{item.label}}</text>
+        </view>
+      </view>
+    </view>
   </view>
 
   <!-- 半屏：添加/编辑教育经历 -->

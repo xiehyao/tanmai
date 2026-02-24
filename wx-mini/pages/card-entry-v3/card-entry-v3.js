@@ -20,7 +20,7 @@ function _buildContactItems(phone, wechat, email, address) {
   if (phone !== undefined && phone !== null) items.push({ id: 'phone-0', type: 'phone', label: '手机', value: phone, required: true })
   if (wechat !== undefined && wechat !== null) items.push({ id: 'wechat-0', type: 'wechat', label: '微信', value: wechat, required: false })
   if (email !== undefined && email !== null) items.push({ id: 'email-0', type: 'email', label: '邮箱', value: email, required: false })
-  items.push({ id: 'address-0', type: 'address', label: '地址', value: address || '', required: false })
+  items.push({ id: 'address-0', type: 'address', label: '公司地址', value: address || '', required: false, location_type: 'work' })
   return items
 }
 function _previewFromContactItems(items) {
@@ -50,7 +50,7 @@ const VISIBILITY_LABELS = { public: '公开', private: '私密', masked: '打码
 function _visibilityKeys() {
   const base = ['name', 'photo', 'nickname', 'wechatId', 'avatar', 'gender', 'birthPlace', 'company', 'title', 'association_title', 'industry']
   const contact = Array.from({ length: 12 }, (_, i) => 'contact_' + i)
-  const association = ['associationOrgs', 'associationNeeds', 'associationNeedsOther', 'associationWilling', 'board_position', 'association_positions', 'support_offerings', 'contributionTypes', 'contributionDescription']
+  const association = ['associationOrgs', 'associationNeeds', 'associationNeedsOther', 'associationWilling', 'board_position', 'association_positions', 'desired_position', 'position_preferences', 'support_offerings', 'contributionTypes', 'contributionDescription']
   const intro = Array.from({ length: 10 }, (_, i) => 'intro_' + i)
   const work = Array.from({ length: 10 }, (_, i) => 'work_' + i)
   const edu = Array.from({ length: 10 }, (_, i) => 'edu_' + i)
@@ -247,7 +247,8 @@ Page({
     visibilityEditingValue: '', // 当前编辑字段的可见性值，用于半屏高亮选中项
     // 基本信息（step1）
     avatar: '',
-    photoUrl: '', // 相片（相册/拍摄）
+    photoUrl: '', // 兼容：单张相片展示，与 personal_photos[0] 同步
+    personal_photos: [], // 多张相片，对应后端 step1.personal_photos
     wechatId: '',
     name: '',
     nickname: '',
@@ -272,7 +273,7 @@ Page({
       items.push({ id: 'phone-0', type: 'phone', label: '手机', value: '', required: true })
       items.push({ id: 'wechat-0', type: 'wechat', label: '微信', value: '', required: false })
       items.push({ id: 'email-0', type: 'email', label: '邮箱', value: '', required: false })
-      items.push({ id: 'address-0', type: 'address', label: '地址', value: '', required: false })
+      items.push({ id: 'address-0', type: 'address', label: '公司地址', value: '', required: false, location_type: 'work' })
       return items
     })(),
     contactTypeGrid: [
@@ -283,11 +284,21 @@ Page({
       { type: 'wechat', label: '微信' },
       { type: 'qq', label: 'QQ' },
       { type: 'weibo', label: '微博' },
-      { type: 'address', label: '地址' },
+      { type: 'address', label: '居住地址', location_type: 'residence' },
+      { type: 'address', label: '公司地址', location_type: 'work' },
+      { type: 'address', label: '临时活动地址', location_type: 'temp_event' },
+      { type: 'address', label: '其它', location_type: 'other' },
       { type: 'linkedin', label: 'LinkedIn' },
       { type: 'homepage', label: '个人主页' }
     ],
+    addressTypeGrid: [
+      { type: 'address', label: '居住地址', location_type: 'residence', icon: '🏠' },
+      { type: 'address', label: '公司地址', location_type: 'work', icon: '🏢' },
+      { type: 'address', label: '临时活动地址', location_type: 'temp_event', icon: '📍' },
+      { type: 'address', label: '其它', location_type: 'other', icon: '📌' }
+    ],
     showContactAddSheet: false,
+    showAddressTypeSheet: false,
     showAvatarSheet: false,
     showBoardPositionSheet: false,
     avatarOptions: AVATAR_OPTIONS,
@@ -354,6 +365,8 @@ Page({
     support_offerings: [],
     contributionTypes: '',
     contributionDescription: '',
+    desired_position: '',
+    position_preferences: '',
     associationNeedsGroups: _groupsWithChecked(ASSOCIATION_NEEDS_GROUPS, []),
     association_needs_selected: [],
     associationNeedsOtherVisible: false,
@@ -382,8 +395,18 @@ Page({
     showEduSheet: false,
     eduEditIndex: -1,
     eduForm: { school: '', major: '', degree: '', enrollDate: '', graduateDate: '' },
-    degreeOptions: ['高中', '本科', '硕士', '博士', '其他'],
+    degreeOptions: ['小学', '初中', '高中', '本科', '硕士', '博士', '其他'],
     degreeLabel: '请选择',
+    // 教育经历：先选学历层级的九宫格
+    showEduLevelSheet: false,
+    eduLevelGrid: [
+      { degree: '小学', label: '小学', icon: '🏫' },
+      { degree: '初中', label: '初中', icon: '🎒' },
+      { degree: '高中', label: '高中', icon: '🏫' },
+      { degree: '本科', label: '大学本科', icon: '🎓' },
+      { degree: '硕士', label: '硕士', icon: '🎓' },
+      { degree: '博士', label: '博士', icon: '🎓' }
+    ],
     // 资源列表弹窗
     showResourceSheet: false,
     resourceEditIndex: -1,
@@ -514,7 +537,10 @@ Page({
         wechat_id: this.data.wechatId || first('wechat'),
         email: first('email'),
         main_address: first('address') || this.data.address,
-        bio: this.data.personalIntro
+        bio: this.data.personalIntro,
+        field_visibility: this.data.fieldVisibility || {},
+        selected_avatar: this.data.avatar || '',
+        personal_photos: Array.isArray(this.data.personal_photos) ? this.data.personal_photos : []
       }
       request.post('/api/card-entry/save-step/1', payload).catch(e => console.error('saveStep1 error:', e))
     }
@@ -524,6 +550,8 @@ Page({
         willing_to_serve: this.data.associationWilling,
         board_position: this.data.board_position,
         association_positions: this.data.association_positions,
+        desired_position: this.data.desired_position || '',
+        position_preferences: this.data.position_preferences || '',
         support_offerings: this.data.support_offerings,
         contribution_types: this.data.contributionTypes,
         contribution_description: this.data.contributionDescription,
@@ -562,7 +590,8 @@ Page({
         )
         this.setData({
           avatar: s1.display_avatar || s1.selected_avatar || s1.avatar || this.data.avatar,
-          photoUrl: s1.photo_url || this.data.photoUrl || '',
+          personal_photos: Array.isArray(s1.personal_photos) ? s1.personal_photos : [],
+          photoUrl: (s1.personal_photos && s1.personal_photos[0]) || s1.photo_url || this.data.photoUrl || '',
           wechatId: s1.wechat_id || this.data.wechatId || '',
           name: s1.name || this.data.name,
           nickname: s1.nickname || '',
@@ -611,6 +640,8 @@ Page({
           support_offerings: Array.isArray(s5.support_offerings) ? s5.support_offerings : [],
           contributionTypes: s5.contribution_types || '',
           contributionDescription: s5.contribution_description || '',
+          desired_position: s5.desired_position || '',
+          position_preferences: s5.position_preferences || '',
           association_needs_selected: (() => {
             const sel = (s5.association_needs_detail && s5.association_needs_detail.selected) ? s5.association_needs_detail.selected : []
             return sel
@@ -819,22 +850,32 @@ Page({
   },
 
   onPickPhoto() {
+    const current = this.data.personal_photos || []
+    const remain = Math.max(1, 9 - current.length)
     wx.showActionSheet({
       itemList: ['相册', '拍摄'],
       success: (res) => {
         const sourceType = res.tapIndex === 0 ? ['album'] : ['camera']
         wx.chooseMedia({
-          count: 1,
+          count: remain,
           mediaType: ['image'],
           sourceType,
           success: (r) => {
-            const tempPath = r.tempFiles[0].tempFilePath
-            this.setData({ photoUrl: tempPath })
-            wx.showToast({ title: '已选择相片', icon: 'success' })
+            const newUrls = (r.tempFiles || []).map(f => f.tempFilePath)
+            const personal_photos = [...current, ...newUrls]
+            const photoUrl = personal_photos[0] || ''
+            this.setData({ personal_photos, photoUrl })
+            wx.showToast({ title: '已添加相片', icon: 'success' })
           }
         })
       }
     })
+  },
+  onRemovePersonalPhoto(e) {
+    const index = parseInt(e.currentTarget.dataset.index, 10)
+    const personal_photos = (this.data.personal_photos || []).filter((_, i) => i !== index)
+    const photoUrl = personal_photos[0] || ''
+    this.setData({ personal_photos, photoUrl })
   },
   onPickAvatar() {
     this.setData({ showAvatarSheet: true })
@@ -864,9 +905,14 @@ Page({
   },
   onSelectContactType(e) {
     const type = e.currentTarget.dataset.type
-    const label = CONTACT_TYPE_LABELS[type] || type
+    const label = e.currentTarget.dataset.label || CONTACT_TYPE_LABELS[type] || type
+    const location_type = e.currentTarget.dataset.location_type
     const items = [...(this.data.contactItems || [])]
-    items.push({ id: type + '-' + Date.now(), type, label, value: '', required: false })
+    if (type === 'address') {
+      items.push({ id: 'address-' + Date.now(), type: 'address', label, value: '', required: false, location_type: location_type || 'work' })
+    } else {
+      items.push({ id: type + '-' + Date.now(), type, label, value: '', required: false })
+    }
     this.setData({ contactItems: items, ..._previewFromContactItems(items), showContactAddSheet: false }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
   },
   onContactItemInput(e) {
@@ -883,8 +929,17 @@ Page({
     this.setData({ contactItems: items, ..._previewFromContactItems(items) }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
   },
   onAddAddress() {
-    const items = [...this.data.contactItems, { id: 'address-' + Date.now(), type: 'address', label: '地址', value: '', required: false }]
-    this.setData({ contactItems: items, ..._previewFromContactItems(items) }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
+    this.setData({ showAddressTypeSheet: true })
+  },
+  closeAddressTypeSheet() {
+    this.setData({ showAddressTypeSheet: false })
+  },
+  onSelectAddressType(e) {
+    const label = e.currentTarget.dataset.label
+    const location_type = e.currentTarget.dataset.location_type || 'work'
+    const items = [...(this.data.contactItems || [])]
+    items.push({ id: 'address-' + Date.now(), type: 'address', label: label || '公司地址', value: '', required: false, location_type })
+    this.setData({ contactItems: items, ..._previewFromContactItems(items), showAddressTypeSheet: false }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
   },
 
   onAddPdf() {
@@ -959,13 +1014,18 @@ Page({
     this.setData({ workExperiences }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
   },
 
-  openEduSheet(editIndex) {
+  openEduSheet(editIndex, initialDegree, initialDegreeLabel) {
     const isEdit = editIndex >= 0
     const list = this.data.eduExperiences || []
-    const form = isEdit && list[editIndex]
-      ? { school: list[editIndex].school || '', major: list[editIndex].major || '', degree: list[editIndex].degree || '', enrollDate: list[editIndex].enrollDate || '', graduateDate: list[editIndex].graduateDate || '' }
-      : { school: '', major: '', degree: '', enrollDate: '', graduateDate: '' }
-    const degreeLabel = form.degree ? form.degree : '请选择'
+    let form
+    let degreeLabel
+    if (isEdit && list[editIndex]) {
+      form = { school: list[editIndex].school || '', major: list[editIndex].major || '', degree: list[editIndex].degree || '', enrollDate: list[editIndex].enrollDate || '', graduateDate: list[editIndex].graduateDate || '' }
+      degreeLabel = form.degree ? form.degree : '请选择'
+    } else {
+      form = { school: '', major: '', degree: initialDegree || '', enrollDate: '', graduateDate: '' }
+      degreeLabel = (initialDegreeLabel || initialDegree) ? (initialDegreeLabel || initialDegree) : '请选择'
+    }
     this.setData({ showEduSheet: true, eduEditIndex: editIndex, eduForm: form, degreeLabel })
   },
   closeEduSheet() {
@@ -1006,7 +1066,16 @@ Page({
   },
 
   onAddEduExperience() {
-    this.openEduSheet(-1)
+    this.setData({ showEduLevelSheet: true })
+  },
+  closeEduLevelSheet() {
+    this.setData({ showEduLevelSheet: false })
+  },
+  onSelectEduLevel(e) {
+    const degree = e.currentTarget.dataset.degree
+    const label = e.currentTarget.dataset.label || degree
+    this.setData({ showEduLevelSheet: false })
+    this.openEduSheet(-1, degree, label)
   },
 
   onEditEdu(e) {
@@ -1255,7 +1324,10 @@ Page({
         wechat_id: this.data.wechatId || first('wechat'),
         email: first('email'),
         main_address: first('address') || this.data.address,
-        bio: this.data.personalIntro
+        bio: this.data.personalIntro,
+        field_visibility: this.data.fieldVisibility || {},
+        selected_avatar: this.data.avatar || '',
+        personal_photos: Array.isArray(this.data.personal_photos) ? this.data.personal_photos : []
       }
       await request.post('/api/card-entry/save-step/1', payload)
       wx.hideLoading()
