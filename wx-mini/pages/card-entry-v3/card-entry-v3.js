@@ -320,6 +320,10 @@ Page({
     // 两步结构：仅当配置了校友会/商会时显示第2步，默认惠安一中大湾区校友会
     hasAlumniConfig: true,
     currentStep: 1,
+    // 工作人员模式 / 内部评价
+    isStaffMode: false,
+    isInternalMode: false,
+    staffTargetUserId: null,
     // 子项可见性（公开/私密/打码/好友/校友）
     fieldVisibility: (() => { const d = _defaultFieldVisibility(); return d.fieldVisibility })(),
     fieldVisibilityLabels: (() => { const d = _defaultFieldVisibility(); return d.fieldVisibilityLabels })(),
@@ -515,7 +519,15 @@ Page({
     selfUserId: null
   },
 
-  onLoad() {
+  onLoad(options) {
+    const opts = options || {}
+    const isStaff = opts.mode === 'staff' || opts.staff === '1'
+    const staffTargetUserId = opts.target_user_id ? parseInt(opts.target_user_id, 10) || null : null
+    this.setData({
+      isStaffMode: !!isStaff,
+      isInternalMode: false,
+      staffTargetUserId: staffTargetUserId
+    })
     this.loadData()
     this._ensureSelfUserId()
   },
@@ -666,7 +678,11 @@ Page({
   async loadData() {
     // 1. 优先从 card-entry 接口加载六步完整数据
     try {
-      const res = await request.get('/api/card-entry/data')
+      let url = '/api/card-entry/data'
+      if (this.data.staffTargetUserId) {
+        url += `?target_user_id=${this.data.staffTargetUserId}`
+      }
+      const res = await request.get(url)
       if (res && res.step1) {
         const s1 = res.step1 || {}
         const s2 = res.step2 || {}

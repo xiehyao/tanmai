@@ -373,6 +373,25 @@
   border-radius: 8rpx;
 }
 
+.staff-bar {
+  padding: 12rpx 24rpx;
+  background: #f3f4ff;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+.staff-tag {
+  font-size: 24rpx;
+  color: #4c51bf;
+  background: rgba(102, 126, 234, 0.16);
+  padding: 4rpx 12rpx;
+  border-radius: 999rpx;
+}
+.staff-target {
+  font-size: 24rpx;
+  color: #4b5563;
+}
+
 .option-chip-row {
   flex: 1;
   display: flex;

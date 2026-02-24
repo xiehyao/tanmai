@@ -2,6 +2,12 @@
 <!-- 模仿「名片全能王」编辑资料页面 -->
 
 <view class="v3-page">
+  <!-- 工作人员模式提示条 -->
+  <view class="staff-bar" wx:if="{{isStaffMode}}">
+    <text class="staff-tag">工作人员模式</text>
+    <text class="staff-target" wx:if="{{staffTargetUserId}}">当前编辑用户ID：{{staffTargetUserId}}</text>
+    <text class="staff-target" wx:else>当前编辑：自己</text>
+  </view>
   <!-- 步骤条：仅当配置了校友会/商会时显示 -->
   <view class="v3-step-bar" wx:if="{{hasAlumniConfig}}">
     <view class="v3-step-item {{currentStep === 1 ? 'active' : ''}}" data-step="1" bindtap="goToStep">1. 个人信息</view>
