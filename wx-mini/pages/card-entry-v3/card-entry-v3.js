@@ -324,6 +324,11 @@ Page({
     isStaffMode: false,
     isInternalMode: false,
     staffTargetUserId: null,
+    staffIdVerified: false,
+    targetUser: null, // {id, name, nickname, company}
+    searchKeyword: '',
+    searchResults: [],
+    showUserSearch: false,
     // 子项可见性（公开/私密/打码/好友/校友）
     fieldVisibility: (() => { const d = _defaultFieldVisibility(); return d.fieldVisibility })(),
     fieldVisibilityLabels: (() => { const d = _defaultFieldVisibility(); return d.fieldVisibilityLabels })(),
@@ -522,14 +527,25 @@ Page({
   onLoad(options) {
     const opts = options || {}
     const isStaff = opts.mode === 'staff' || opts.staff === '1'
-    const staffTargetUserId = opts.target_user_id ? parseInt(opts.target_user_id, 10) || null : null
+    const staffTargetUserId = opts.target_user_id ? (parseInt(opts.target_user_id, 10) || null) : null
+    const verified = wx.getStorageSync('staff_id_verified')
+    const staffVerified = verified === '362100'
     this.setData({
       isStaffMode: !!isStaff,
       isInternalMode: false,
-      staffTargetUserId: staffTargetUserId
+      staffTargetUserId,
+      staffIdVerified: staffVerified,
+      targetUser: null,
+      searchKeyword: '',
+      searchResults: [],
+      showUserSearch: !!isStaff
+    }, () => {
+      if (isStaff && !staffVerified) {
+        this.showStaffIdInput()
+      }
+      this.loadData()
+      this._ensureSelfUserId()
     })
-    this.loadData()
-    this._ensureSelfUserId()
   },
   async _ensureSelfUserId() {
     if (this.data.selfUserId) return
@@ -541,6 +557,92 @@ Page({
     } catch (e) {
       console.error('load self user id failed:', e)
     }
+  },
+
+  // 工作人员工号验证（复用 card-entry 逻辑）
+  showStaffIdInput() {
+    wx.showModal({
+      title: '工作人员验证',
+      editable: true,
+      placeholderText: '请输入工号',
+      success: (res) => {
+        if (res.confirm && res.content) {
+          const staffId = String(res.content || '').trim()
+          if (staffId === '362100') {
+            wx.setStorageSync('staff_id_verified', '362100')
+            this.setData({
+              staffIdVerified: true,
+              isStaffMode: true,
+              showUserSearch: true
+            })
+            wx.showToast({ title: '验证通过', icon: 'success' })
+          } else {
+            this.setData({ isStaffMode: false, showUserSearch: false })
+            wx.showToast({ title: '工号错误', icon: 'none' })
+          }
+        } else if (res.cancel) {
+          this.setData({ isStaffMode: false, showUserSearch: false })
+        }
+      }
+    })
+  },
+  onStaffSearchInput(e) {
+    const value = e.detail.value
+    this.setData({ searchKeyword: value })
+    clearTimeout(this.searchTimer)
+    this.searchTimer = setTimeout(() => {
+      this.searchStaffUsers()
+    }, 300)
+  },
+  async searchStaffUsers() {
+    const keyword = (this.data.searchKeyword || '').trim()
+    if (!keyword) {
+      this.setData({ searchResults: [] })
+      return
+    }
+    try {
+      const res = await request.get(`/api/users/search?keyword=${encodeURIComponent(keyword)}`)
+      if (res && res.success && res.users) {
+        this.setData({ searchResults: res.users, showUserSearch: true })
+      }
+    } catch (e) {
+      console.error('searchStaffUsers error:', e)
+      wx.showToast({ title: '搜索失败', icon: 'none' })
+    }
+  },
+  onSelectStaffTargetUser(e) {
+    const ds = e.currentTarget.dataset || {}
+    const userId = parseInt(ds.userId, 10)
+    if (!userId || Number.isNaN(userId)) {
+      wx.showToast({ title: '选择失败，请重试', icon: 'none' })
+      return
+    }
+    const user = {
+      id: userId,
+      name: ds.userName || '',
+      nickname: ds.userNickname || '',
+      company: ds.userCompany || ''
+    }
+    this.setData({
+      staffTargetUserId: userId,
+      targetUser: user,
+      showUserSearch: false,
+      searchKeyword: '',
+      searchResults: []
+    }, () => {
+      this.loadData()
+    })
+  },
+  onClearStaffTargetUser() {
+    this.setData({
+      staffTargetUserId: null,
+      targetUser: null,
+      showUserSearch: true,
+      searchKeyword: '',
+      searchResults: []
+    }, () => {
+      this.loadData()
+    })
   },
   goToStep(e) {
     const step = parseInt(e.currentTarget.dataset.step, 10)

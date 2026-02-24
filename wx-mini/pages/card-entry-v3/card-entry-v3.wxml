@@ -8,6 +8,47 @@
     <text class="staff-target" wx:if="{{staffTargetUserId}}">当前编辑用户ID：{{staffTargetUserId}}</text>
     <text class="staff-target" wx:else>当前编辑：自己</text>
   </view>
+  <!-- 工作人员模式：选择目标校友 -->
+  <view class="staff-search-section" wx:if="{{isStaffMode}}">
+    <view class="staff-notice">
+      <text class="notice-icon">⚠️</text>
+      <text class="notice-text">代填信息将被校友本人及他人看到，会显示「（校友会代填）」备注，系统会记录您的操作。</text>
+    </view>
+    <view class="selected-user" wx:if="{{targetUser && !showUserSearch}}">
+      <text class="selected-label">正在为以下用户填写：</text>
+      <view class="selected-user-info">
+        <text class="user-name">{{targetUser.name || targetUser.nickname}}</text>
+        <text class="user-info" wx:if="{{targetUser.company}}">{{targetUser.company}}</text>
+        <text class="clear-btn" bindtap="onClearStaffTargetUser">更换</text>
+      </view>
+    </view>
+    <view class="search-box" wx:if="{{showUserSearch || !targetUser}}">
+      <input
+        class="search-input"
+        placeholder="搜索用户姓名或昵称..."
+        value="{{searchKeyword}}"
+        bindinput="onStaffSearchInput"
+        confirm-type="search"
+        bindconfirm="searchStaffUsers"
+      />
+      <text class="search-btn" bindtap="searchStaffUsers">搜索</text>
+    </view>
+    <view class="search-results" wx:if="{{showUserSearch && searchResults.length > 0}}">
+      <view
+        class="user-item"
+        wx:for="{{searchResults}}"
+        wx:key="id"
+        data-user-id="{{item.id}}"
+        data-user-name="{{item.name}}"
+        data-user-nickname="{{item.nickname}}"
+        data-user-company="{{item.company}}"
+        bindtap="onSelectStaffTargetUser"
+      >
+        <text class="user-name">{{item.name || item.nickname}}</text>
+        <text class="user-info" wx:if="{{item.company}}">{{item.company}}</text>
+      </view>
+    </view>
+  </view>
   <!-- 步骤条：仅当配置了校友会/商会时显示 -->
   <view class="v3-step-bar" wx:if="{{hasAlumniConfig}}">
     <view class="v3-step-item {{currentStep === 1 ? 'active' : ''}}" data-step="1" bindtap="goToStep">1. 个人信息</view>
