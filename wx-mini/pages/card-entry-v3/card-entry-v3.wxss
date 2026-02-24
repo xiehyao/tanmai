@@ -373,6 +373,25 @@
   border-radius: 8rpx;
 }
 
+.option-chip-row {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+.option-chip {
+  padding: 8rpx 20rpx;
+  border-radius: 999rpx;
+  border: 2rpx solid #d1d5db;
+  font-size: 24rpx;
+  color: #4b5563;
+}
+.option-chip-selected {
+  background: #667eea;
+  border-color: #667eea;
+  color: #fff;
+}
+
 .badge.grey {
   background: #f0f0f0;
   color: #666;
@@ -885,6 +904,9 @@
   font-size: 22rpx;
   color: #999;
   margin-top: 8rpx;
+}
+.intro-textarea {
+  min-height: 280rpx;
 }
 .intro-card-add {
   display: inline-flex;

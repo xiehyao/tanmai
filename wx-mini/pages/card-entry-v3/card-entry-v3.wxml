@@ -239,7 +239,7 @@
         </view>
       </view>
       <view class="form-row">
-        <text class="form-label">期望担任的职务（整体）</text>
+        <text class="form-label">最期望担任的职务（3个以内）</text>
         <input class="form-input" placeholder="如：会长、秘书长、技术顾问" value="{{desired_position}}" data-field="desired_position" bindinput="onInputChange" />
         <view class="visibility-cell" data-field="desired_position" data-label="期望担任的职务" catchtap="onVisibilityTap">
           <text class="visibility-icon">{{fieldVisibilityIcons.desired_position || '👁️'}}</text>
@@ -632,19 +632,27 @@
     </view>
     <scroll-view class="sheet-body" scroll-y>
       <view class="form-row">
-        <text class="form-label">学校 *</text>
-        <input class="form-input" placeholder="必填" value="{{eduForm.school}}" data-field="school" bindinput="onEduFormInput" />
-      </view>
-      <view class="form-row">
-        <text class="form-label">专业</text>
-        <input class="form-input" placeholder="请输入所读专业名称" value="{{eduForm.major}}" data-field="major" bindinput="onEduFormInput" />
-      </view>
-      <view class="form-row">
-        <text class="form-label">学历 *</text>
+        <text class="form-label">教育阶段 *</text>
         <picker class="form-picker" mode="selector" range="{{degreeOptions}}" bindchange="onEduDegreeChange">
           <view class="form-input">{{degreeLabel}}</view>
         </picker>
         <text class="form-arrow">></text>
+      </view>
+      <view class="form-row">
+        <text class="form-label">学校 *</text>
+        <input class="form-input" placeholder="必填" value="{{eduForm.school}}" data-field="school" bindinput="onEduFormInput" />
+      </view>
+      <view class="form-row" wx:if="{{eduForm.degree === '本科' || eduForm.degree === '硕士' || eduForm.degree === '博士'}}">
+        <text class="form-label">院系</text>
+        <input class="form-input" placeholder="如：计算机学院、经管学院" value="{{eduForm.department}}" data-field="department" bindinput="onEduFormInput" />
+      </view>
+      <view class="form-row" wx:if="{{eduForm.degree !== '小学' && eduForm.degree !== '初中'}}">
+        <text class="form-label">专业</text>
+        <input class="form-input" placeholder="请输入所读专业名称" value="{{eduForm.major}}" data-field="major" bindinput="onEduFormInput" />
+      </view>
+      <view class="form-row">
+        <text class="form-label">班级</text>
+        <input class="form-input" placeholder="如：三年二班 / 通信 1001 班" value="{{eduForm.className}}" data-field="className" bindinput="onEduFormInput" />
       </view>
       <view class="form-row">
         <text class="form-label">入学时间</text>
@@ -725,10 +733,18 @@
     <scroll-view class="sheet-body" scroll-y>
       <view class="form-row">
         <text class="form-label">婚姻状况</text>
-        <picker class="form-picker" mode="selector" range="{{maritalOptions}}" range-key="label" value="{{maritalStatusIndex}}" bindchange="onMaritalStatusChange">
-          <view class="form-input">{{maritalStatusLabel}}</view>
-        </picker>
-        <text class="form-arrow">></text>
+        <view class="option-chip-row">
+          <view
+            class="option-chip {{item.value === marital_status ? 'option-chip-selected' : ''}}"
+            wx:for="{{maritalOptions}}"
+            wx:key="value"
+            data-value="{{item.value}}"
+            data-label="{{item.label}}"
+            bindtap="onMaritalStatusTap"
+          >
+            {{item.label}}
+          </view>
+        </view>
       </view>
       <view class="form-row">
         <text class="form-label">相亲偏好</text>
@@ -776,10 +792,18 @@
     <scroll-view class="sheet-body" scroll-y>
       <view class="form-row">
         <text class="form-label">需求类型</text>
-        <picker class="form-picker" mode="selector" range="{{entrepreneurshipTypeOptions}}" range-key="label" value="{{entrepreneurshipTypeIndex}}" bindchange="onEntrepreneurshipTypeChange">
-          <view class="form-input">{{entrepreneurshipTypeLabel}}</view>
-        </picker>
-        <text class="form-arrow">></text>
+        <view class="option-chip-row">
+          <view
+            class="option-chip {{item.value === entrepreneurship_type ? 'option-chip-selected' : ''}}"
+            wx:for="{{entrepreneurshipTypeOptions}}"
+            wx:key="value"
+            data-value="{{item.value}}"
+            data-label="{{item.label}}"
+            bindtap="onEntrepreneurshipTypeTap"
+          >
+            {{item.label}}
+          </view>
+        </view>
       </view>
       <view class="form-row">
         <text class="form-label">创业描述</text>
@@ -801,10 +825,18 @@
     <scroll-view class="sheet-body" scroll-y>
       <view class="form-row">
         <text class="form-label">类型</text>
-        <picker class="form-picker" mode="selector" range="{{resourceTypeOptions}}" range-key="label" value="{{resourceForm.typeIndex}}" bindchange="onResourceFormTypeChange">
-          <view class="form-input">{{resourceForm.typeLabel || '请选择'}}</view>
-        </picker>
-        <text class="form-arrow">></text>
+        <view class="option-chip-row">
+          <view
+            class="option-chip {{item.value === resourceForm.resource_type ? 'option-chip-selected' : ''}}"
+            wx:for="{{resourceTypeOptions}}"
+            wx:key="value"
+            data-value="{{item.value}}"
+            data-label="{{item.label}}"
+            bindtap="onResourceFormTypeTap"
+          >
+            {{item.label}}
+          </view>
+        </view>
       </view>
       <view class="form-row">
         <text class="form-label">标题</text>
@@ -816,10 +848,18 @@
       </view>
       <view class="form-row">
         <text class="form-label">分享方式</text>
-        <picker class="form-picker" mode="selector" range="{{sharingModeOptions}}" range-key="label" value="{{resourceForm.modeIndex}}" bindchange="onResourceFormModeChange">
-          <view class="form-input">{{resourceForm.modeLabel || '请选择'}}</view>
-        </picker>
-        <text class="form-arrow">></text>
+        <view class="option-chip-row">
+          <view
+            class="option-chip {{item.value === resourceForm.sharing_mode ? 'option-chip-selected' : ''}}"
+            wx:for="{{sharingModeOptions}}"
+            wx:key="value"
+            data-value="{{item.value}}"
+            data-label="{{item.label}}"
+            bindtap="onResourceFormModeTap"
+          >
+            {{item.label}}
+          </view>
+        </view>
       </view>
       <view class="sheet-actions">
         <view class="sheet-btn-delete" wx:if="{{resourceEditIndex >= 0}}" bindtap="deleteResource">删除</view>
@@ -836,6 +876,10 @@
       <text class="sheet-title">{{introEditIndex >= 0 ? '编辑简介' : '添加简介'}}</text>
     </view>
     <scroll-view class="sheet-body" scroll-y>
+      <view class="form-row">
+        <text class="form-label">姓名</text>
+        <input class="form-input" placeholder="姓名" value="{{introForm.name}}" data-field="name" bindinput="onIntroFormInput" />
+      </view>
       <view class="form-row" bindtap="onIntroPhotoTap">
         <text class="form-label">照片</text>
         <image class="form-avatar" wx:if="{{introForm.photo}}" src="{{introForm.photo}}" mode="aspectFill" />
@@ -843,12 +887,14 @@
         <text class="form-arrow">></text>
       </view>
       <view class="form-row">
-        <text class="form-label">姓名</text>
-        <input class="form-input" placeholder="姓名" value="{{introForm.name}}" data-field="name" bindinput="onIntroFormInput" />
-      </view>
-      <view class="form-row">
         <text class="form-label">简介文字</text>
-        <textarea class="form-input multi-line" placeholder="简介内容" value="{{introForm.introText}}" data-field="introText" bindinput="onIntroFormInput" />
+        <textarea
+          class="form-input multi-line intro-textarea"
+          placeholder="大学-届别-专业&#10;毕业年份-工作地点&#10;目前常住区域&#10;就职单位-目前工作/创业状态&#10;目前是否有需要 需求-资源&#10;运动/兴趣爱好&#10;联系电话-是否方便约&#10;等等..."
+          value="{{introForm.introText}}"
+          data-field="introText"
+          bindinput="onIntroFormInput"
+        />
       </view>
       <view class="form-row">
         <text class="form-label">适用场景</text>

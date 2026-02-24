@@ -572,12 +572,34 @@ Page({
         const s5 = res.step5 || {}
         const s6 = res.step6 || {}
 
-        // 教育经历：先简单用 schools 或最高学历，后续再细化映射
+        // 教育经历：按 step2 中各学历层级映射为列表，若无结构化数据则退化为 schools 概况
         const eduList = []
-        if (s3.schools) {
+        const pushEdu = (school, degree, major, gradYear) => {
+          if (!school && !major && !gradYear) return
+          const y = gradYear ? String(gradYear) : ''
+          const duration = y ? `${y} 年毕业` : ''
+          eduList.push({
+            school: school || '',
+            degree: degree || '',
+            major: major || '',
+            enrollDate: '',
+            graduateDate: '',
+            duration
+          })
+        }
+        pushEdu(s2.primary_school, '小学', '', s2.primary_graduation_year)
+        pushEdu(s2.middle_school, '初中', '', s2.middle_graduation_year)
+        pushEdu(s2.high_school, '高中', '', s2.high_graduation_year)
+        pushEdu(s2.bachelor_university, '本科', s2.bachelor_major, s2.bachelor_graduation_year)
+        pushEdu(s2.master_university, '硕士', s2.master_major, s2.master_graduation_year)
+        pushEdu(s2.doctor_university, '博士', s2.doctor_major, s2.doctor_graduation_year)
+        if (!eduList.length && s3.schools) {
           eduList.push({
             school: s3.schools,
             degree: s2.highest_degree || '',
+            major: '',
+            enrollDate: '',
+            graduateDate: '',
             duration: ''
           })
         }
@@ -734,6 +756,17 @@ Page({
       maritalStatusIndex: index
     })
   },
+  onMaritalStatusTap(e) {
+    const value = e.currentTarget.dataset.value
+    const label = e.currentTarget.dataset.label
+    const opts = this.data.maritalOptions || MARITAL_OPTIONS
+    const index = opts.findIndex(item => item.value === value)
+    this.setData({
+      marital_status: value || '',
+      maritalStatusLabel: label || (value ? value : '请选择'),
+      maritalStatusIndex: index >= 0 ? index : 0
+    })
+  },
   onEntrepreneurshipTypeChange(e) {
     const index = parseInt(e.detail.value, 10)
     const opts = this.data.entrepreneurshipTypeOptions || ENTREPRENEURSHIP_TYPE_OPTIONS
@@ -742,6 +775,17 @@ Page({
       entrepreneurship_type: o ? o.value : '',
       entrepreneurshipTypeLabel: o ? o.label : '请选择',
       entrepreneurshipTypeIndex: index
+    })
+  },
+  onEntrepreneurshipTypeTap(e) {
+    const value = e.currentTarget.dataset.value
+    const label = e.currentTarget.dataset.label
+    const opts = this.data.entrepreneurshipTypeOptions || ENTREPRENEURSHIP_TYPE_OPTIONS
+    const index = opts.findIndex(item => item.value === value)
+    this.setData({
+      entrepreneurship_type: value || '',
+      entrepreneurshipTypeLabel: label || (value ? value : '请选择'),
+      entrepreneurshipTypeIndex: index >= 0 ? index : 0
     })
   },
   onBoardPositionChange(e) {
@@ -947,10 +991,11 @@ Page({
   },
 
   openIntroSheet() {
+    const defaultPhoto = (this.data.personal_photos && this.data.personal_photos[0]) || this.data.photoUrl || this.data.avatar || ''
     this.setData({
       showIntroSheet: true,
       introEditIndex: -1,
-      introForm: { name: '', photo: '', introText: '', scene: '' }
+      introForm: { name: '', photo: defaultPhoto, introText: '', scene: '' }
     })
   },
   closeIntroSheet() {
@@ -1020,10 +1065,18 @@ Page({
     let form
     let degreeLabel
     if (isEdit && list[editIndex]) {
-      form = { school: list[editIndex].school || '', major: list[editIndex].major || '', degree: list[editIndex].degree || '', enrollDate: list[editIndex].enrollDate || '', graduateDate: list[editIndex].graduateDate || '' }
+      form = {
+        school: list[editIndex].school || '',
+        major: list[editIndex].major || '',
+        department: list[editIndex].department || '',
+        className: list[editIndex].className || '',
+        degree: list[editIndex].degree || '',
+        enrollDate: list[editIndex].enrollDate || '',
+        graduateDate: list[editIndex].graduateDate || ''
+      }
       degreeLabel = form.degree ? form.degree : '请选择'
     } else {
-      form = { school: '', major: '', degree: initialDegree || '', enrollDate: '', graduateDate: '' }
+      form = { school: '', major: '', department: '', className: '', degree: initialDegree || '', enrollDate: '', graduateDate: '' }
       degreeLabel = (initialDegreeLabel || initialDegree) ? (initialDegreeLabel || initialDegree) : '请选择'
     }
     this.setData({ showEduSheet: true, eduEditIndex: editIndex, eduForm: form, degreeLabel })
@@ -1043,7 +1096,28 @@ Page({
     this.setData({ 'eduForm.degree': degree, degreeLabel: degree || '请选择' })
   },
   onEduEnrollDateChange(e) {
-    this.setData({ 'eduForm.enrollDate': e.detail.value })
+    const date = e.detail.value
+    const degree = this.data.eduForm.degree
+    let gradDate = this.data.eduForm.graduateDate
+    if (date && !gradDate) {
+      const parts = String(date).split('-')
+      const year = parseInt(parts[0], 10)
+      const month = parts[1] || '01'
+      const day = parts[2] || '01'
+      let offset = 0
+      if (degree === '小学') offset = 6
+      else if (degree === '初中') offset = 3
+      else if (degree === '高中') offset = 3
+      else if (degree === '本科') offset = 4
+      else if (degree === '硕士') offset = 3
+      else if (degree === '博士') offset = 2
+      if (!Number.isNaN(year) && offset > 0) {
+        gradDate = `${year + offset}-${month}-${day}`
+      }
+    }
+    const update = { 'eduForm.enrollDate': date }
+    if (gradDate) update['eduForm.graduateDate'] = gradDate
+    this.setData(update)
   },
   onEduGraduateDateChange(e) {
     this.setData({ 'eduForm.graduateDate': e.detail.value })
@@ -1052,7 +1126,16 @@ Page({
     const { eduForm, eduExperiences, eduEditIndex } = this.data
     const parts = [eduForm.enrollDate, eduForm.graduateDate].filter(Boolean).map(d => d.substring(0, 7))
     const duration = parts.join(' - ')
-    const item = { school: eduForm.school, degree: eduForm.degree, major: eduForm.major, enrollDate: eduForm.enrollDate, graduateDate: eduForm.graduateDate, duration }
+    const item = {
+      school: eduForm.school,
+      degree: eduForm.degree,
+      major: eduForm.major,
+      department: eduForm.department,
+      className: eduForm.className,
+      enrollDate: eduForm.enrollDate,
+      graduateDate: eduForm.graduateDate,
+      duration
+    }
     const list = [...(eduExperiences || [])]
     if (eduEditIndex >= 0) list[eduEditIndex] = item
     else list.push(item)
@@ -1283,6 +1366,34 @@ Page({
     if (resourceEditIndex < 0) { this.closeResourceSheet(); return }
     const list = (resources || []).filter((_, i) => i !== resourceEditIndex)
     this.setData({ resources: list, showResourceSheet: false, resourceEditIndex: -1 }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
+  },
+  onResourceFormTypeTap(e) {
+    const value = e.currentTarget.dataset.value
+    const opts = this.data.resourceTypeOptions || RESOURCE_TYPE_OPTIONS
+    const index = opts.findIndex(o => o.value === value)
+    const label = (opts[index] || {}).label || '请选择'
+    this.setData({
+      resourceForm: {
+        ...this.data.resourceForm,
+        resource_type: value || '',
+        typeIndex: index >= 0 ? index : 0,
+        typeLabel: label
+      }
+    })
+  },
+  onResourceFormModeTap(e) {
+    const value = e.currentTarget.dataset.value
+    const opts = this.data.sharingModeOptions || SHARING_MODE_OPTIONS
+    const index = opts.findIndex(o => o.value === value)
+    const label = (opts[index] || {}).label || '请选择'
+    this.setData({
+      resourceForm: {
+        ...this.data.resourceForm,
+        sharing_mode: value || '',
+        modeIndex: index >= 0 ? index : 0,
+        modeLabel: label
+      }
+    })
   },
 
   onUploadPaperCard() {

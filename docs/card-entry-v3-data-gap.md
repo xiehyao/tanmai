@@ -4,7 +4,7 @@
 
 | 类别 | 缺失项 | 建议合并位置 |
 |------|--------|--------------|
-| **Step1 基础** | 多地址 locations、字段可见性 field_visibility、头像 selected_avatar、个人相册 personal_photos | 第 1 步「基本信息」+ 保存 payload |
+| **Step1 基础** | 多地址 locations（落库逻辑仍待补），其余字段（field_visibility / selected_avatar / personal_photos）已在 v3 中实现 | 第 1 步「基本信息」+ 保存 payload |
 | **Step2 教育** | 完整教育经历（小学/初中/高中/本/硕/博+毕业年、最高学历） | 第 1 步「教育经历」卡片或独立区块 |
 | **Step3 需求** | 未调用 save-step/3，数据未落库 | 第 1 步「我的需求」保存时一并提交 step3 |
 | **Step4 资源** | 未调用 save-step/4，数据未落库 | 第 1 步「我的资源」保存时一并提交 step4 |
@@ -22,9 +22,9 @@
 | name, nickname, gender, birth_place | ✅ | ✅ | ✅ | 已合并 |
 | company, title, phone, email, wechat_id, bio | ✅ | ✅ | ✅ | 已合并（v3 为 contactItems + 单 bio） |
 | **locations** | ✅ 数组，每项含 location_type / address / location_visibility | ✅ 简化为 main_address | ❌ 仅 main_address，无多地址、无类型与可见性 | v1 可多条地址并区分居住/工作地及可见性 |
-| **field_visibility** | ✅ 各字段独立可见性，随 step1 提交 | ✅ step1 内 | ❌ 有 UI 与 state，但保存 step1 时未带 field_visibility | 保存 payload 需带上 field_visibility |
-| **avatar / selected_avatar** | ✅ 两者都存 | ✅ | ⚠️ 仅用 avatar，未传 selected_avatar | 若后端区分微信头像与预设头像，需在 payload 中带 selected_avatar |
-| **personal_photos** | ✅ 数组，随 step1 提交 | - | ❌ 无 | v3 仅有单张「相片」photoUrl，无多相册 |
+| **field_visibility** | ✅ 各字段独立可见性，随 step1 提交 | ✅ step1 内 | ✅ v3 已将 field_visibility 一并随 step1 payload 提交 | 与 v1/v2 行为保持一致 |
+| **avatar / selected_avatar** | ✅ 两者都存 | ✅ | ✅ v3 使用 avatar 展示，并在保存时同步 selected_avatar | 兼容后端区分微信头像与预设头像的需求 |
+| **personal_photos** | ✅ 数组，随 step1 提交 | - | ✅ 支持多张相片 personal_photos，并随 step1 提交 | 与 v1 的多图相册行为对齐 |
 
 **合并建议：**
 
@@ -39,8 +39,8 @@
 
 | 数据项 | card-entry (v1) | card-entry-v2 | card-entry-v3 | 说明 |
 |--------|-----------------|---------------|---------------|------|
-| 小学/初中/高中（校名+毕业年） | ✅ | 未单独展示 | ❌ | v3 仅有 eduExperiences 列表，且 load 只用了 s3.schools + s2.highest_degree |
-| 本科/硕士/博士（校名+专业+毕业年） | ✅ | 未单独展示 | ⚠️ eduExperiences 为通用列表，无本/硕/博分层 | 后端按 primary/middle/high/bachelor/master/doctor 存 |
+| 小学/初中/高中（校名+毕业年） | ✅ | 未单独展示 | ⚠️ v3 已通过 eduExperiences 列表展示（按 step2.primary_/middle_/high_* 映射），但尚未回写 step2 | 读取侧已对齐，保存逻辑仍待补 |
+| 本科/硕士/博士（校名+专业+毕业年） | ✅ | 未单独展示 | ⚠️ v3 已按本科/硕士/博士生成多条 eduExperiences，用于展示；尚未回写 step2 结构 | 后端依然按 bachelor/master/doctor 字段存储 |
 | highest_degree | ✅ | - | ⚠️ load 时带入，未单独编辑 | 可放在「教育经历」卡片或每条学历的 degree 中 |
 | 保存 step2 | ✅ save-step/2 | - | ❌ 未调用 | 教育数据未落库 |
 
@@ -84,15 +84,15 @@
 | orgs / association_orgs | - | ✅ | ✅ associationOrgs | 已用 |
 | willing_to_serve, board_position, association_positions, support_offerings | ✅ | ✅ | ✅ | 已合并 |
 | contribution_types, contribution_description, association_needs_detail | ✅ | ✅ | ✅ | 已合并 |
-| **desired_position** | ✅ 希望担任的职务（文本） | - | ❌ 无 | 后端 _save_association_info 有该字段 |
-| **position_preferences** | ✅ 职务偏好说明 | - | ❌ 无 | 同上 |
+| **desired_position** | ✅ 希望担任的职务（文本） | - | ✅ v3 第 2 步已新增输入并随 save-step/5 提交 | 对应 user_association_info.desired_position |
+| **position_preferences** | ✅ 职务偏好说明 | - | ✅ v3 第 2 步已新增输入并随 save-step/5 提交 | 对应 user_association_info.position_preferences |
 
 **合并建议：**
 
-- 在第 2 步「社团/校友会参与」卡片中，在「校董会职务」「校友会职务」附近增加两项：
+- （已实现）在第 2 步「社团/校友会参与」卡片中，在「校董会职务」「校友会职务」附近增加两项：
   - **愿意/希望担任的职务**（对应 desired_position，可单行输入或简短多行）
   - **职务偏好说明**（对应 position_preferences，可多行）
-- 在 `saveStepToServer(2)` 的 step5 payload 中增加：`desired_position: this.data.xxx`, `position_preferences: this.data.xxx`（需在 data 中新增这两字段并在 loadData 时从 step5 赋值）。
+- （已实现）在 `saveStepToServer(2)` 的 step5 payload 中增加：`desired_position: this.data.xxx`, `position_preferences: this.data.xxx`（已在 v3 中加入 data / loadData / 保存逻辑）。
 
 ---
 
@@ -112,7 +112,7 @@
 
 | 步骤 | v1 | v3 当前 | 建议 |
 |------|----|--------|------|
-| Step1 | 保存时提交 name, nickname, avatar, selected_avatar, locations, field_visibility, personal_photos, ... | 仅提交部分基础字段，无 field_visibility、locations、selected_avatar、personal_photos | 扩充 payload，并视需求增加 locations/field_visibility/selected_avatar/personal_photos |
+| Step1 | 保存时提交 name, nickname, avatar, selected_avatar, locations, field_visibility, personal_photos, ... | v3 已提交 field_visibility / selected_avatar / personal_photos，locations 仍仅 main_address | 后续可补 locations 多地址写入逻辑 |
 | Step2 | 保存时提交 step2 全量字段 | 未调用 save-step/2 | 在保存或切换步骤时根据 eduExperiences 组 payload 调 save-step/2 |
 | Step3 | 保存时提交 step3 全量字段 | 未调用 save-step/3 | 在保存时提交 step3 |
 | Step4 | 保存时提交 step4.resources | 未调用 save-step/4 | 在保存时提交 step4 |
