@@ -242,6 +242,8 @@
 
           const userModalOpen = ref(false);
           const editingUserId = ref(null);
+          const userViewOpen = ref(false);
+          const userViewJson = ref("");
           const userForm = reactive({
             openid: "",
             name: "",
@@ -555,9 +557,9 @@
               openid: item.openid || "",
               name: item.name || "",
               nickname: item.nickname || "",
-              avatar: "",
-              selected_avatar: "",
-              work_wechat_id: "",
+              avatar: item.avatar || "",
+              selected_avatar: item.selected_avatar || "",
+              work_wechat_id: item.work_wechat_id || "",
               gender: item.gender || "",
               birth_place: item.birth_place || "",
               wechat_id: item.wechat_id || "",
@@ -570,6 +572,11 @@
               card_industry: item.card?.industry || "",
               card_association_title: item.card?.association_title || "",
             });
+          }
+
+          function openViewUser(item) {
+            userViewJson.value = JSON.stringify(item, null, 2);
+            userViewOpen.value = true;
           }
 
           function userFormToPayload() {
@@ -660,9 +667,9 @@
               openid: item.openid || "",
               name: item.name || "",
               nickname: item.nickname || "",
-              avatar: "",
-              selected_avatar: "",
-              work_wechat_id: "",
+              avatar: item.avatar || "",
+              selected_avatar: item.selected_avatar || "",
+              work_wechat_id: item.work_wechat_id || "",
               gender: item.gender || "",
               birth_place: item.birth_place || "",
               wechat_id: item.wechat_id || "",
@@ -888,10 +895,13 @@
             usersItems,
             selectedUserIds,
             userModalOpen,
+            userViewOpen,
+            userViewJson,
             editingUserId,
             userForm,
             openCreateUser,
             openEditUser,
+            openViewUser,
             submitUserModal,
             deleteUser,
             loadUsers,
@@ -969,9 +979,9 @@
             <div v-else class="card" style="margin-top:14px;">
               <div class="row">
                 <div class="tabs">
-                  <button class="btn" :style="page==='users'? 'border-color: rgba(79, 140, 255, 0.7); background: rgba(79, 140, 255, 0.15);':''" @click="page='users'">Users</button>
-                  <button class="btn" :style="page==='cards'? 'border-color: rgba(79, 140, 255, 0.7); background: rgba(79, 140, 255, 0.15);':''" @click="page='cards'">Cards</button>
-                  <button class="btn" :style="page==='alumni'? 'border-color: rgba(79, 140, 255, 0.7); background: rgba(79, 140, 255, 0.15);':''" @click="page='alumni'">Alumni</button>
+                  <button class="btn" :style="page==='users'? 'border-color: rgba(79, 140, 255, 0.7); background: rgba(79, 140, 255, 0.15);':''" @click="page='users'; if(isAuthed) loadUsers()">Users</button>
+                  <button class="btn" :style="page==='cards'? 'border-color: rgba(79, 140, 255, 0.7); background: rgba(79, 140, 255, 0.15);':''" @click="page='cards'; if(isAuthed) loadCards()">Cards</button>
+                  <button class="btn" :style="page==='alumni'? 'border-color: rgba(79, 140, 255, 0.7); background: rgba(79, 140, 255, 0.15);':''" @click="page='alumni'; if(isAuthed) loadAlumni()">Alumni</button>
                 </div>
                 <div class="spacer"></div>
                 <div class="row" style="gap:8px;">
@@ -1008,7 +1018,8 @@
                   <span v-if="busy" class="muted">加载中...</span>
                 </div>
 
-                <table>
+                <div style="overflow-x:auto;">
+                <table style="min-width:1750px;">
                   <thead>
                     <tr>
                       <th style="width:46px;">
@@ -1019,11 +1030,30 @@
                         />
                       </th>
                       <th style="width:68px;">id</th>
-                      <th style="width:260px;">openid</th>
-                      <th>姓名/昵称</th>
-                      <th style="width:220px;">名片（title/company）</th>
+                      <th style="width:240px;">openid</th>
+                      <th style="width:120px;">name</th>
+                      <th style="width:140px;">nickname</th>
+                      <th style="width:180px;">avatar</th>
+                      <th style="width:180px;">selected_avatar</th>
+                      <th style="width:120px;">wechat_id</th>
+                      <th style="width:150px;">work_wechat_id</th>
+                      <th style="width:80px;">gender</th>
+                      <th style="width:150px;">birth_place</th>
                       <th style="width:90px;">is_staff</th>
-                      <th style="width:160px;">操作</th>
+                      <th style="width:120px;">last_updated_by</th>
+                      <th style="width:140px;">last_updated_role</th>
+                      <th style="width:280px;">field_source</th>
+                      <th style="width:140px;">created_at</th>
+                      <th style="width:140px;">updated_at</th>
+                      <th style="width:160px;">card.title</th>
+                      <th style="width:180px;">card.company</th>
+                      <th style="width:140px;">card.phone</th>
+                      <th style="width:220px;">card.email</th>
+                      <th style="width:220px;">card.bio</th>
+                      <th style="width:140px;">card.industry</th>
+                      <th style="width:220px;">card.association_title</th>
+                      <th style="width:200px;">card.personal_photos</th>
+                      <th style="width:200px;">操作</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1033,27 +1063,42 @@
                       </td>
                       <td>{{ it.id }}</td>
                       <td class="code" style="font-size:12px;">{{ it.openid }}</td>
-                      <td>
-                        <div style="font-weight:700;">{{ it.name || '-' }}</div>
-                        <div class="muted small">{{ it.nickname || '-' }}</div>
-                      </td>
-                      <td>
-                        <div>{{ it.card?.title || '-' }}</div>
-                        <div class="muted small">{{ it.card?.company || '-' }}</div>
-                      </td>
+                      <td>{{ it.name || '-' }}</td>
+                      <td>{{ it.nickname || '-' }}</td>
+                      <td class="code" style="font-size:12px; max-height:50px; overflow:auto; word-break:break-all; white-space:pre-wrap;">{{ it.avatar || '-' }}</td>
+                      <td class="code" style="font-size:12px; max-height:50px; overflow:auto; word-break:break-all; white-space:pre-wrap;">{{ it.selected_avatar || '-' }}</td>
+                      <td class="code" style="font-size:12px;">{{ it.wechat_id || '-' }}</td>
+                      <td class="code" style="font-size:12px; max-height:50px; overflow:auto; word-break:break-all; white-space:pre-wrap;">{{ it.work_wechat_id || '-' }}</td>
+                      <td>{{ it.gender || '-' }}</td>
+                      <td class="code" style="font-size:12px; max-height:50px; overflow:auto; word-break:break-all; white-space:pre-wrap;">{{ it.birth_place || '-' }}</td>
                       <td>{{ it.is_staff ? '是' : '否' }}</td>
+                      <td>{{ it.last_updated_by ?? '-' }}</td>
+                      <td>{{ it.last_updated_role || '-' }}</td>
+                      <td class="code" style="font-size:12px; max-height:60px; overflow:auto; word-break:break-all; white-space:pre-wrap;">{{ it.field_source || '-' }}</td>
+                      <td class="code" style="font-size:12px;">{{ it.created_at || '-' }}</td>
+                      <td class="code" style="font-size:12px;">{{ it.updated_at || '-' }}</td>
+                      <td>{{ it.card?.title || '-' }}</td>
+                      <td>{{ it.card?.company || '-' }}</td>
+                      <td>{{ it.card?.phone || '-' }}</td>
+                      <td>{{ it.card?.email || '-' }}</td>
+                      <td class="code" style="font-size:12px; max-height:60px; overflow:auto; word-break:break-all; white-space:pre-wrap;">{{ it.card?.bio || '-' }}</td>
+                      <td>{{ it.card?.industry || '-' }}</td>
+                      <td class="code" style="font-size:12px; max-height:60px; overflow:auto; word-break:break-all; white-space:pre-wrap;">{{ it.card?.association_title || '-' }}</td>
+                      <td class="code" style="font-size:12px; max-height:60px; overflow:auto; word-break:break-all; white-space:pre-wrap;">{{ JSON.stringify(it.card?.personal_photos || []) }}</td>
                       <td>
                         <div class="row" style="gap:8px; flex-wrap:nowrap;">
+                          <button class="btn ghost" @click="openViewUser(it)">查看</button>
                           <button class="btn" @click="openEditUser(it)">编辑</button>
                           <button class="btn danger" @click="deleteUser(it)">删除</button>
                         </div>
                       </td>
                     </tr>
                     <tr v-if="!usersItems || usersItems.length===0">
-                      <td colspan="7" class="muted">暂无数据</td>
+                      <td colspan="26" class="muted">暂无数据</td>
                     </tr>
                   </tbody>
                 </table>
+                </div>
               </div>
 
               <!-- Cards -->
@@ -1286,6 +1331,18 @@
                     <button class="btn ghost" @click="userModalOpen=false">取消</button>
                     <div class="spacer"></div>
                     <button class="btn primary" @click="submitUserModal" :disabled="busy">保存</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- User View Modal -->
+              <div v-if="userViewOpen" class="modal-backdrop">
+                <div class="modal">
+                  <h3>查看用户（完整内容）</h3>
+                  <pre class="code" style="margin:0; margin-top:10px; white-space:pre-wrap; word-break:break-word; max-height:420px; overflow:auto; background:rgba(0,0,0,0.15); padding:12px; border:1px solid var(--border); border-radius:10px;">{{ userViewJson }}</pre>
+                  <div class="row" style="margin-top:14px;">
+                    <button class="btn ghost" @click="userViewOpen=false">关闭</button>
+                    <div class="spacer"></div>
                   </div>
                 </div>
               </div>

@@ -56,17 +56,24 @@ def _user_card_to_item(user: User, card: Optional[UserCard]) -> dict:
             personal_photos = []
 
     return {
+        # users 全字段（用于管理后台展示/查看）
         "id": user.id,
         "openid": user.openid,
         "name": user.name,
         "nickname": user.nickname,
-        "avatar": user.selected_avatar or user.avatar,
-        "wechat_id": user.wechat_id,
-        "birth_place": user.birth_place,
-        "gender": user.gender,
-        "is_staff": bool(user.is_staff),
+        "avatar": user.avatar,
+        "selected_avatar": user.selected_avatar,
+        "work_wechat_id": user.work_wechat_id,
         "created_at": user.created_at.isoformat() if isinstance(user.created_at, datetime) else user.created_at,
         "updated_at": user.updated_at.isoformat() if isinstance(user.updated_at, datetime) else user.updated_at,
+        "birth_place": user.birth_place,
+        "is_staff": bool(user.is_staff),
+        "last_updated_by": user.last_updated_by,
+        "last_updated_role": user.last_updated_role,
+        "field_source": user.field_source,
+        "gender": user.gender,
+        "wechat_id": user.wechat_id,
+        # 首张名片（便于列表快速查看）
         "card": {
             "id": card.id if card else None,
             "user_id": user.id,
@@ -79,6 +86,9 @@ def _user_card_to_item(user: User, card: Optional[UserCard]) -> dict:
             "industry": card.industry if card else None,
             "association_title": card.association_title if card else None,
             "personal_photos": personal_photos,
+            "field_visibility": _parse_json_maybe(card.field_visibility) if card else None,
+            # card.personal_photos 已在 personal_photos 里解析过
+            "qr_code": getattr(card, "qr_code", None) if card else None,
         },
     }
 
