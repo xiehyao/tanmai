@@ -15,12 +15,27 @@ push_all() {
   echo ">>> Push to origin (local Gitea)..."
   git push origin "$BRANCH"
   echo ">>> Push to sgp (Singapore Gitea)..."
-  git push sgp "$BRANCH"
-  echo ">>> Try push to github..."
-  if git push github "$BRANCH" 2>/dev/null; then
-    echo "    GitHub OK"
+  if git remote get-url sgp >/dev/null 2>&1; then
+    git push sgp "$BRANCH"
   else
-    echo "    GitHub failed (expected if blocked) - Singapore will sync when mirror configured"
+    # remote 可能未配置：按 docs/SYNC_BACKUP.md 的默认路径兜底推送
+    echo "    Remote 'sgp' not configured, fallback push URL..."
+    git push "http://43.160.245.130:3000/root/tanmai.git" "$BRANCH" || true
+  fi
+  echo ">>> Try push to github..."
+  if git remote get-url github >/dev/null 2>&1; then
+    if git push github "$BRANCH" 2>/dev/null; then
+      echo "    GitHub OK"
+    else
+      echo "    GitHub failed (expected if blocked) - Singapore will sync when mirror configured"
+    fi
+  else
+    # GitHub remote 未配置时，直接按 docs 的 URL 尝试推送（可能因 PAT/网络策略失败）
+    if git push "https://github.com/xiehyao/tanmai.git" "$BRANCH" 2>/dev/null; then
+      echo "    GitHub OK"
+    else
+      echo "    GitHub failed (expected if blocked) - Singapore will sync when mirror configured"
+    fi
   fi
   echo ">>> Done"
 }
