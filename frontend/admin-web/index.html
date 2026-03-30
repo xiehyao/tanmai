@@ -1,0 +1,1321 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>探脉 管理后台</title>
+    <style>
+      :root {
+        --bg: #0b1220;
+        --card: #121b2f;
+        --text: #e6edf3;
+        --muted: #a5b4c7;
+        --primary: #4f8cff;
+        --danger: #ff5c7a;
+        --border: rgba(255, 255, 255, 0.12);
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC",
+          "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
+      }
+      .wrap {
+        max-width: 1200px;
+        margin: 24px auto;
+        padding: 0 16px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+      }
+      .row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .row + .row {
+        margin-top: 10px;
+      }
+      label {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      input,
+      textarea,
+      select {
+        background: transparent;
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 12px;
+        outline: none;
+        min-height: 38px;
+      }
+      textarea {
+        min-height: 90px;
+        width: 100%;
+        resize: vertical;
+      }
+      .btn {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 14px;
+        background: transparent;
+        color: var(--text);
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .btn.primary {
+        border-color: rgba(79, 140, 255, 0.7);
+        background: rgba(79, 140, 255, 0.15);
+      }
+      .btn.danger {
+        border-color: rgba(255, 92, 122, 0.7);
+        background: rgba(255, 92, 122, 0.15);
+      }
+      .btn.ghost {
+        background: transparent;
+      }
+      .tabs button {
+        margin-right: 8px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 12px;
+      }
+      th,
+      td {
+        border-bottom: 1px solid var(--border);
+        padding: 10px 8px;
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        color: var(--muted);
+        font-weight: 700;
+        font-size: 12px;
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 12px;
+      }
+      .col-6 {
+        grid-column: span 6;
+      }
+      .col-4 {
+        grid-column: span 4;
+      }
+      .col-3 {
+        grid-column: span 3;
+      }
+      .col-12 {
+        grid-column: span 12;
+      }
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      .modal {
+        width: 100%;
+        max-width: 860px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+      }
+      .modal h3 {
+        margin: 0 0 8px 0;
+      }
+      .spacer {
+        flex: 1;
+      }
+      .small {
+        font-size: 12px;
+      }
+      .pill {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+          "Courier New", monospace;
+      }
+      @media (max-width: 900px) {
+        .col-6,
+        .col-4,
+        .col-3 {
+          grid-column: span 12;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app" class="wrap"></div>
+    <script type="module">
+      import {
+        createApp,
+        ref,
+        reactive,
+        computed,
+        onMounted,
+      } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
+
+      const apiBaseDefault = "http://localhost:8000";
+
+      function formatJsonMaybe(v) {
+        if (v === undefined || v === null) return "";
+        if (typeof v === "string") return v;
+        try {
+          return JSON.stringify(v, null, 2);
+        } catch (e) {
+          return String(v);
+        }
+      }
+
+      async function apiRequest(path, { method = "GET", token = null, params = null, body = null } = {}) {
+        const apiBase = localStorage.getItem("tanmai_admin_api_base") || apiBaseDefault;
+        const url = new URL(apiBase + path);
+        if (params) {
+          for (const [k, v] of Object.entries(params)) {
+            if (v === undefined || v === null || v === "") continue;
+            url.searchParams.set(k, String(v));
+          }
+        }
+        const headers = { "Content-Type": "application/json" };
+        if (token) headers["Authorization"] = "Bearer " + token;
+        const res = await fetch(url.toString(), {
+          method,
+          headers,
+          body: body ? JSON.stringify(body) : undefined,
+        });
+        const text = await res.text();
+        let data = null;
+        try {
+          data = text ? JSON.parse(text) : null;
+        } catch {
+          data = { raw: text };
+        }
+        if (!res.ok) {
+          const detail = data?.detail || data?.message || data?.error || JSON.stringify(data);
+          throw new Error(detail || `HTTP ${res.status}`);
+        }
+        return data;
+      }
+
+      createApp({
+        setup() {
+          const page = ref("users"); // users | cards | alumni
+          const token = ref(localStorage.getItem("tanmai_admin_token") || "");
+          const apiBase = ref(localStorage.getItem("tanmai_admin_api_base") || apiBaseDefault);
+
+          const loginCode = ref("");
+          const busy = ref(false);
+          const message = ref("");
+
+          // Users
+          const userKeyword = ref("");
+          const userPage = ref(1);
+          const userPageSize = ref(20);
+          const usersTotal = ref(0);
+          const usersItems = ref([]);
+
+          const userModalOpen = ref(false);
+          const editingUserId = ref(null);
+          const userForm = reactive({
+            openid: "",
+            name: "",
+            nickname: "",
+            avatar: "",
+            selected_avatar: "",
+            work_wechat_id: "",
+            gender: "",
+            birth_place: "",
+            wechat_id: "",
+            is_staff: false,
+            card_company: "",
+            card_title: "",
+            card_phone: "",
+            card_email: "",
+            card_bio: "",
+            card_industry: "",
+            card_association_title: "",
+          });
+
+          // Cards
+          const cardKeyword = ref("");
+          const cardPage = ref(1);
+          const cardPageSize = ref(20);
+          const cardsTotal = ref(0);
+          const cardsItems = ref([]);
+
+          const cardModalOpen = ref(false);
+          const editingCardId = ref(null);
+          const cardForm = reactive({
+            user_id: "",
+            name: "",
+            title: "",
+            company: "",
+            phone: "",
+            email: "",
+            bio: "",
+            industry: "",
+            association_title: "",
+            personal_photos: "",
+            field_visibility: "",
+          });
+
+          // Alumni
+          const alumniKeyword = ref("");
+          const alumniPage = ref(1);
+          const alumniPageSize = ref(20);
+          const alumniTotal = ref(0);
+          const alumniItems = ref([]);
+
+          const alumniModalOpen = ref(false);
+          const editingAlumniId = ref(null);
+          const alumniForm = reactive({
+            openid: "",
+            name: "",
+            nickname: "",
+            avatar: "",
+            selected_avatar: "",
+            work_wechat_id: "",
+            gender: "",
+            birth_place: "",
+            wechat_id: "",
+            is_staff: false,
+            card_company: "",
+            card_title: "",
+            card_phone: "",
+            card_email: "",
+            card_bio: "",
+            card_industry: "",
+            card_association_title: "",
+          });
+
+          const isAuthed = computed(() => Boolean(token.value));
+
+          function setMessage(s) {
+            message.value = s;
+            if (!s) return;
+            setTimeout(() => {
+              if (message.value === s) message.value = "";
+            }, 2400);
+          }
+
+          function resetUserForm() {
+            Object.assign(userForm, {
+              openid: "",
+              name: "",
+              nickname: "",
+              avatar: "",
+              selected_avatar: "",
+              work_wechat_id: "",
+              gender: "",
+              birth_place: "",
+              wechat_id: "",
+              is_staff: false,
+              card_company: "",
+              card_title: "",
+              card_phone: "",
+              card_email: "",
+              card_bio: "",
+              card_industry: "",
+              card_association_title: "",
+            });
+          }
+
+          function resetAlumniForm() {
+            Object.assign(alumniForm, {
+              openid: "",
+              name: "",
+              nickname: "",
+              avatar: "",
+              selected_avatar: "",
+              work_wechat_id: "",
+              gender: "",
+              birth_place: "",
+              wechat_id: "",
+              is_staff: false,
+              card_company: "",
+              card_title: "",
+              card_phone: "",
+              card_email: "",
+              card_bio: "",
+              card_industry: "",
+              card_association_title: "",
+            });
+          }
+
+          function resetCardForm() {
+            Object.assign(cardForm, {
+              user_id: "",
+              name: "",
+              title: "",
+              company: "",
+              phone: "",
+              email: "",
+              bio: "",
+              industry: "",
+              association_title: "",
+              personal_photos: "",
+              field_visibility: "",
+            });
+          }
+
+          async function doLogin() {
+            busy.value = true;
+            message.value = "";
+            try {
+              localStorage.setItem("tanmai_admin_api_base", apiBase.value);
+              const res = await fetch(apiBase.value + "/api/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ code: loginCode.value }),
+              });
+              const data = await res.json();
+              if (!res.ok) throw new Error(data?.detail || data?.message || JSON.stringify(data));
+              if (!data.token) throw new Error("登录成功但未返回 token");
+              token.value = data.token;
+              localStorage.setItem("tanmai_admin_token", token.value);
+              setMessage("登录成功");
+              await refreshCurrentList();
+            } catch (e) {
+              setMessage("登录失败：" + (e?.message || String(e)));
+            } finally {
+              busy.value = false;
+            }
+          }
+
+          async function refreshCurrentList() {
+            if (!isAuthed.value) return;
+            if (page.value === "users") return loadUsers();
+            if (page.value === "cards") return loadCards();
+            return loadAlumni();
+          }
+
+          async function loadUsers() {
+            busy.value = true;
+            try {
+              const data = await apiRequest("/api/admin/users", {
+                token: token.value,
+                params: {
+                  keyword: userKeyword.value,
+                  page: userPage.value,
+                  page_size: userPageSize.value,
+                },
+              });
+              usersItems.value = data?.data?.items || [];
+              usersTotal.value = data?.data?.total || 0;
+            } catch (e) {
+              setMessage("加载 users 失败：" + (e?.message || String(e)));
+            } finally {
+              busy.value = false;
+            }
+          }
+
+          async function loadCards() {
+            busy.value = true;
+            try {
+              const data = await apiRequest("/api/admin/cards", {
+                token: token.value,
+                params: {
+                  keyword: cardKeyword.value,
+                  page: cardPage.value,
+                  page_size: cardPageSize.value,
+                },
+              });
+              cardsItems.value = data?.data?.items || [];
+              cardsTotal.value = data?.data?.total || 0;
+            } catch (e) {
+              setMessage("加载 cards 失败：" + (e?.message || String(e)));
+            } finally {
+              busy.value = false;
+            }
+          }
+
+          async function loadAlumni() {
+            busy.value = true;
+            try {
+              const data = await apiRequest("/api/admin/alumni", {
+                token: token.value,
+                params: {
+                  keyword: alumniKeyword.value,
+                  page: alumniPage.value,
+                  page_size: alumniPageSize.value,
+                },
+              });
+              alumniItems.value = data?.data?.items || [];
+              alumniTotal.value = data?.data?.total || 0;
+            } catch (e) {
+              setMessage("加载 alumni 失败：" + (e?.message || String(e)));
+            } finally {
+              busy.value = false;
+            }
+          }
+
+          function openCreateUser() {
+            editingUserId.value = null;
+            resetUserForm();
+            userModalOpen.value = true;
+          }
+
+          function openEditUser(item) {
+            editingUserId.value = item.id;
+            userModalOpen.value = true;
+            Object.assign(userForm, {
+              openid: item.openid || "",
+              name: item.name || "",
+              nickname: item.nickname || "",
+              avatar: "",
+              selected_avatar: "",
+              work_wechat_id: "",
+              gender: item.gender || "",
+              birth_place: item.birth_place || "",
+              wechat_id: item.wechat_id || "",
+              is_staff: Boolean(item.is_staff),
+              card_company: item.card?.company || "",
+              card_title: item.card?.title || "",
+              card_phone: item.card?.phone || "",
+              card_email: item.card?.email || "",
+              card_bio: item.card?.bio || "",
+              card_industry: item.card?.industry || "",
+              card_association_title: item.card?.association_title || "",
+            });
+          }
+
+          function userFormToPayload() {
+            const user = {
+              openid: userForm.openid || undefined,
+              name: userForm.name || undefined,
+              nickname: userForm.nickname || undefined,
+              avatar: userForm.avatar || undefined,
+              selected_avatar: userForm.selected_avatar || undefined,
+              work_wechat_id: userForm.work_wechat_id || undefined,
+              gender: userForm.gender || undefined,
+              birth_place: userForm.birth_place || undefined,
+              wechat_id: userForm.wechat_id || undefined,
+              is_staff: userForm.is_staff,
+            };
+
+            const card = {
+              company: userForm.card_company || undefined,
+              title: userForm.card_title || undefined,
+              phone: userForm.card_phone || undefined,
+              email: userForm.card_email || undefined,
+              bio: userForm.card_bio || undefined,
+              industry: userForm.card_industry || undefined,
+              association_title: userForm.card_association_title || undefined,
+            };
+
+            // 如果用户没填写任何 card 字段，就不传 card（避免覆盖）
+            const hasCard =
+              [card.company, card.title, card.phone, card.email, card.bio, card.industry, card.association_title].some(
+                (x) => x !== undefined && x !== ""
+              );
+            return { user, card: hasCard ? card : undefined };
+          }
+
+          async function submitUserModal() {
+            busy.value = true;
+            try {
+              const payload = userFormToPayload();
+              if (editingUserId.value === null) {
+                const data = await apiRequest("/api/admin/users", {
+                  token: token.value,
+                  method: "POST",
+                  body: payload,
+                });
+                setMessage("新增成功：user_id=" + data?.data?.id);
+              } else {
+                await apiRequest("/api/admin/users/" + editingUserId.value, {
+                  token: token.value,
+                  method: "PUT",
+                  body: payload,
+                });
+                setMessage("更新成功");
+              }
+              userModalOpen.value = false;
+              await loadUsers();
+            } catch (e) {
+              setMessage("保存失败：" + (e?.message || String(e)));
+            } finally {
+              busy.value = false;
+            }
+          }
+
+          async function deleteUser(item) {
+            if (!confirm(`确认删除 users.id=${item.id}？（会连带删除关联表数据）`)) return;
+            busy.value = true;
+            try {
+              await apiRequest("/api/admin/users/" + item.id, { token: token.value, method: "DELETE" });
+              setMessage("删除成功");
+              await loadUsers();
+            } catch (e) {
+              setMessage("删除失败：" + (e?.message || String(e)));
+            } finally {
+              busy.value = false;
+            }
+          }
+
+          // Alumni
+          function openCreateAlumni() {
+            editingAlumniId.value = null;
+            resetAlumniForm();
+            alumniModalOpen.value = true;
+          }
+
+          function openEditAlumni(item) {
+            editingAlumniId.value = item.id;
+            alumniModalOpen.value = true;
+            Object.assign(alumniForm, {
+              openid: item.openid || "",
+              name: item.name || "",
+              nickname: item.nickname || "",
+              avatar: "",
+              selected_avatar: "",
+              work_wechat_id: "",
+              gender: item.gender || "",
+              birth_place: item.birth_place || "",
+              wechat_id: item.wechat_id || "",
+              is_staff: Boolean(item.is_staff),
+              card_company: item.card?.company || "",
+              card_title: item.card?.title || "",
+              card_phone: item.card?.phone || "",
+              card_email: item.card?.email || "",
+              card_bio: item.card?.bio || "",
+              card_industry: item.card?.industry || "",
+              card_association_title: item.card?.association_title || "",
+            });
+          }
+
+          function alumniFormToPayload() {
+            const user = {
+              openid: alumniForm.openid || undefined,
+              name: alumniForm.name || undefined,
+              nickname: alumniForm.nickname || undefined,
+              avatar: alumniForm.avatar || undefined,
+              selected_avatar: alumniForm.selected_avatar || undefined,
+              work_wechat_id: alumniForm.work_wechat_id || undefined,
+              gender: alumniForm.gender || undefined,
+              birth_place: alumniForm.birth_place || undefined,
+              wechat_id: alumniForm.wechat_id || undefined,
+              is_staff: alumniForm.is_staff,
+            };
+
+            const card = {
+              company: alumniForm.card_company || undefined,
+              title: alumniForm.card_title || undefined,
+              phone: alumniForm.card_phone || undefined,
+              email: alumniForm.card_email || undefined,
+              bio: alumniForm.card_bio || undefined,
+              industry: alumniForm.card_industry || undefined,
+              association_title: alumniForm.card_association_title || undefined,
+            };
+            const hasCard =
+              [card.company, card.title, card.phone, card.email, card.bio, card.industry, card.association_title].some(
+                (x) => x !== undefined && x !== ""
+              );
+            return { user, card: hasCard ? card : undefined };
+          }
+
+          async function submitAlumniModal() {
+            busy.value = true;
+            try {
+              const payload = alumniFormToPayload();
+              if (editingAlumniId.value === null) {
+                await apiRequest("/api/admin/alumni", { token: token.value, method: "POST", body: payload });
+                setMessage("新增校友成功");
+              } else {
+                await apiRequest("/api/admin/alumni/" + editingAlumniId.value, {
+                  token: token.value,
+                  method: "PUT",
+                  body: payload,
+                });
+                setMessage("更新校友成功");
+              }
+              alumniModalOpen.value = false;
+              await loadAlumni();
+            } catch (e) {
+              setMessage("保存失败：" + (e?.message || String(e)));
+            } finally {
+              busy.value = false;
+            }
+          }
+
+          async function deleteAlumni(item) {
+            if (!confirm(`确认删除 alumni.id=${item.id}？（会连带删除关联表数据）`)) return;
+            busy.value = true;
+            try {
+              await apiRequest("/api/admin/alumni/" + item.id, { token: token.value, method: "DELETE" });
+              setMessage("删除成功");
+              await loadAlumni();
+            } catch (e) {
+              setMessage("删除失败：" + (e?.message || String(e)));
+            } finally {
+              busy.value = false;
+            }
+          }
+
+          // Cards
+          function openCreateCard() {
+            editingCardId.value = null;
+            resetCardForm();
+            cardModalOpen.value = true;
+          }
+
+          function openEditCard(item) {
+            editingCardId.value = item.id;
+            cardModalOpen.value = true;
+            Object.assign(cardForm, {
+              user_id: item.user_id,
+              name: item.name || "",
+              title: item.title || "",
+              company: item.company || "",
+              phone: item.phone || "",
+              email: item.email || "",
+              bio: item.bio || "",
+              industry: item.industry || "",
+              association_title: item.association_title || "",
+              personal_photos: formatJsonMaybe(item.personal_photos),
+              field_visibility: "",
+            });
+          }
+
+          function cardFormToPayload(isUpdate) {
+            const payload = {
+              name: cardForm.name || undefined,
+              title: cardForm.title || undefined,
+              company: cardForm.company || undefined,
+              phone: cardForm.phone || undefined,
+              email: cardForm.email || undefined,
+              bio: cardForm.bio || undefined,
+              industry: cardForm.industry || undefined,
+              association_title: cardForm.association_title || undefined,
+            };
+            // 可选 JSON 字段：仅当用户填了内容
+            if ((cardForm.personal_photos || "").trim()) payload.personal_photos = cardForm.personal_photos;
+            if ((cardForm.field_visibility || "").trim()) payload.field_visibility = cardForm.field_visibility;
+
+            if (isUpdate) return payload;
+            return {
+              user_id: Number(cardForm.user_id),
+              payload,
+            };
+          }
+
+          async function submitCardModal() {
+            busy.value = true;
+            try {
+              const isUpdate = editingCardId.value !== null;
+              if (isUpdate) {
+                await apiRequest("/api/admin/cards/" + editingCardId.value, {
+                  token: token.value,
+                  method: "PUT",
+                  body: cardFormToPayload(true),
+                });
+                setMessage("更新名片成功");
+              } else {
+                await apiRequest("/api/admin/cards", {
+                  token: token.value,
+                  method: "POST",
+                  body: cardFormToPayload(false),
+                });
+                setMessage("保存名片成功");
+              }
+              cardModalOpen.value = false;
+              await loadCards();
+            } catch (e) {
+              setMessage("保存失败：" + (e?.message || String(e)));
+            } finally {
+              busy.value = false;
+            }
+          }
+
+          async function deleteCard(item) {
+            if (!confirm(`确认删除 cards.id=${item.id}？`)) return;
+            busy.value = true;
+            try {
+              await apiRequest("/api/admin/cards/" + item.id, { token: token.value, method: "DELETE" });
+              setMessage("删除成功");
+              await loadCards();
+            } catch (e) {
+              setMessage("删除失败：" + (e?.message || String(e)));
+            } finally {
+              busy.value = false;
+            }
+          }
+
+          function pageCount(total, pageSize) {
+            if (!total) return 1;
+            return Math.max(1, Math.ceil(total / pageSize));
+          }
+
+          function pagerGo(kind) {
+            if (kind === "prev") {
+              if (page.value === "users" && userPage.value > 1) userPage.value--;
+              if (page.value === "cards" && cardPage.value > 1) cardPage.value--;
+              if (page.value === "alumni" && alumniPage.value > 1) alumniPage.value--;
+            } else {
+              if (page.value === "users" && userPage.value < pageCount(usersTotal.value, userPageSize.value)) userPage.value++;
+              if (page.value === "cards" && cardPage.value < pageCount(cardsTotal.value, cardPageSize.value)) cardPage.value++;
+              if (page.value === "alumni" && alumniPage.value < pageCount(alumniTotal.value, alumniPageSize.value)) alumniPage.value++;
+            }
+            refreshCurrentList();
+          }
+
+          async function logout() {
+            token.value = "";
+            localStorage.removeItem("tanmai_admin_token");
+            setMessage("");
+          }
+
+          function saveApiBase() {
+            localStorage.setItem("tanmai_admin_api_base", apiBase.value);
+            setMessage("已保存 API 地址");
+          }
+
+          onMounted(async () => {
+            // 初次加载：如果已经有 token，直接刷当前页面
+            if (isAuthed.value) {
+              await refreshCurrentList();
+            }
+          });
+
+          return {
+            page,
+            apiBase,
+            loginCode,
+            token,
+            busy,
+            message,
+            isAuthed,
+            // Users
+            userKeyword,
+            userPage,
+            userPageSize,
+            usersTotal,
+            usersItems,
+            userModalOpen,
+            editingUserId,
+            userForm,
+            openCreateUser,
+            openEditUser,
+            submitUserModal,
+            deleteUser,
+            loadUsers,
+            // Cards
+            cardKeyword,
+            cardPage,
+            cardPageSize,
+            cardsTotal,
+            cardsItems,
+            cardModalOpen,
+            editingCardId,
+            cardForm,
+            openCreateCard,
+            openEditCard,
+            submitCardModal,
+            deleteCard,
+            loadCards,
+            // Alumni
+            alumniKeyword,
+            alumniPage,
+            alumniPageSize,
+            alumniTotal,
+            alumniItems,
+            alumniModalOpen,
+            editingAlumniId,
+            alumniForm,
+            openCreateAlumni,
+            openEditAlumni,
+            submitAlumniModal,
+            deleteAlumni,
+            loadAlumni,
+            // Auth
+            doLogin,
+            logout,
+            saveApiBase,
+            // Pager
+            pagerGo,
+            pageCount,
+          };
+        },
+        template: `
+          <div>
+            <div class="card">
+              <div class="row">
+                <div>
+                  <div style="font-weight:800; font-size:18px;">探脉 管理后台</div>
+                  <div class="muted">MVP：users / user_cards / alumni</div>
+                </div>
+                <div class="spacer"></div>
+                <div class="row" style="gap:8px;">
+                  <label>API</label>
+                  <input v-model="apiBase" style="min-width:360px;" />
+                  <button class="btn ghost" @click="saveApiBase">保存</button>
+                </div>
+              </div>
+              <div v-if="message" style="margin-top:10px;" class="pill">{{ message }}</div>
+            </div>
+
+            <div v-if="!isAuthed" class="card" style="margin-top:14px;">
+              <h2 style="margin:0 0 8px 0;">登录</h2>
+              <div class="row">
+                <label>code（用于 /api/auth/login）</label>
+                <input v-model="loginCode" placeholder="例如：test_pytest_001 / 你的工作人员 code" style="min-width:380px;" />
+                <button class="btn primary" :disabled="busy" @click="doLogin">登录</button>
+                <span class="muted small">完成后会把 token 保存在 localStorage</span>
+              </div>
+            </div>
+
+            <div v-else class="card" style="margin-top:14px;">
+              <div class="row">
+                <div class="tabs">
+                  <button class="btn" :style="page==='users'? 'border-color: rgba(79, 140, 255, 0.7); background: rgba(79, 140, 255, 0.15);':''" @click="page='users'">Users</button>
+                  <button class="btn" :style="page==='cards'? 'border-color: rgba(79, 140, 255, 0.7); background: rgba(79, 140, 255, 0.15);':''" @click="page='cards'">Cards</button>
+                  <button class="btn" :style="page==='alumni'? 'border-color: rgba(79, 140, 255, 0.7); background: rgba(79, 140, 255, 0.15);':''" @click="page='alumni'">Alumni</button>
+                </div>
+                <div class="spacer"></div>
+                <div class="row" style="gap:8px;">
+                  <span class="muted small">token：</span>
+                  <span class="code muted small" style="max-width:420px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ token ? token.slice(0, 24) + '...' : '' }}</span>
+                  <button class="btn danger" @click="logout">退出</button>
+                </div>
+              </div>
+
+              <!-- Users -->
+              <div v-if="page==='users'" style="margin-top:10px;">
+                <div class="row">
+                  <label>搜索</label>
+                  <input v-model="userKeyword" placeholder="姓名 / 昵称 / 公司" style="min-width:340px;" />
+                  <button class="btn" @click="loadUsers" :disabled="busy">查询</button>
+                  <div class="spacer"></div>
+                  <button class="btn primary" @click="openCreateUser">新增用户</button>
+                </div>
+                <div class="muted" style="margin-top:8px;">
+                  总数：{{ usersTotal }}（page {{ userPage }} / {{ pageCount(usersTotal, userPageSize) }}）
+                </div>
+                <div class="row" style="margin-top:10px;">
+                  <div class="muted">每页</div>
+                  <select v-model="userPageSize" style="min-width:120px;">
+                    <option :value="10">10</option>
+                    <option :value="20">20</option>
+                    <option :value="50">50</option>
+                  </select>
+                  <button class="btn" @click="pagerGo('prev')" :disabled="userPage<=1">上一页</button>
+                  <button class="btn" @click="pagerGo('next')" :disabled="userPage>=pageCount(usersTotal, userPageSize)">下一页</button>
+                  <div class="spacer"></div>
+                  <span v-if="busy" class="muted">加载中...</span>
+                </div>
+
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:68px;">id</th>
+                      <th style="width:260px;">openid</th>
+                      <th>姓名/昵称</th>
+                      <th style="width:220px;">名片（title/company）</th>
+                      <th style="width:90px;">is_staff</th>
+                      <th style="width:160px;">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="it in usersItems" :key="it.id">
+                      <td>{{ it.id }}</td>
+                      <td class="code" style="font-size:12px;">{{ it.openid }}</td>
+                      <td>
+                        <div style="font-weight:700;">{{ it.name || '-' }}</div>
+                        <div class="muted small">{{ it.nickname || '-' }}</div>
+                      </td>
+                      <td>
+                        <div>{{ it.card?.title || '-' }}</div>
+                        <div class="muted small">{{ it.card?.company || '-' }}</div>
+                      </td>
+                      <td>{{ it.is_staff ? '是' : '否' }}</td>
+                      <td>
+                        <div class="row" style="gap:8px; flex-wrap:nowrap;">
+                          <button class="btn" @click="openEditUser(it)">编辑</button>
+                          <button class="btn danger" @click="deleteUser(it)">删除</button>
+                        </div>
+                      </td>
+                    </tr>
+                    <tr v-if="!usersItems || usersItems.length===0">
+                      <td colspan="6" class="muted">暂无数据</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Cards -->
+              <div v-if="page==='cards'" style="margin-top:10px;">
+                <div class="row">
+                  <label>搜索</label>
+                  <input v-model="cardKeyword" placeholder="姓名/昵称/名片标题/公司" style="min-width:360px;" />
+                  <button class="btn" @click="loadCards" :disabled="busy">查询</button>
+                  <div class="spacer"></div>
+                  <button class="btn primary" @click="openCreateCard">新增/保存名片</button>
+                </div>
+                <div class="muted" style="margin-top:8px;">
+                  总数：{{ cardsTotal }}（page {{ cardPage }} / {{ pageCount(cardsTotal, cardPageSize) }}）
+                </div>
+                <div class="row" style="margin-top:10px;">
+                  <div class="muted">每页</div>
+                  <select v-model="cardPageSize" style="min-width:120px;">
+                    <option :value="10">10</option>
+                    <option :value="20">20</option>
+                    <option :value="50">50</option>
+                  </select>
+                  <button class="btn" @click="pagerGo('prev')" :disabled="cardPage<=1">上一页</button>
+                  <button class="btn" @click="pagerGo('next')" :disabled="cardPage>=pageCount(cardsTotal, cardPageSize)">下一页</button>
+                  <div class="spacer"></div>
+                  <span v-if="busy" class="muted">加载中...</span>
+                </div>
+
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:70px;">card id</th>
+                      <th style="width:110px;">user id</th>
+                      <th>姓名</th>
+                      <th style="width:220px;">title/company</th>
+                      <th style="width:220px;">联系信息</th>
+                      <th style="width:120px;">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="it in cardsItems" :key="it.id">
+                      <td>{{ it.id }}</td>
+                      <td class="code">{{ it.user_id }}</td>
+                      <td>
+                        <div style="font-weight:700;">{{ it.name || '-' }}</div>
+                        <div class="muted small">{{ it.nickname || '-' }}</div>
+                      </td>
+                      <td>
+                        <div>{{ it.title || '-' }}</div>
+                        <div class="muted small">{{ it.company || '-' }}</div>
+                      </td>
+                      <td>
+                        <div>{{ it.phone || '-' }}</div>
+                        <div class="muted small">{{ it.email || '-' }}</div>
+                      </td>
+                      <td>
+                        <div class="row" style="gap:8px; flex-wrap:nowrap;">
+                          <button class="btn" @click="openEditCard(it)">编辑</button>
+                          <button class="btn danger" @click="deleteCard(it)">删除</button>
+                        </div>
+                      </td>
+                    </tr>
+                    <tr v-if="!cardsItems || cardsItems.length===0">
+                      <td colspan="6" class="muted">暂无数据</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Alumni -->
+              <div v-if="page==='alumni'" style="margin-top:10px;">
+                <div class="row">
+                  <label>搜索</label>
+                  <input v-model="alumniKeyword" placeholder="姓名/昵称/公司" style="min-width:360px;" />
+                  <button class="btn" @click="loadAlumni" :disabled="busy">查询</button>
+                  <div class="spacer"></div>
+                  <button class="btn primary" @click="openCreateAlumni">新增校友</button>
+                </div>
+                <div class="muted" style="margin-top:8px;">
+                  总数：{{ alumniTotal }}（page {{ alumniPage }} / {{ pageCount(alumniTotal, alumniPageSize) }}）
+                </div>
+                <div class="row" style="margin-top:10px;">
+                  <div class="muted">每页</div>
+                  <select v-model="alumniPageSize" style="min-width:120px;">
+                    <option :value="10">10</option>
+                    <option :value="20">20</option>
+                    <option :value="50">50</option>
+                  </select>
+                  <button class="btn" @click="pagerGo('prev')" :disabled="alumniPage<=1">上一页</button>
+                  <button class="btn" @click="pagerGo('next')" :disabled="alumniPage>=pageCount(alumniTotal, alumniPageSize)">下一页</button>
+                  <div class="spacer"></div>
+                  <span v-if="busy" class="muted">加载中...</span>
+                </div>
+
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:68px;">id</th>
+                      <th style="width:260px;">openid</th>
+                      <th>姓名/昵称</th>
+                      <th style="width:220px;">名片（title/company）</th>
+                      <th style="width:90px;">is_staff</th>
+                      <th style="width:160px;">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="it in alumniItems" :key="it.id">
+                      <td>{{ it.id }}</td>
+                      <td class="code" style="font-size:12px;">{{ it.openid }}</td>
+                      <td>
+                        <div style="font-weight:700;">{{ it.name || '-' }}</div>
+                        <div class="muted small">{{ it.nickname || '-' }}</div>
+                      </td>
+                      <td>
+                        <div>{{ it.card?.title || '-' }}</div>
+                        <div class="muted small">{{ it.card?.company || '-' }}</div>
+                      </td>
+                      <td>{{ it.is_staff ? '是' : '否' }}</td>
+                      <td>
+                        <div class="row" style="gap:8px; flex-wrap:nowrap;">
+                          <button class="btn" @click="openEditAlumni(it)">编辑</button>
+                          <button class="btn danger" @click="deleteAlumni(it)">删除</button>
+                        </div>
+                      </td>
+                    </tr>
+                    <tr v-if="!alumniItems || alumniItems.length===0">
+                      <td colspan="6" class="muted">暂无数据</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- User Modal -->
+              <div v-if="userModalOpen" class="modal-backdrop">
+                <div class="modal">
+                  <h3>{{ editingUserId === null ? '新增用户' : '编辑用户' }}</h3>
+                  <div class="grid">
+                    <div class="col-6">
+                      <label>openid（可选，留空会自动生成）</label>
+                      <input v-model="userForm.openid" :disabled="editingUserId !== null" />
+                    </div>
+                    <div class="col-6">
+                      <label>姓名</label>
+                      <input v-model="userForm.name" />
+                    </div>
+                    <div class="col-6">
+                      <label>昵称</label>
+                      <input v-model="userForm.nickname" />
+                    </div>
+                    <div class="col-6">
+                      <label>性别</label>
+                      <input v-model="userForm.gender" placeholder="如：男/女/其他" />
+                    </div>
+                    <div class="col-6">
+                      <label>出生地</label>
+                      <input v-model="userForm.birth_place" />
+                    </div>
+                    <div class="col-6">
+                      <label>wechat_id</label>
+                      <input v-model="userForm.wechat_id" />
+                    </div>
+                    <div class="col-3">
+                      <label>is_staff</label>
+                      <select v-model="userForm.is_staff" style="min-width:120px;">
+                        <option :value="false">否</option>
+                        <option :value="true">是</option>
+                      </select>
+                    </div>
+                    <div class="col-9">
+                      <label>头像/selected_avatar（可选）</label>
+                      <input v-model="userForm.selected_avatar" placeholder="selected_avatar URL 或留空" />
+                    </div>
+
+                    <div class="col-12" style="margin-top:8px;">
+                      <div class="muted">名片字段（可选留空）</div>
+                    </div>
+                    <div class="col-6">
+                      <label>公司</label>
+                      <input v-model="userForm.card_company" />
+                    </div>
+                    <div class="col-6">
+                      <label>头衔/职位</label>
+                      <input v-model="userForm.card_title" />
+                    </div>
+                    <div class="col-6">
+                      <label>电话</label>
+                      <input v-model="userForm.card_phone" />
+                    </div>
+                    <div class="col-6">
+                      <label>邮箱</label>
+                      <input v-model="userForm.card_email" />
+                    </div>
+                    <div class="col-6">
+                      <label>行业</label>
+                      <input v-model="userForm.card_industry" />
+                    </div>
+                    <div class="col-6">
+                      <label>校友会/协会头衔（多行可用文本）</label>
+                      <input v-model="userForm.card_association_title" />
+                    </div>
+                    <div class="col-12">
+                      <label>简介 bio</label>
+                      <textarea v-model="userForm.card_bio"></textarea>
+                    </div>
+                  </div>
+                  <div class="row" style="margin-top:14px;">
+                    <button class="btn ghost" @click="userModalOpen=false">取消</button>
+                    <div class="spacer"></div>
+                    <button class="btn primary" @click="submitUserModal" :disabled="busy">保存</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card Modal -->
+              <div v-if="cardModalOpen" class="modal-backdrop">
+                <div class="modal">
+                  <h3>{{ editingCardId === null ? '保存名片（upsert）' : '编辑名片' }}</h3>
+                  <div class="grid">
+                    <div class="col-6">
+                      <label>user_id（保存名片必填）</label>
+                      <input v-model="cardForm.user_id" :disabled="editingCardId !== null" />
+                    </div>
+                    <div class="col-6">
+                      <label>名片姓名（可选）</label>
+                      <input v-model="cardForm.name" />
+                    </div>
+                    <div class="col-6">
+                      <label>公司</label>
+                      <input v-model="cardForm.company" />
+                    </div>
+                    <div class="col-6">
+                      <label>职位/头衔</label>
+                      <input v-model="cardForm.title" />
+                    </div>
+                    <div class="col-6">
+                      <label>电话</label>
+                      <input v-model="cardForm.phone" />
+                    </div>
+                    <div class="col-6">
+                      <label>邮箱</label>
+                      <input v-model="cardForm.email" />
+                    </div>
+                    <div class="col-6">
+                      <label>行业</label>
+                      <input v-model="cardForm.industry" />
+                    </div>
+                    <div class="col-6">
+                      <label>校友会/协会头衔</label>
+                      <input v-model="cardForm.association_title" />
+                    </div>
+                    <div class="col-12">
+                      <label>简介 bio</label>
+                      <textarea v-model="cardForm.bio"></textarea>
+                    </div>
+                    <div class="col-12">
+                      <label>personal_photos（可选，JSON 或留空）</label>
+                      <textarea v-model="cardForm.personal_photos" placeholder='例如：["https://..."]'></textarea>
+                    </div>
+                  </div>
+                  <div class="row" style="margin-top:14px;">
+                    <button class="btn ghost" @click="cardModalOpen=false">取消</button>
+                    <div class="spacer"></div>
+                    <button class="btn primary" @click="submitCardModal" :disabled="busy">保存</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Alumni Modal -->
+              <div v-if="alumniModalOpen" class="modal-backdrop">
+                <div class="modal">
+                  <h3>{{ editingAlumniId === null ? '新增校友' : '编辑校友' }}</h3>
+                  <div class="grid">
+                    <div class="col-6">
+                      <label>openid（可选，留空会自动生成 alumni_ 前缀）</label>
+                      <input v-model="alumniForm.openid" :disabled="editingAlumniId !== null" />
+                    </div>
+                    <div class="col-6">
+                      <label>姓名</label>
+                      <input v-model="alumniForm.name" />
+                    </div>
+                    <div class="col-6">
+                      <label>昵称</label>
+                      <input v-model="alumniForm.nickname" />
+                    </div>
+                    <div class="col-6">
+                      <label>性别</label>
+                      <input v-model="alumniForm.gender" />
+                    </div>
+                    <div class="col-6">
+                      <label>出生地</label>
+                      <input v-model="alumniForm.birth_place" />
+                    </div>
+                    <div class="col-6">
+                      <label>wechat_id</label>
+                      <input v-model="alumniForm.wechat_id" />
+                    </div>
+                    <div class="col-3">
+                      <label>is_staff</label>
+                      <select v-model="alumniForm.is_staff" style="min-width:120px;">
+                        <option :value="false">否</option>
+                        <option :value="true">是</option>
+                      </select>
+                    </div>
+                    <div class="col-9">
+                      <label>selected_avatar（可选）</label>
+                      <input v-model="alumniForm.selected_avatar" />
+                    </div>
+
+                    <div class="col-12" style="margin-top:8px;">
+                      <div class="muted">名片字段（可选留空）</div>
+                    </div>
+                    <div class="col-6">
+                      <label>公司</label>
+                      <input v-model="alumniForm.card_company" />
+                    </div>
+                    <div class="col-6">
+                      <label>头衔/职位</label>
+                      <input v-model="alumniForm.card_title" />
+                    </div>
+                    <div class="col-6">
+                      <label>电话</label>
+                      <input v-model="alumniForm.card_phone" />
+                    </div>
+                    <div class="col-6">
+                      <label>邮箱</label>
+                      <input v-model="alumniForm.card_email" />
+                    </div>
+                    <div class="col-6">
+                      <label>行业</label>
+                      <input v-model="alumniForm.card_industry" />
+                    </div>
+                    <div class="col-6">
+                      <label>校友会/协会头衔</label>
+                      <input v-model="alumniForm.card_association_title" />
+                    </div>
+                    <div class="col-12">
+                      <label>简介 bio</label>
+                      <textarea v-model="alumniForm.card_bio"></textarea>
+                    </div>
+                  </div>
+                  <div class="row" style="margin-top:14px;">
+                    <button class="btn ghost" @click="alumniModalOpen=false">取消</button>
+                    <div class="spacer"></div>
+                    <button class="btn primary" @click="submitAlumniModal" :disabled="busy">保存</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `,
+      }).mount("#app");
+    </script>
+  </body>
+</html>
+
