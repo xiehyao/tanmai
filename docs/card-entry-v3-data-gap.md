@@ -125,7 +125,7 @@
 
 1. **target_user_id**：v3 当前保存 step1 未带 `target_user_id`，后端若要求「修改他人」必须带 target_user_id，则 step1 在普通用户填自己时可能用 token 中的用户 id；step2–6 的 save-step 接口文档写的是「需要 target_user_id」，因此若 v3 是「当前用户填自己」，需确认后端是否支持「无 target_user_id 即当前登录用户」或需在 URL 中显式传当前用户 id。
 2. **step1 的 locations 更新**：当前后端仅在 create_new 时调用 `_save_locations`，普通更新未写 locations。若要在 v3 中支持多地址并落库，需后端在 save_step_1 的「更新」分支中也根据 body.locations 调用 `_save_locations`。
-3. **association_title**：v3 用于「名片预览」的「社会团体」行；后端 step1 未返回 association_title，若需持久化，需后端在 user_cards 或关联表增加字段并在 /data 中返回，或由前端用 step5 的 orgs + association_positions 拼出展示文案（仅展示不落库）。
+3. **association_title / industry**：已落实。user_cards 表已增加字段 association_title、industry；save-step/1 与 GET /data 的 step1 均已读写；v3 保存与回显已包含。迁移脚本：`backend/scripts/add_user_cards_association_industry.py`。
 
 ---
 
@@ -136,6 +136,14 @@
 3. **最后补 UI 与交互**：step5 两个新输入项；可选的多地址与个人相册 UI；补充信息入口与保存时机。
 
 以上为「只出方案、不改代码」的排查与合并建议，实施时按需分阶段改 v3 的 wxml/js 与后端 save-step 逻辑即可。
+
+---
+
+## 五.1、保存策略（2026-02 已实现）
+
+- **切换卡片（步骤）时**：离开当前步骤前自动调用 `saveStepToServer(prev)`，将当前步骤数据写入数据库（如从第 1 步切到第 2 步时保存 step1）。
+- **卡片内切换子项（失焦）时**：先写本地草稿 `saveDraft()`，再防抖 800ms 后调用 `saveStepToServer(currentStep)` 写入数据库，避免频繁请求的同时保证数据落库，无需「凑够再保存」。
+- **点击【保存】按钮**：一次性提交 step1 + step2/3/4/6 到后端。
 
 ---
 

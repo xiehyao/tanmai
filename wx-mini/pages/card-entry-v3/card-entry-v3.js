@@ -15,12 +15,33 @@ function genderLabelFor(value) {
   return o ? o.label : '请选择'
 }
 
+const LOCATION_TYPE_LABELS = { residence: '居住地址', work: '公司地址', temp_event: '临时活动地址', other: '其它' }
+
 function _buildContactItems(phone, wechat, email, address) {
   const items = []
   if (phone !== undefined && phone !== null) items.push({ id: 'phone-0', type: 'phone', label: '手机', value: phone, required: true })
   if (wechat !== undefined && wechat !== null) items.push({ id: 'wechat-0', type: 'wechat', label: '微信', value: wechat, required: false })
   if (email !== undefined && email !== null) items.push({ id: 'email-0', type: 'email', label: '邮箱', value: email, required: false })
   items.push({ id: 'address-0', type: 'address', label: '公司地址', value: address || '', required: false, location_type: 'work' })
+  return items
+}
+
+/** 根据后端 locations 数组构建联系方式（多条地址按 location_type 显示对应标签） */
+function _buildContactItemsFromLocations(phone, wechat, email, locations) {
+  const items = []
+  if (phone !== undefined && phone !== null) items.push({ id: 'phone-0', type: 'phone', label: '手机', value: phone, required: true })
+  if (wechat !== undefined && wechat !== null) items.push({ id: 'wechat-0', type: 'wechat', label: '微信', value: wechat, required: false })
+  if (email !== undefined && email !== null) items.push({ id: 'email-0', type: 'email', label: '邮箱', value: email, required: false })
+  const locs = Array.isArray(locations) ? locations : []
+  if (locs.length === 0) {
+    items.push({ id: 'address-0', type: 'address', label: '公司地址', value: '', required: false, location_type: 'work' })
+  } else {
+    locs.forEach((loc, i) => {
+      const lt = (loc.location_type || 'work').toLowerCase()
+      const label = LOCATION_TYPE_LABELS[lt] || loc.location_type || '地址'
+      items.push({ id: 'address-' + i, type: 'address', label, value: loc.address || '', required: false, location_type: lt })
+    })
+  }
   return items
 }
 function _previewFromContactItems(items) {
@@ -239,11 +260,8 @@ function _buildStep2FromEdu(eduExperiences) {
     high_school: '', high_graduation_year: undefined,
     bachelor_university: '', bachelor_major: '', bachelor_graduation_year: undefined,
     master_university: '', master_major: '', master_graduation_year: undefined,
-    doctor_university: '', doctor_major: '', doctor_graduation_year: undefined,
-    highest_degree: ''
+    doctor_university: '', doctor_major: '', doctor_graduation_year: undefined
   }
-  const degreeOrder = ['小学', '初中', '高中', '本科', '硕士', '博士']
-  let maxIdx = -1
   ;(eduExperiences || []).forEach(item => {
     if (!item || !item.degree) return
     const d = item.degree
@@ -269,11 +287,6 @@ function _buildStep2FromEdu(eduExperiences) {
       if (item.school) step2.doctor_university = item.school
       if (item.major) step2.doctor_major = item.major
       if (y) step2.doctor_graduation_year = y
-    }
-    const idx = degreeOrder.indexOf(d)
-    if (idx > maxIdx) {
-      maxIdx = idx
-      step2.highest_degree = d
     }
   })
   return step2
@@ -307,6 +320,78 @@ function _buildStep4FromState(resources, rawText) {
   }
   return { resources: ress }
 }
+
+function _joinNonEmpty(sep, parts) {
+  return (parts || []).map(x => (x == null ? '' : String(x).trim())).filter(Boolean).join(sep)
+}
+
+function _buildDefaultIntroCardFromState(data) {
+  const d = data || {}
+  const name = d.name || '示例姓名'
+  const photos = Array.isArray(d.personal_photos) ? d.personal_photos : []
+  const photo = photos[0] || d.avatar || ''
+
+  // 若已有完整个人简介文本，则直接复用
+  let introText = (d.personalIntro && String(d.personalIntro).trim()) || ''
+
+  if (!introText) {
+    const eduList = Array.isArray(d.eduExperiences) ? d.eduExperiences.slice() : []
+    // 取最后一条（通常是最高阶段）
+    const edu = eduList.reverse().find(item => item && (item.school || item.degree || item.major)) || null
+
+    let line1 = ''
+    let line2 = ''
+    if (edu) {
+      const school = edu.school || ''
+      const major = edu.major || ''
+      const enrollYear = _yearFromDateStr(edu.enrollDate)
+      const grade =
+        enrollYear && !Number.isNaN(enrollYear)
+          ? String(enrollYear).slice(2) + '级'
+          : ''
+      line1 = _joinNonEmpty(' - ', [school, grade, major])
+
+      const gradYear =
+        _yearFromDateStr(edu.graduateDate) ||
+        _yearFromDateStr(edu.duration && edu.duration.split(' - ')[1])
+      const yearStr = gradYear && !Number.isNaN(gradYear) ? gradYear + '年毕业' : ''
+      const workPlace = d.address || ''
+      line2 = _joinNonEmpty(' - ', [yearStr, workPlace])
+    }
+
+    const residence = d.address || ''
+    const line3 = residence
+
+    const companyLine = _joinNonEmpty(' - ', [d.company || '', d.title || ''])
+
+    const needsLine = (d.needsText && String(d.needsText).trim()) || ''
+    const resourcesLine = (d.resourcesText && String(d.resourcesText).trim()) || ''
+    const needsResourceLine = _joinNonEmpty(' ', [
+      needsLine ? '需求：' + needsLine : '',
+      resourcesLine ? '资源：' + resourcesLine : ''
+    ])
+
+    const contactItems = Array.isArray(d.contactItems) ? d.contactItems : []
+    const phoneItem = contactItems.find(c => c && c.type === 'phone' && c.value)
+    const phone = phoneItem && phoneItem.value
+    const phoneLine = phone ? phone + ' - 欢迎联系' : ''
+
+    const lines = []
+    lines.push(line1 || '大学-届别-专业')
+    lines.push(line2 || '毕业年份-工作地点')
+    lines.push(line3 || '目前常住区域')
+    lines.push(companyLine || '就职单位-目前工作/创业状态')
+    lines.push(needsResourceLine || '目前是否有需要 需求-资源')
+    lines.push('运动/兴趣爱好')
+    lines.push(phoneLine || '联系电话-是否方便约')
+    lines.push('等等...')
+
+    introText = lines.join('\n')
+  }
+
+  const scene = d.introScene || '线下活动、线上对接'
+  return { name, photo, introText, scene }
+}
 function _buildStep6FromExtra(extraInfo) {
   const desc = extraInfo || ''
   return {
@@ -323,12 +408,15 @@ Page({
     // 工作人员模式 / 内部评价
     isStaffMode: false,
     isInternalMode: false,
+    staffAddNewMode: false, // 新增校友并代填（第一步保存时 create_new）
     staffTargetUserId: null,
     staffIdVerified: false,
     targetUser: null, // {id, name, nickname, company}
     searchKeyword: '',
     searchResults: [],
     showUserSearch: false,
+    // 填写评价模式：工作人员填写框内容（红框）
+    staffEvaluation: {},
     // 子项可见性（公开/私密/打码/好友/校友）
     fieldVisibility: (() => { const d = _defaultFieldVisibility(); return d.fieldVisibility })(),
     fieldVisibilityLabels: (() => { const d = _defaultFieldVisibility(); return d.fieldVisibilityLabels })(),
@@ -412,10 +500,10 @@ Page({
     previewEmailValue: '',
     // 名片附件
     pdfFiles: [],
-    // 个人介绍：多张自我简介卡片（横向滚动），初始一条模拟数据
-    introCards: [
-      { name: '示例姓名', photo: '', introText: '北邮00级电院通信工程 04级移动通信工程\n现在鹏城实验室做研究工作，常驻深圳\n喜欢踢球和各类运动，欢迎大家约起~', scene: '线下活动、线上对接' }
-    ],
+    // 个人介绍：多张自我简介卡片（横向滚动）
+    introCards: [],
+    // 个人介绍：默认占位模板（多行）
+    introPlaceholder: '大学-届别-专业\\n毕业年份-工作地点\\n目前常住区域\\n就职单位-目前工作/创业状态\\n目前是否有需要 需求-资源\\n运动/兴趣爱好\\n联系电话-是否方便约\\n等等...',
     showIntroSheet: false,
     introEditIndex: -1,
     introForm: { name: '', photo: '', introText: '', scene: '' },
@@ -644,11 +732,57 @@ Page({
       this.loadData()
     })
   },
-  goToStep(e) {
+  // 工作人员新增校友：进入空白填写
+  onStaffAddNew() {
+    this.setData({
+      staffAddNewMode: true,
+      staffTargetUserId: null,
+      targetUser: null,
+      showUserSearch: false,
+      searchKeyword: '',
+      searchResults: [],
+      staffEvaluation: {}
+    })
+    wx.showToast({ title: '请在下方填写新校友信息', icon: 'none', duration: 2000 })
+  },
+  cancelStaffAddNew() {
+    this.setData({
+      staffAddNewMode: false,
+      showUserSearch: true
+    })
+  },
+  // 切换到代填信息模式
+  switchToFillMode() {
+    if (this.data.isInternalMode) {
+      this.setData({ isInternalMode: false, staffEvaluation: {} }, () => {
+        if (this.data.targetUser && this.data.targetUser.id) {
+          this.loadData()
+        }
+      })
+    }
+  },
+  // 切换到填写评价模式
+  switchToInternalMode() {
+    if (!this.data.isInternalMode) {
+      this.setData({ isInternalMode: true, staffEvaluation: {} }, () => {
+        if (this.data.targetUser && this.data.targetUser.id) {
+          this.loadData()
+        }
+      })
+    }
+  },
+  onStaffEvaluationInput(e) {
+    const field = e.currentTarget.dataset.field
+    const value = e.detail.value
+    if (!field) return
+    const staffEvaluation = { ...(this.data.staffEvaluation || {}), [field]: value }
+    this.setData({ staffEvaluation })
+  },
+  async goToStep(e) {
     const step = parseInt(e.currentTarget.dataset.step, 10)
     if (step === 1 || step === 2) {
       const prev = this.data.currentStep
-      if (prev !== step) this.saveStepToServer(prev)
+      if (prev !== step) await this.saveStepToServer(prev)
       this.setData({ currentStep: step })
     }
   },
@@ -713,9 +847,14 @@ Page({
       previewEmailValue: emailItem ? (emailItem.c.value || '') : ''
     })
   },
-  // 自动保存：失焦存草稿，切换步骤存服务器
+  // 自动保存：失焦写草稿 + 防抖后写入数据库（卡片内切换子项时 800ms 无操作则保存当前步骤）
   onFieldBlur() {
     this.saveDraft()
+    if (this._blurSaveTimer) clearTimeout(this._blurSaveTimer)
+    this._blurSaveTimer = setTimeout(() => {
+      this._blurSaveTimer = null
+      this.saveStepToServer(this.data.currentStep)
+    }, 800)
   },
   saveDraft() {
     try {
@@ -725,6 +864,8 @@ Page({
         wechatId: this.data.wechatId,
         company: this.data.company,
         title: this.data.title,
+        association_title: this.data.association_title,
+        industry: this.data.industry,
         contactItems: this.data.contactItems,
         needsText: this.data.needsText,
         resourcesText: this.data.resourcesText,
@@ -738,8 +879,17 @@ Page({
       console.error('saveDraft error:', e)
     }
   },
-  saveStepToServer(step) {
+  async saveStepToServer(step) {
     if (!step) return
+    // 工作人员模式且未选目标且非新增模式时不要保存，避免误写
+    if (this.data.isStaffMode && !this.data.staffTargetUserId && !this.data.staffAddNewMode) return
+    // 新增模式下不自动保存（仅通过【保存】按钮走 create_new）
+    if (this.data.staffAddNewMode) return
+    const isStaff = this.data.isStaffMode && this.data.staffTargetUserId
+    if (!isStaff) await this._ensureSelfUserId()
+    const targetId = isStaff ? this.data.staffTargetUserId : this.data.selfUserId
+    const qs = targetId ? `?target_user_id=${targetId}` : ''
+    if (!qs) return
     if (step === 1) {
       const items = this.data.contactItems || []
       const first = type => (items.find(c => c.type === type) || {}).value
@@ -750,6 +900,8 @@ Page({
         birth_place: this.data.birthPlace,
         company: this.data.company,
         title: this.data.title || this.data.positions?.[0]?.title || '',
+        association_title: this.data.association_title || '',
+        industry: this.data.industry || '',
         phone: first('phone'),
         wechat_id: this.data.wechatId || first('wechat'),
         email: first('email'),
@@ -759,10 +911,10 @@ Page({
         selected_avatar: this.data.avatar || '',
         personal_photos: Array.isArray(this.data.personal_photos) ? this.data.personal_photos : []
       }
-      request.post('/api/card-entry/save-step/1', payload).catch(e => console.error('saveStep1 error:', e))
+      request.post('/api/card-entry/save-step/1' + qs, payload).catch(e => console.error('saveStep1 error:', e))
     }
     if (step === 2) {
-      request.post('/api/card-entry/save-step/5', {
+      request.post('/api/card-entry/save-step/5' + qs, {
         orgs: this.data.associationOrgs,
         willing_to_serve: this.data.associationWilling,
         board_position: this.data.board_position,
@@ -825,12 +977,16 @@ Page({
           })
         }
 
-        const contactItemsBuilt = _buildContactItems(
-          s1.phone || '',
-          s1.wechat_id || '',
-          s1.email || '',
-          s1.main_address || (s1.locations && s1.locations[0] && s1.locations[0].address) || ''
-        )
+        const hasLocations = Array.isArray(s1.locations) && s1.locations.length > 0
+        const contactItemsBuilt = hasLocations
+          ? _buildContactItemsFromLocations(s1.phone || '', s1.wechat_id || '', s1.email || '', s1.locations)
+          : _buildContactItems(
+              s1.phone || '',
+              s1.wechat_id || '',
+              s1.email || '',
+              s1.main_address || (s1.locations && s1.locations[0] && s1.locations[0].address) || ''
+            )
+        const firstAddress = hasLocations ? (s1.locations[0].address || '') : (s1.main_address || (s1.locations && s1.locations[0] && s1.locations[0].address) || '')
         this.setData({
           avatar: s1.display_avatar || s1.selected_avatar || s1.avatar || this.data.avatar,
           personal_photos: Array.isArray(s1.personal_photos) ? s1.personal_photos : [],
@@ -844,13 +1000,10 @@ Page({
           company: s1.company || '',
           title: s1.title || '',
           association_title: s1.association_title || '',
-          industry: s1.industry || this.data.industry || '',
+          industry: (s1.industry != null && s1.industry !== '') ? String(s1.industry) : '',
           contactItems: contactItemsBuilt,
           ..._previewFromContactItems(contactItemsBuilt),
-          address:
-            s1.main_address ||
-            (s1.locations && s1.locations[0] && s1.locations[0].address) ||
-            this.data.address,
+          address: firstAddress || this.data.address,
           personalIntro: s2.intro_raw || s1.bio || '',
           // 需求与状态（step3）
           needsText: s3.raw || '',
@@ -901,7 +1054,16 @@ Page({
             '',
           // 教育经历列表
           eduExperiences: eduList.length ? eduList : this.data.eduExperiences
-        }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
+        }, () => {
+          if (!this.data.introCards || !this.data.introCards.length) {
+            const card = _buildDefaultIntroCardFromState(this.data)
+            this.setData({ introCards: [card] }, () => {
+              this._syncVisibilityIconArrays && this._syncVisibilityIconArrays()
+            })
+          } else {
+            this._syncVisibilityIconArrays && this._syncVisibilityIconArrays()
+          }
+        })
         return
       }
     } catch (e) {
@@ -930,12 +1092,20 @@ Page({
             (u.locations && u.locations[0] && u.locations[0].address) ||
             '',
           personalIntro: u.bio || ''
-        }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
+        }, () => {
+          if (!this.data.introCards || !this.data.introCards.length) {
+            const card = _buildDefaultIntroCardFromState(this.data)
+            this.setData({ introCards: [card] }, () => {
+              this._syncVisibilityIconArrays && this._syncVisibilityIconArrays()
+            })
+          } else {
+            this._syncVisibilityIconArrays && this._syncVisibilityIconArrays()
+          }
+        })
       }
     } catch (e) {
       console.error('Load cards/my data error (v3):', e)
     }
-    this._syncVisibilityIconArrays && this._syncVisibilityIconArrays()
   },
 
   onInputChange(e) {
@@ -1641,10 +1811,13 @@ Page({
   },
 
   async onSave() {
+    // 工作人员模式：须已选代填目标或处于新增模式
+    if (this.data.isStaffMode && !this.data.staffTargetUserId && !this.data.staffAddNewMode) {
+      wx.showToast({ title: '请先选择要代填的校友或点击「新增」', icon: 'none' })
+      return
+    }
     wx.showLoading({ title: '保存中...' })
     try {
-      await this._ensureSelfUserId()
-      const qs = this.data.selfUserId ? `?target_user_id=${this.data.selfUserId}` : ''
       const items = this.data.contactItems || []
       const first = (type) => (items.find(c => c.type === type) || {}).value
       const payload = {
@@ -1654,6 +1827,8 @@ Page({
         birth_place: this.data.birthPlace,
         company: this.data.company,
         title: this.data.title || this.data.positions?.[0]?.title || '',
+        association_title: this.data.association_title || '',
+        industry: this.data.industry || '',
         phone: first('phone'),
         wechat_id: this.data.wechatId || first('wechat'),
         email: first('email'),
@@ -1663,27 +1838,52 @@ Page({
         selected_avatar: this.data.avatar || '',
         personal_photos: Array.isArray(this.data.personal_photos) ? this.data.personal_photos : []
       }
-      await request.post('/api/card-entry/save-step/1' + qs, payload)
-      // 同步保存 step2/3/4/6（教育、需求、资源、补充信息）
-      const step2Body = _buildStep2FromEdu(this.data.eduExperiences || [])
-      const step3Body = _buildStep3FromState(this.data)
-      const step4Body = _buildStep4FromState(this.data.resources || [], this.data.resourcesText || '')
-      const step6Body = _buildStep6FromExtra(this.data.extraInfo || '')
-      await Promise.all([
-        request.post('/api/card-entry/save-step/2' + qs, step2Body),
-        request.post('/api/card-entry/save-step/3' + qs, step3Body),
-        request.post('/api/card-entry/save-step/4' + qs, step4Body),
-        request.post('/api/card-entry/save-step/6' + qs, step6Body)
-      ])
+      let targetId = this.data.staffTargetUserId
+      // 新增模式：第一步用 create_new 创建用户，拿到 user_id 后作为目标继续保存
+      if (this.data.staffAddNewMode && this.data.currentStep === 1) {
+        const res = await request.post('/api/card-entry/save-step/1', { ...payload, create_new: true })
+        const newUserId = res && (res.user_id != null || res.user_id !== undefined) ? res.user_id : null
+        if (newUserId != null) {
+          this.setData({
+            staffAddNewMode: false,
+            staffTargetUserId: newUserId,
+            targetUser: { id: newUserId, name: this.data.name || '', nickname: this.data.nickname || '', company: this.data.company || '' }
+          })
+          targetId = newUserId
+        }
+      } else {
+        const isStaff = this.data.isStaffMode && this.data.staffTargetUserId
+        if (!isStaff) await this._ensureSelfUserId()
+        targetId = isStaff ? this.data.staffTargetUserId : this.data.selfUserId
+        const qs = targetId ? `?target_user_id=${targetId}` : ''
+        if (!qs) {
+          wx.hideLoading()
+          wx.showToast({ title: '无法确定保存对象', icon: 'none' })
+          return
+        }
+        await request.post('/api/card-entry/save-step/1' + qs, payload)
+      }
+      const qs = targetId ? `?target_user_id=${targetId}` : ''
+      if (qs) {
+        const step2Body = _buildStep2FromEdu(this.data.eduExperiences || [])
+        const step3Body = _buildStep3FromState(this.data)
+        const step4Body = _buildStep4FromState(this.data.resources || [], this.data.resourcesText || '')
+        const step6Body = _buildStep6FromExtra(this.data.extraInfo || '')
+        await Promise.all([
+          request.post('/api/card-entry/save-step/2' + qs, step2Body),
+          request.post('/api/card-entry/save-step/3' + qs, step3Body),
+          request.post('/api/card-entry/save-step/4' + qs, step4Body),
+          request.post('/api/card-entry/save-step/6' + qs, step6Body)
+        ])
+      }
       wx.hideLoading()
       wx.showToast({ title: '保存成功', icon: 'success' })
-      // 第1步保存成功后若有第2步则跳下一步
       if (this.data.hasAlumniConfig && this.data.currentStep === 1) {
         this.setData({ currentStep: 2 })
       }
     } catch (e) {
       wx.hideLoading()
-      wx.showToast({ title: '保存成功（本地）', icon: 'success' })
+      wx.showToast({ title: '保存失败', icon: 'none' })
       if (this.data.hasAlumniConfig && this.data.currentStep === 1) {
         this.setData({ currentStep: 2 })
       }

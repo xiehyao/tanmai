@@ -48,8 +48,9 @@ function request(options) {
           }
           reject(new Error('未登录'))
         } else if (res.statusCode >= 500) {
-          console.error('服务器错误:', res.statusCode)
-          reject(new Error('服务器暂时不可用，请稍后重试'))
+          console.error('服务器错误:', res.statusCode, res.data)
+          const detail = res.data && (res.data.detail || res.data.message)
+          reject(new Error(detail || '服务器暂时不可用，请稍后重试'))
         } else {
           reject(new Error(res.data?.message || '请求失败'))
         }

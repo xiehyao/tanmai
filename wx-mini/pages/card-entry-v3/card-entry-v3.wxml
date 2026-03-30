@@ -4,25 +4,48 @@
 <view class="v3-page">
   <!-- 工作人员模式提示条 -->
   <view class="staff-bar" wx:if="{{isStaffMode}}">
-    <text class="staff-tag">工作人员模式</text>
-    <text class="staff-target" wx:if="{{staffTargetUserId}}">当前编辑用户ID：{{staffTargetUserId}}</text>
-    <text class="staff-target" wx:else>当前编辑：自己</text>
+    <view class="staff-bar-row">
+      <text class="staff-tag">工作人员模式</text>
+      <text class="staff-target" wx:if="{{staffAddNewMode}}">当前编辑：新增校友</text>
+      <text class="staff-target" wx:elif="{{staffTargetUserId}}">当前编辑用户ID：{{staffTargetUserId}}</text>
+      <text class="staff-target" wx:else>当前编辑：自己</text>
+    </view>
+    <!-- 模式切换：代填信息 | 填写评价 -->
+    <view class="staff-mode-tabs" wx:if="{{isStaffMode}}">
+      <text class="staff-mode-tab {{!isInternalMode ? 'active' : ''}}" bindtap="switchToFillMode">代填信息</text>
+      <text class="staff-mode-tab-sep">|</text>
+      <text class="staff-mode-tab {{isInternalMode ? 'active' : ''}}" bindtap="switchToInternalMode">填写评价</text>
+    </view>
   </view>
   <!-- 工作人员模式：选择目标校友 -->
   <view class="staff-search-section" wx:if="{{isStaffMode}}">
-    <view class="staff-notice">
+    <view class="staff-notice" wx:if="{{!isInternalMode && !staffAddNewMode}}">
       <text class="notice-icon">⚠️</text>
       <text class="notice-text">代填信息将被校友本人及他人看到，会显示「（校友会代填）」备注，系统会记录您的操作。</text>
     </view>
-    <view class="selected-user" wx:if="{{targetUser && !showUserSearch}}">
-      <text class="selected-label">正在为以下用户填写：</text>
+    <view class="staff-notice internal-notice" wx:if="{{isInternalMode && !targetUser}}">
+      <text class="notice-icon">🔒</text>
+      <text class="notice-text">内部评价模式：您填写的信息仅用于匹配和风险控制，不会向校友本人或他人公开。</text>
+    </view>
+    <!-- 新增校友状态 -->
+    <view class="selected-user add-new-mode" wx:if="{{staffAddNewMode}}">
+      <text class="selected-label">新增校友</text>
+      <view class="selected-user-info">
+        <text class="user-name">填写后将创建新用户</text>
+        <text class="clear-btn" bindtap="cancelStaffAddNew">取消</text>
+      </view>
+    </view>
+    <!-- 已选择目标用户 -->
+    <view class="selected-user" wx:if="{{targetUser && !showUserSearch && !staffAddNewMode}}">
+      <text class="selected-label">{{isInternalMode ? '评价对象：' : '正在为以下用户填写：'}}</text>
       <view class="selected-user-info">
         <text class="user-name">{{targetUser.name || targetUser.nickname}}</text>
         <text class="user-info" wx:if="{{targetUser.company}}">{{targetUser.company}}</text>
         <text class="clear-btn" bindtap="onClearStaffTargetUser">更换</text>
       </view>
     </view>
-    <view class="search-box" wx:if="{{showUserSearch || !targetUser}}">
+    <!-- 搜索框 + 新增 -->
+    <view class="search-box" wx:if="{{(showUserSearch || !targetUser) && !staffAddNewMode}}">
       <input
         class="search-input"
         placeholder="搜索用户姓名或昵称..."
@@ -32,8 +55,9 @@
         bindconfirm="searchStaffUsers"
       />
       <text class="search-btn" bindtap="searchStaffUsers">搜索</text>
+      <text class="staff-add-new-btn" wx:if="{{!isInternalMode}}" bindtap="onStaffAddNew">新增</text>
     </view>
-    <view class="search-results" wx:if="{{showUserSearch && searchResults.length > 0}}">
+    <view class="search-results" wx:if="{{showUserSearch && searchResults.length > 0 && !staffAddNewMode}}">
       <view
         class="user-item"
         wx:for="{{searchResults}}"
@@ -70,11 +94,170 @@
     <view class="section" wx:if="{{!hasAlumniConfig || currentStep === 1}}">
       <view class="section-header">
         <text class="section-title">{{hasAlumniConfig ? '1. 基本信息' : '基本信息'}}</text>
-        <view class="add-btn" bindtap="onAddCompanyPosition">
+        <view class="add-btn" bindtap="onAddCompanyPosition" wx:if="{{!isInternalMode}}">
           <text class="add-icon">+</text>
           <text>添加多公司、多职位</text>
         </view>
       </view>
+      <!-- 填写评价模式：灰底原文 + 红框工作人员填写 -->
+      <block wx:if="{{isInternalMode}}">
+        <view class="form-row-internal">
+          <view class="form-row">
+            <text class="form-label">姓名 *</text>
+            <view class="form-input form-input-original">{{name || '（未填写）'}}</view>
+            <view class="visibility-cell" data-field="name" data-label="姓名" catchtap="onVisibilityTap">
+              <text class="visibility-icon">{{fieldVisibilityIcons.name || '👁️'}}</text>
+            </view>
+          </view>
+          <view class="form-row form-row-staff">
+            <input class="form-input form-input-staff" placeholder-class="staff-placeholder" placeholder="工作人员填写框" value="{{staffEvaluation.name}}" data-field="name" bindinput="onStaffEvaluationInput" />
+            <view class="visibility-cell" data-field="staff_name" data-label="姓名-评价" catchtap="onVisibilityTap">
+              <text class="visibility-icon">👁️</text>
+            </view>
+          </view>
+        </view>
+        <view class="form-row-internal">
+          <view class="form-row">
+            <text class="form-label">相片</text>
+            <view class="internal-original-photos">
+              <block wx:if="{{personal_photos && personal_photos.length > 0}}">
+                <image wx:for="{{personal_photos}}" wx:key="*this" class="internal-photo-thumb" src="{{item}}" mode="aspectFill" />
+              </block>
+              <text wx:else class="internal-avatar-label">（未上传）</text>
+            </view>
+            <view class="visibility-cell" data-field="photo" data-label="相片" catchtap="onVisibilityTap">
+              <text class="visibility-icon">{{fieldVisibilityIcons.photo || '👁️'}}</text>
+            </view>
+          </view>
+          <view class="form-row form-row-staff">
+            <input class="form-input form-input-staff" placeholder-class="staff-placeholder" placeholder="工作人员填写框" value="{{staffEvaluation.photo}}" data-field="photo" bindinput="onStaffEvaluationInput" />
+            <view class="visibility-cell"><text class="visibility-icon">👁️</text></view>
+          </view>
+        </view>
+        <view class="form-row-internal">
+          <view class="form-row">
+            <text class="form-label">微信昵称</text>
+            <view class="form-input form-input-original">{{nickname || '（未填写）'}}</view>
+            <view class="visibility-cell" data-field="nickname" data-label="微信昵称" catchtap="onVisibilityTap">
+              <text class="visibility-icon">{{fieldVisibilityIcons.nickname || '👁️'}}</text>
+            </view>
+          </view>
+          <view class="form-row form-row-staff">
+            <input class="form-input form-input-staff" placeholder-class="staff-placeholder" placeholder="工作人员填写框" value="{{staffEvaluation.nickname}}" data-field="nickname" bindinput="onStaffEvaluationInput" />
+            <view class="visibility-cell"><text class="visibility-icon">👁️</text></view>
+          </view>
+        </view>
+        <view class="form-row-internal">
+          <view class="form-row">
+            <text class="form-label">微信id</text>
+            <view class="form-input form-input-original">{{wechatId || '（未填写）'}}</view>
+            <view class="visibility-cell" data-field="wechatId" data-label="微信id" catchtap="onVisibilityTap">
+              <text class="visibility-icon">{{fieldVisibilityIcons.wechatId || '👁️'}}</text>
+            </view>
+          </view>
+          <view class="form-row form-row-staff">
+            <input class="form-input form-input-staff" placeholder-class="staff-placeholder" placeholder="工作人员填写框" value="{{staffEvaluation.wechatId}}" data-field="wechatId" bindinput="onStaffEvaluationInput" />
+            <view class="visibility-cell"><text class="visibility-icon">👁️</text></view>
+          </view>
+        </view>
+        <view class="form-row-internal">
+          <view class="form-row">
+            <text class="form-label">头像</text>
+            <view class="internal-original-avatar-wrap">
+              <image wx:if="{{avatar}}" class="internal-avatar-img" src="{{avatar}}" mode="aspectFill" />
+              <view wx:else class="internal-avatar-img" />
+              <text class="internal-avatar-label">{{avatar ? '已设置' : '（未设置）'}}</text>
+            </view>
+            <view class="visibility-cell" data-field="avatar" data-label="头像" catchtap="onVisibilityTap">
+              <text class="visibility-icon">{{fieldVisibilityIcons.avatar || '👁️'}}</text>
+            </view>
+          </view>
+          <view class="form-row form-row-staff">
+            <input class="form-input form-input-staff" placeholder-class="staff-placeholder" placeholder="工作人员填写框" value="{{staffEvaluation.avatar}}" data-field="avatar" bindinput="onStaffEvaluationInput" />
+            <view class="visibility-cell"><text class="visibility-icon">👁️</text></view>
+          </view>
+        </view>
+        <view class="form-row-internal">
+          <view class="form-row">
+            <text class="form-label">性别</text>
+            <view class="form-input form-input-original">{{genderLabel || '（未选择）'}}</view>
+            <view class="visibility-cell" data-field="gender" data-label="性别" catchtap="onVisibilityTap">
+              <text class="visibility-icon">{{fieldVisibilityIcons.gender || '👁️'}}</text>
+            </view>
+          </view>
+          <view class="form-row form-row-staff">
+            <input class="form-input form-input-staff" placeholder-class="staff-placeholder" placeholder="工作人员填写框" value="{{staffEvaluation.gender}}" data-field="gender" bindinput="onStaffEvaluationInput" />
+            <view class="visibility-cell"><text class="visibility-icon">👁️</text></view>
+          </view>
+        </view>
+        <view class="form-row-internal">
+          <view class="form-row">
+            <text class="form-label">籍贯</text>
+            <view class="form-input form-input-original">{{birthPlace || '（未填写）'}}</view>
+            <view class="visibility-cell" data-field="birthPlace" data-label="籍贯" catchtap="onVisibilityTap">
+              <text class="visibility-icon">{{fieldVisibilityIcons.birthPlace || '👁️'}}</text>
+            </view>
+          </view>
+          <view class="form-row form-row-staff">
+            <input class="form-input form-input-staff" placeholder-class="staff-placeholder" placeholder="工作人员填写框" value="{{staffEvaluation.birthPlace}}" data-field="birthPlace" bindinput="onStaffEvaluationInput" />
+            <view class="visibility-cell"><text class="visibility-icon">👁️</text></view>
+          </view>
+        </view>
+        <view class="form-row-internal">
+          <view class="form-row">
+            <text class="form-label">公司 *</text>
+            <view class="form-input form-input-original">{{company || '（未填写）'}}</view>
+            <view class="visibility-cell" data-field="company" data-label="公司" catchtap="onVisibilityTap">
+              <text class="visibility-icon">{{fieldVisibilityIcons.company || '👁️'}}</text>
+            </view>
+          </view>
+          <view class="form-row form-row-staff">
+            <input class="form-input form-input-staff" placeholder-class="staff-placeholder" placeholder="工作人员填写框" value="{{staffEvaluation.company}}" data-field="company" bindinput="onStaffEvaluationInput" />
+            <view class="visibility-cell"><text class="visibility-icon">👁️</text></view>
+          </view>
+        </view>
+        <view class="form-row-internal">
+          <view class="form-row">
+            <text class="form-label">职位 *</text>
+            <view class="form-input form-input-original">{{title || '（未填写）'}}</view>
+            <view class="visibility-cell" data-field="title" data-label="职位" catchtap="onVisibilityTap">
+              <text class="visibility-icon">{{fieldVisibilityIcons.title || '👁️'}}</text>
+            </view>
+          </view>
+          <view class="form-row form-row-staff">
+            <input class="form-input form-input-staff" placeholder-class="staff-placeholder" placeholder="工作人员填写框" value="{{staffEvaluation.title}}" data-field="title" bindinput="onStaffEvaluationInput" />
+            <view class="visibility-cell"><text class="visibility-icon">👁️</text></view>
+          </view>
+        </view>
+        <view class="form-row-internal">
+          <view class="form-row">
+            <text class="form-label">社会团体</text>
+            <view class="form-input form-input-original form-input-original-multi">{{association_title || '（未填写）'}}</view>
+            <view class="visibility-cell" data-field="association_title" data-label="社会团体" catchtap="onVisibilityTap">
+              <text class="visibility-icon">{{fieldVisibilityIcons.association_title || '👁️'}}</text>
+            </view>
+          </view>
+          <view class="form-row form-row-staff">
+            <textarea class="form-input form-input-staff multi-line" placeholder-class="staff-placeholder" placeholder="工作人员填写框" value="{{staffEvaluation.association_title}}" data-field="association_title" bindinput="onStaffEvaluationInput" />
+            <view class="visibility-cell"><text class="visibility-icon">👁️</text></view>
+          </view>
+        </view>
+        <view class="form-row-internal">
+          <view class="form-row">
+            <text class="form-label">行业</text>
+            <view class="form-input form-input-original">{{industry || '（未填写）'}}</view>
+            <view class="visibility-cell" data-field="industry" data-label="行业" catchtap="onVisibilityTap">
+              <text class="visibility-icon">{{fieldVisibilityIcons.industry || '👁️'}}</text>
+            </view>
+          </view>
+          <view class="form-row form-row-staff">
+            <input class="form-input form-input-staff" placeholder-class="staff-placeholder" placeholder="工作人员填写框" value="{{staffEvaluation.industry}}" data-field="industry" bindinput="onStaffEvaluationInput" />
+            <view class="visibility-cell"><text class="visibility-icon">👁️</text></view>
+          </view>
+        </view>
+      </block>
+      <!-- 代填/普通模式：正常可编辑表单 -->
+      <block wx:if="{{!isInternalMode}}">
       <view class="form-row">
         <text class="form-label">姓名 *</text>
         <input class="form-input" placeholder="请输入姓名" value="{{name}}" data-field="name" bindinput="onInputChange" bindblur="onFieldBlur" />
@@ -176,6 +359,7 @@
         </view>
         <text class="form-arrow">></text>
       </view>
+      </block>
     </view>
 
     <!-- 3. 联系方式（第1步） -->
@@ -937,7 +1121,7 @@
         <text class="form-label">简介文字</text>
         <textarea
           class="form-input multi-line intro-textarea"
-          placeholder="大学-届别-专业&#10;毕业年份-工作地点&#10;目前常住区域&#10;就职单位-目前工作/创业状态&#10;目前是否有需要 需求-资源&#10;运动/兴趣爱好&#10;联系电话-是否方便约&#10;等等..."
+          placeholder="{{introPlaceholder}}"
           value="{{introForm.introText}}"
           data-field="introText"
           bindinput="onIntroFormInput"

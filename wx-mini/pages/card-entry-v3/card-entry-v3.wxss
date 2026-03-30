@@ -146,6 +146,16 @@
   border-bottom: 1rpx solid #eee;
 }
 
+.form-row-internal > .form-row:first-child {
+  /* 填写评价模式：上面的灰色原文不画分隔线 */
+  border-bottom: none;
+}
+
+.form-row-internal > .form-row-staff {
+  /* 填写评价模式：只在红色工作人员输入框下方保留更明显的分隔线 */
+  border-bottom: 2rpx solid #e5e7eb;
+}
+
 .form-row:last-child {
   border-bottom: none;
 }
@@ -226,6 +236,96 @@
 .form-input-placeholder {
   color: #999;
   font-size: 28rpx;
+}
+
+/* 填写评价模式：灰底原文 + 红框工作人员填写 */
+.form-row-internal {
+  margin-bottom: 16rpx;
+}
+.form-row-internal .form-row-staff {
+  margin-top: 4rpx;
+}
+.internal-separator {
+  margin-top: 12rpx;
+  padding-left: 160rpx;
+  font-size: 24rpx;
+  color: #d1d5db;
+  letter-spacing: 2rpx;
+}
+.form-input.form-input-original {
+  flex: 1;
+  min-height: 64rpx;
+  padding: 12rpx 16rpx;
+  background: #e5e7eb;
+  color: #6b7280;
+  font-size: 26rpx;
+  border-radius: 8rpx;
+  border: none;
+}
+.form-input-original.form-input-original-multi {
+  min-height: 72rpx;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+/* 相片/头像：非输入框的展示容器 */
+.internal-original-photos {
+  flex: 1;
+  min-height: 80rpx;
+  padding: 12rpx 16rpx;
+  background: #e5e7eb;
+  border-radius: 8rpx;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+.internal-original-photos .internal-photo-thumb {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 8rpx;
+  background: #d1d5db;
+}
+.internal-original-avatar-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 12rpx 16rpx;
+  background: #e5e7eb;
+  border-radius: 8rpx;
+  min-height: 80rpx;
+}
+.internal-original-avatar-wrap .internal-avatar-img {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 8rpx;
+  background: #d1d5db;
+}
+.internal-original-avatar-wrap .internal-avatar-label {
+  font-size: 26rpx;
+  color: #6b7280;
+}
+.form-row-staff {
+  margin-top: 4rpx;
+  padding-left: 160rpx; /* 与左侧 label 宽度一致，让红框与原输入框左对齐 */
+}
+.form-input.form-input-staff {
+  flex: 1;
+  min-height: 64rpx;
+  padding: 12rpx 16rpx;
+  background: #fff;
+  border: 2rpx solid #dc2626;
+  border-radius: 8rpx;
+  font-size: 26rpx;
+  color: #dc2626;
+}
+/* 工作人员输入框 placeholder 淡红色，与红框/红字一致 */
+.staff-placeholder {
+  color: #f87171 !important;
+}
+.form-input-staff.multi-line {
+  min-height: 72rpx;
+  color: #dc2626;
 }
 
 /* 头像选择半屏网格 */
@@ -377,6 +477,11 @@
   padding: 12rpx 24rpx;
   background: #f3f4ff;
   display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+.staff-bar-row {
+  display: flex;
   align-items: center;
   gap: 16rpx;
 }
@@ -390,6 +495,43 @@
 .staff-target {
   font-size: 24rpx;
   color: #4b5563;
+}
+.staff-mode-tabs {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+.staff-mode-tab {
+  font-size: 24rpx;
+  color: #667eea;
+  text-decoration: underline;
+}
+.staff-mode-tab.active {
+  font-size: 26rpx;
+  color: #333;
+  font-weight: 500;
+  text-decoration: none;
+}
+.staff-mode-tab-sep {
+  font-size: 24rpx;
+  color: #ccc;
+}
+.staff-add-new-btn {
+  margin-left: 12rpx;
+  padding: 8rpx 20rpx;
+  font-size: 26rpx;
+  color: #fff;
+  background: #10b981;
+  border-radius: 8rpx;
+}
+.selected-user.add-new-mode .user-name {
+  color: #059669;
+}
+.staff-notice.internal-notice {
+  background: #e0f2fe;
+}
+.staff-notice.internal-notice .notice-text {
+  color: #0369a1;
 }
 
 .staff-search-section {

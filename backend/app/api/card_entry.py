@@ -60,6 +60,15 @@ async def save_step_1(
         body = await request.json()
     except Exception:
         raise HTTPException(status_code=400, detail="无效的 JSON")
+    # 调试：观察前端是否传入 association_title / industry
+    try:
+        print("save_step_1 body keys:", sorted(list(body.keys())))
+        if "association_title" in body:
+            print("  association_title =", repr(body.get("association_title")))
+        if "industry" in body:
+            print("  industry =", repr(body.get("industry")))
+    except Exception:
+        pass
     create_new = body.get("create_new", False)
     target_user_id = _parse_target_user_id(request)
 
@@ -101,6 +110,8 @@ async def save_step_1(
             last_updated_by=None,
             last_updated_role="staff",
             field_source=json.dumps({"name": "staff", "company": "staff"}),
+            association_title=body.get("association_title") or None,
+            industry=body.get("industry") or None,
         )
         personal_photos = body.get("personal_photos")
         if isinstance(personal_photos, list):
@@ -138,6 +149,8 @@ async def save_step_1(
     card.phone = body.get("phone") or card.phone
     card.email = body.get("email") or card.email
     card.bio = body.get("bio") or card.bio
+    card.association_title = (body.get("association_title") or "").strip() or None
+    card.industry = (body.get("industry") or "").strip() or None
     fv = body.get("field_visibility")
     if fv is not None:
         card.field_visibility = json.dumps(fv) if isinstance(fv, dict) else str(fv)
@@ -192,8 +205,58 @@ async def save_step_n(
     return {"ok": True}
 
 
+def _int_or_none(v):
+    if v is None:
+        return None
+    if isinstance(v, int):
+        return v
+    try:
+        return int(v) if v != "" else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _str_or_none(v):
+    if v is None:
+        return None
+    return str(v).strip() or None
+
+
+# 前端传中文（小学/初中/高中/本科/硕士/博士），DB 可能为 ENUM/短 VARCHAR，统一存英文
+DEGREE_ZH_TO_EN = {
+    "小学": "primary",
+    "初中": "junior",
+    "高中": "high_school",
+    "本科": "bachelor",
+    "硕士": "master",
+    "博士": "doctor",
+}
+DEGREE_EN_TO_ZH = {v: k for k, v in DEGREE_ZH_TO_EN.items()}
+
+
 def _save_education(db: Session, uid: int, b: dict) -> None:
     db.execute(text("DELETE FROM user_education WHERE user_id = :uid"), {"uid": uid})
+    hd_raw = _str_or_none(b.get("highest_degree"))
+    hd = DEGREE_ZH_TO_EN.get(hd_raw, hd_raw) if hd_raw else None
+    params = {
+        "uid": uid,
+        "ps": _str_or_none(b.get("primary_school")),
+        "py": _int_or_none(b.get("primary_graduation_year")),
+        "ms": _str_or_none(b.get("middle_school")),
+        "my": _int_or_none(b.get("middle_graduation_year")),
+        "hs": _str_or_none(b.get("high_school")),
+        "hy": _int_or_none(b.get("high_graduation_year")),
+        "bu": _str_or_none(b.get("bachelor_university")),
+        "bm": _str_or_none(b.get("bachelor_major")),
+        "by": _int_or_none(b.get("bachelor_graduation_year")),
+        "mu": _str_or_none(b.get("master_university")),
+        "mm": _str_or_none(b.get("master_major")),
+        "my2": _int_or_none(b.get("master_graduation_year")),
+        "du": _str_or_none(b.get("doctor_university")),
+        "dm": _str_or_none(b.get("doctor_major")),
+        "dy": _int_or_none(b.get("doctor_graduation_year")),
+        "hd": hd,
+    }
     db.execute(
         text("""
             INSERT INTO user_education (user_id, primary_school, primary_graduation_year, middle_school,
@@ -202,13 +265,7 @@ def _save_education(db: Session, uid: int, b: dict) -> None:
                 doctor_university, doctor_major, doctor_graduation_year, highest_degree)
             VALUES (:uid, :ps, :py, :ms, :my, :hs, :hy, :bu, :bm, :by, :mu, :mm, :my2, :du, :dm, :dy, :hd)
         """),
-        {"uid": uid, "ps": b.get("primary_school"), "py": b.get("primary_graduation_year"),
-         "ms": b.get("middle_school"), "my": b.get("middle_graduation_year"),
-         "hs": b.get("high_school"), "hy": b.get("high_graduation_year"),
-         "bu": b.get("bachelor_university"), "bm": b.get("bachelor_major"), "by": b.get("bachelor_graduation_year"),
-         "mu": b.get("master_university"), "mm": b.get("master_major"), "my2": b.get("master_graduation_year"),
-         "du": b.get("doctor_university"), "dm": b.get("doctor_major"), "dy": b.get("doctor_graduation_year"),
-         "hd": b.get("highest_degree")},
+        params,
     )
 
 
@@ -400,6 +457,8 @@ def _build_step1_from_user_card(db: Session, user: User, card: Optional[UserCard
         "phone": card.phone if card else None,
         "email": card.email if card else None,
         "bio": card.bio if card else None,
+        "association_title": card.association_title if card else None,
+        "industry": card.industry if card else None,
         "field_visibility": fv,
         "field_source": fs,
         "locations": locations,
@@ -430,7 +489,10 @@ async def get_card_entry_data(
         db.query(UserCard).filter(UserCard.user_id == target_user_id).order_by(UserCard.id.asc()).first()
     )
     step1 = _build_step1_from_user_card(db, user, card, target_user_id)
-    step2 = _get_education(db, target_user_id) or {}
+    step2_raw = _get_education(db, target_user_id) or {}
+    step2 = dict(step2_raw)
+    if step2.get("highest_degree") and step2["highest_degree"] in DEGREE_EN_TO_ZH:
+        step2["highest_degree"] = DEGREE_EN_TO_ZH[step2["highest_degree"]]
     step3 = _get_needs(db, target_user_id) or {}
     step4 = {"resources": _get_resources(db, target_user_id)}
     step5 = _get_association_info(db, target_user_id) or {}

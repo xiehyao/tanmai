@@ -24,5 +24,7 @@ class UserCard(Base):
     last_updated_role = Column(String(20), nullable=True)
     field_source = Column(Text, nullable=True)
     personal_photos = Column(Text, nullable=True)  # JSON 字符串
+    association_title = Column(String(500), nullable=True)  # 社会团体（多行头衔）
+    industry = Column(String(200), nullable=True)  # 行业
 
 
