@@ -238,6 +238,7 @@
           const userPageSize = ref(20);
           const usersTotal = ref(0);
           const usersItems = ref([]);
+          const selectedUserIds = ref([]);
 
           const userModalOpen = ref(false);
           const editingUserId = ref(null);
@@ -267,6 +268,7 @@
           const cardPageSize = ref(20);
           const cardsTotal = ref(0);
           const cardsItems = ref([]);
+          const selectedCardIds = ref([]);
 
           const cardModalOpen = ref(false);
           const editingCardId = ref(null);
@@ -290,6 +292,7 @@
           const alumniPageSize = ref(20);
           const alumniTotal = ref(0);
           const alumniItems = ref([]);
+          const selectedAlumniIds = ref([]);
 
           const alumniModalOpen = ref(false);
           const editingAlumniId = ref(null);
@@ -383,6 +386,68 @@
             });
           }
 
+          function clearSelection() {
+            selectedUserIds.value = [];
+            selectedCardIds.value = [];
+            selectedAlumniIds.value = [];
+          }
+
+          function toggleSelected(kind, id) {
+            const arr =
+              kind === "users"
+                ? selectedUserIds.value
+                : kind === "cards"
+                  ? selectedCardIds.value
+                  : selectedAlumniIds.value;
+            const idx = arr.indexOf(id);
+            if (idx >= 0) arr.splice(idx, 1);
+            else arr.push(id);
+          }
+
+          function selectAllOnPage() {
+            if (page.value === "users") {
+              selectedUserIds.value = (usersItems.value || []).map((x) => x.id);
+            } else if (page.value === "cards") {
+              selectedCardIds.value = (cardsItems.value || []).map((x) => x.id);
+            } else if (page.value === "alumni") {
+              selectedAlumniIds.value = (alumniItems.value || []).map((x) => x.id);
+            }
+          }
+
+          async function batchDelete() {
+            const ids =
+              page.value === "users"
+                ? selectedUserIds.value
+                : page.value === "cards"
+                  ? selectedCardIds.value
+                  : selectedAlumniIds.value;
+            if (!ids || ids.length === 0) {
+              setMessage("未选择任何项");
+              return;
+            }
+            if (!confirm(`确认批量删除 ${page.value}：共 ${ids.length} 条？`)) return;
+
+            busy.value = true;
+            try {
+              for (const id of ids.slice()) {
+                if (page.value === "users") {
+                  await apiRequest("/api/admin/users/" + id, { token: token.value, method: "DELETE" });
+                } else if (page.value === "cards") {
+                  await apiRequest("/api/admin/cards/" + id, { token: token.value, method: "DELETE" });
+                } else {
+                  await apiRequest("/api/admin/alumni/" + id, { token: token.value, method: "DELETE" });
+                }
+              }
+              clearSelection();
+              await refreshCurrentList();
+              setMessage("批量删除完成");
+            } catch (e) {
+              setMessage("批量删除失败：" + (e?.message || String(e)));
+            } finally {
+              busy.value = false;
+            }
+          }
+
           async function doLogin() {
             busy.value = true;
             message.value = "";
@@ -427,6 +492,7 @@
               });
               usersItems.value = data?.data?.items || [];
               usersTotal.value = data?.data?.total || 0;
+              selectedUserIds.value = [];
             } catch (e) {
               setMessage("加载 users 失败：" + (e?.message || String(e)));
             } finally {
@@ -447,6 +513,7 @@
               });
               cardsItems.value = data?.data?.items || [];
               cardsTotal.value = data?.data?.total || 0;
+              selectedCardIds.value = [];
             } catch (e) {
               setMessage("加载 cards 失败：" + (e?.message || String(e)));
             } finally {
@@ -467,6 +534,7 @@
               });
               alumniItems.value = data?.data?.items || [];
               alumniTotal.value = data?.data?.total || 0;
+              selectedAlumniIds.value = [];
             } catch (e) {
               setMessage("加载 alumni 失败：" + (e?.message || String(e)));
             } finally {
@@ -781,6 +849,7 @@
               if (page.value === "cards" && cardPage.value < pageCount(cardsTotal.value, cardPageSize.value)) cardPage.value++;
               if (page.value === "alumni" && alumniPage.value < pageCount(alumniTotal.value, alumniPageSize.value)) alumniPage.value++;
             }
+            clearSelection();
             refreshCurrentList();
           }
 
@@ -788,6 +857,7 @@
             token.value = "";
             localStorage.removeItem("tanmai_admin_token");
             setMessage("");
+            clearSelection();
           }
 
           function saveApiBase() {
@@ -816,6 +886,7 @@
             userPageSize,
             usersTotal,
             usersItems,
+            selectedUserIds,
             userModalOpen,
             editingUserId,
             userForm,
@@ -824,12 +895,17 @@
             submitUserModal,
             deleteUser,
             loadUsers,
+            // Batch actions
+            selectAllOnPage,
+            batchDelete,
+            toggleSelected,
             // Cards
             cardKeyword,
             cardPage,
             cardPageSize,
             cardsTotal,
             cardsItems,
+            selectedCardIds,
             cardModalOpen,
             editingCardId,
             cardForm,
@@ -844,6 +920,7 @@
             alumniPageSize,
             alumniTotal,
             alumniItems,
+            selectedAlumniIds,
             alumniModalOpen,
             editingAlumniId,
             alumniForm,
@@ -910,6 +987,8 @@
                   <label>搜索</label>
                   <input v-model="userKeyword" placeholder="姓名 / 昵称 / 公司" style="min-width:340px;" />
                   <button class="btn" @click="loadUsers" :disabled="busy">查询</button>
+                  <button class="btn" @click="selectAllOnPage">全选</button>
+                  <button class="btn danger" :disabled="selectedUserIds.length===0" @click="batchDelete">批量删除</button>
                   <div class="spacer"></div>
                   <button class="btn primary" @click="openCreateUser">新增用户</button>
                 </div>
@@ -932,6 +1011,13 @@
                 <table>
                   <thead>
                     <tr>
+                      <th style="width:46px;">
+                        <input
+                          type="checkbox"
+                          :checked="usersItems && usersItems.length>0 && selectedUserIds.length===usersItems.length"
+                          @change="($event.target.checked)?selectAllOnPage():selectedUserIds=[]"
+                        />
+                      </th>
                       <th style="width:68px;">id</th>
                       <th style="width:260px;">openid</th>
                       <th>姓名/昵称</th>
@@ -942,6 +1028,9 @@
                   </thead>
                   <tbody>
                     <tr v-for="it in usersItems" :key="it.id">
+                      <td>
+                        <input type="checkbox" :checked="selectedUserIds.includes(it.id)" @change="toggleSelected('users', it.id)" />
+                      </td>
                       <td>{{ it.id }}</td>
                       <td class="code" style="font-size:12px;">{{ it.openid }}</td>
                       <td>
@@ -961,7 +1050,7 @@
                       </td>
                     </tr>
                     <tr v-if="!usersItems || usersItems.length===0">
-                      <td colspan="6" class="muted">暂无数据</td>
+                      <td colspan="7" class="muted">暂无数据</td>
                     </tr>
                   </tbody>
                 </table>
@@ -973,6 +1062,8 @@
                   <label>搜索</label>
                   <input v-model="cardKeyword" placeholder="姓名/昵称/名片标题/公司" style="min-width:360px;" />
                   <button class="btn" @click="loadCards" :disabled="busy">查询</button>
+                  <button class="btn" @click="selectAllOnPage">全选</button>
+                  <button class="btn danger" :disabled="selectedCardIds.length===0" @click="batchDelete">批量删除</button>
                   <div class="spacer"></div>
                   <button class="btn primary" @click="openCreateCard">新增/保存名片</button>
                 </div>
@@ -995,6 +1086,13 @@
                 <table>
                   <thead>
                     <tr>
+                      <th style="width:46px;">
+                        <input
+                          type="checkbox"
+                          :checked="cardsItems && cardsItems.length>0 && selectedCardIds.length===cardsItems.length"
+                          @change="($event.target.checked)?selectAllOnPage():selectedCardIds=[]"
+                        />
+                      </th>
                       <th style="width:70px;">card id</th>
                       <th style="width:110px;">user id</th>
                       <th>姓名</th>
@@ -1005,6 +1103,9 @@
                   </thead>
                   <tbody>
                     <tr v-for="it in cardsItems" :key="it.id">
+                      <td>
+                        <input type="checkbox" :checked="selectedCardIds.includes(it.id)" @change="toggleSelected('cards', it.id)" />
+                      </td>
                       <td>{{ it.id }}</td>
                       <td class="code">{{ it.user_id }}</td>
                       <td>
@@ -1027,7 +1128,7 @@
                       </td>
                     </tr>
                     <tr v-if="!cardsItems || cardsItems.length===0">
-                      <td colspan="6" class="muted">暂无数据</td>
+                      <td colspan="7" class="muted">暂无数据</td>
                     </tr>
                   </tbody>
                 </table>
@@ -1039,6 +1140,8 @@
                   <label>搜索</label>
                   <input v-model="alumniKeyword" placeholder="姓名/昵称/公司" style="min-width:360px;" />
                   <button class="btn" @click="loadAlumni" :disabled="busy">查询</button>
+                  <button class="btn" @click="selectAllOnPage">全选</button>
+                  <button class="btn danger" :disabled="selectedAlumniIds.length===0" @click="batchDelete">批量删除</button>
                   <div class="spacer"></div>
                   <button class="btn primary" @click="openCreateAlumni">新增校友</button>
                 </div>
@@ -1061,6 +1164,13 @@
                 <table>
                   <thead>
                     <tr>
+                      <th style="width:46px;">
+                        <input
+                          type="checkbox"
+                          :checked="alumniItems && alumniItems.length>0 && selectedAlumniIds.length===alumniItems.length"
+                          @change="($event.target.checked)?selectAllOnPage():selectedAlumniIds=[]"
+                        />
+                      </th>
                       <th style="width:68px;">id</th>
                       <th style="width:260px;">openid</th>
                       <th>姓名/昵称</th>
@@ -1071,6 +1181,9 @@
                   </thead>
                   <tbody>
                     <tr v-for="it in alumniItems" :key="it.id">
+                      <td>
+                        <input type="checkbox" :checked="selectedAlumniIds.includes(it.id)" @change="toggleSelected('alumni', it.id)" />
+                      </td>
                       <td>{{ it.id }}</td>
                       <td class="code" style="font-size:12px;">{{ it.openid }}</td>
                       <td>
@@ -1090,7 +1203,7 @@
                       </td>
                     </tr>
                     <tr v-if="!alumniItems || alumniItems.length===0">
-                      <td colspan="6" class="muted">暂无数据</td>
+                      <td colspan="7" class="muted">暂无数据</td>
                     </tr>
                   </tbody>
                 </table>
