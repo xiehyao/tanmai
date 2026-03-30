@@ -1,4 +1,4 @@
-## Mac 本地开发与三备份 Git 流程（tanmai & FPAI 通用）
+## Mac 本地开发与三备份 Git 流程（tanmai）
 
 ### 1. 在 Mac 上 git clone
 
@@ -19,8 +19,6 @@ git clone http://43.143.224.158:3000/root/tanmai.git
 # 新加坡 Gitea（43.160.245.130）
 git clone http://43.160.245.130:3000/root/tanmai.git
 ```
-
-> 克隆 FPAI 项目时，将 `tanmai.git` 换成 `fpai.git` 即可，远端名依然建议为 `origin` / `sgp` / `github` 三个。
 
 ### 2. Mac 本地 git commit + 三备份 push
 
@@ -91,7 +89,7 @@ tanmai-git-push.sh ~/workspace/tanmai "后端：xxx 接口优化"
 
 ```bash
 # MySQL：指向服务器 IP，而不是 localhost
-DATABASE_URL=mysql+pymysql://apache:你的密码@43.143.224.158:3306/tanmai
+DATABASE_URL=mysql+pymysql://apache:pengyoo123@43.143.224.158:3306/tanmai
 
 # Redis：若需要也走服务器
 REDIS_HOST=43.143.224.158
@@ -126,12 +124,4 @@ python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 - COS 头像等资源为固定公网 URL，不依赖本地环境。
 
 如需切换到「测试环境 API 域名」，只需要在 `wx-mini/config.js` 中设置不同的 `apiBase`，不必改后端代码。
-
-### 5. FPAI 项目复用建议
-
-在 FPAI 仓库中，建议：
-
-1. 沿用同样的三远端命名：`origin` / `sgp` / `github`，并复制一份 `scripts/git-sync.sh`。
-2. 后端同样通过 `.env` 控制 `DATABASE_URL` / Redis / COS / AI 网关等信息。
-3. 本文档的结构可以在 FPAI 下拷贝一份并按实际域名 / 数据库名进行替换。
 
