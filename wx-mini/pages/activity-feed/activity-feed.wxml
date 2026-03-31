@@ -60,4 +60,7 @@
     </view>
     <view class="feed-bottom-pad"></view>
   </scroll-view>
+  <view class="create-post-bar">
+    <button class="create-post-btn" bindtap="onCreatePostTap">我要发贴</button>
+  </view>
 </view>

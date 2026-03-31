@@ -220,7 +220,7 @@ Page({
   },
 
   goToCardEntry() {
-    wx.navigateTo({ url: '/pages/card-entry/card-entry' })
+    wx.navigateTo({ url: '/pages/card-entry-v3/card-entry-v3' })
   },
 
   goToMap() {

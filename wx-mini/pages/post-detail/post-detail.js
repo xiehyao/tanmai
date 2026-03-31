@@ -1,7 +1,13 @@
 // pages/post-detail/post-detail.js - 帖子详情页（类似朋友圈阅读评论）
 const request = require('../../utils/request.js')
+const STORAGE_KEY = 'activity_feed_user_posts'
 
 function mockPost(id) {
+  const userPosts = wx.getStorageSync(STORAGE_KEY)
+  if (Array.isArray(userPosts)) {
+    const found = userPosts.find(p => p && p.id === id)
+    if (found) return found
+  }
   const posts = {
     'tea-1': {
       id: 'tea-1',

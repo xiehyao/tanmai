@@ -32,7 +32,7 @@
     </view>
 
     <!-- 活动参与区 -->
-    <view class="participation-section">
+    <view class="participation-section" wx:if="{{post.enableSignup !== false}}">
       <view class="signup-btn-wrap">
         <view
           class="signup-btn {{signupStatus === 'confirmed' ? 'signup-btn-done' : ''}} {{signupStatus === 'pending' ? 'signup-btn-pending' : ''}}"

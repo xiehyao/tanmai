@@ -19,6 +19,7 @@
     "pages/exchange/exchange",
     "pages/match/match",
     "pages/activity-feed/activity-feed",
+    "pages/activity-post-create/activity-post-create",
     "pages/post-detail/post-detail",
     "pages/contacts/contacts",
     "pages/card-folder/card-folder"

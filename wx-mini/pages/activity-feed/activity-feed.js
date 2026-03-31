@@ -40,6 +40,11 @@ function mockPosts() {
   ]
 }
 
+function loadUserPosts() {
+  const list = wx.getStorageSync('activity_feed_user_posts')
+  return Array.isArray(list) ? list : []
+}
+
 Page({
   data: {
     posts: [],
@@ -66,10 +71,10 @@ Page({
   async loadPosts() {
     this.setData({ loading: true })
     try {
-      const posts = mockPosts()
+      const posts = [...loadUserPosts(), ...mockPosts()]
       this.setData({ posts, loading: false })
     } catch (e) {
-      this.setData({ posts: mockPosts(), loading: false })
+      this.setData({ posts: [...loadUserPosts(), ...mockPosts()], loading: false })
     }
   },
 
@@ -87,5 +92,13 @@ Page({
   goToPostDetail(e) {
     const id = e.currentTarget.dataset.id
     if (id) wx.navigateTo({ url: `/pages/post-detail/post-detail?post_id=${id}` })
+  },
+
+  onCreatePostTap() {
+    wx.navigateTo({ url: '/pages/activity-post-create/activity-post-create' })
+  },
+
+  onShow() {
+    this.loadPosts()
   }
 })
