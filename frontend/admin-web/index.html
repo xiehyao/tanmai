@@ -369,6 +369,7 @@
           const usersItems = ref([]);
           const selectedUserIds = ref([]);
           const activeUserId = ref(null);
+          const activeUserDetailTab = ref("raw"); // raw | mini
 
           const userModalOpen = ref(false);
           const editingUserId = ref(null);
@@ -1364,6 +1365,7 @@
             activeUserRecord,
             selectUserRecord,
             activeUserEdit,
+            activeUserDetailTab,
             saveActiveUserDetail,
             openQuickCreate,
             submitQuickCreate,
@@ -1526,121 +1528,219 @@
                         <h4 class="detail-title" style="margin:0;">用户详情（id={{ activeUserRecord().id }}）</h4>
                         <div class="spacer"></div>
                         <button class="btn ghost" @click="openViewUser(activeUserRecord())">查看(JSON)</button>
-                        <button class="btn primary" @click="saveActiveUserDetail" :disabled="busy">保存修改</button>
                         <button class="btn danger" @click="deleteUser(activeUserRecord())">删除</button>
                       </div>
 
-                      <p class="muted" style="margin:0 0 12px;">
-                        该用户共有 <strong>{{ (activeUserEdit.user_cards_summary && activeUserEdit.user_cards_summary.length) || 0 }}</strong> 张名片；下方「关联 Cards」以 <strong>id 最大</strong> 的一张为准（与列表/保存一致）。若多张名片曾分别写入，step6 会合并展示。
-                      </p>
-                      <h4 class="detail-title">Users 字段</h4>
-                      <div class="detail-grid">
-                        <div class="detail-key">id</div><div class="detail-val code is-disabled">{{ activeUserEdit.id }}</div>
-                        <div class="detail-key">openid</div><div class="detail-val code is-disabled">{{ activeUserEdit.openid || '-' }}</div>
-                        <div class="detail-key">name</div><div><input class="detail-input" v-model="activeUserEdit.name" /></div>
-                        <div class="detail-key">nickname</div><div><input class="detail-input" v-model="activeUserEdit.nickname" /></div>
-                        <div class="detail-key">avatar</div>
-                        <div>
-                          <img v-if="activeUserEdit.avatar" :src="activeUserEdit.avatar" class="avatar-mini" />
-                          <input class="detail-input code" v-model="activeUserEdit.avatar" placeholder="avatar URL" />
+                      <div class="tabs small" style="margin-bottom:10px;">
+                        <button
+                          class="btn"
+                          :style="activeUserDetailTab==='raw'? 'border-color: rgba(79, 140, 255, 0.7); background: rgba(79, 140, 255, 0.15);':''"
+                          @click="activeUserDetailTab='raw'"
+                        >
+                          原始数据（多表全字段，只读）
+                        </button>
+                        <button
+                          class="btn"
+                          :style="activeUserDetailTab==='mini'? 'border-color: rgba(79, 140, 255, 0.7); background: rgba(79, 140, 255, 0.15);':''"
+                          @click="activeUserDetailTab='mini'"
+                        >
+                          小程序展示 / 编辑
+                        </button>
+                      </div>
+
+                      <!-- Tab 1：原始数据，只读 -->
+                      <div v-if="activeUserDetailTab==='raw'">
+                        <p class="muted" style="margin:0 0 12px;">
+                          该用户共有 <strong>{{ (activeUserEdit.user_cards_summary && activeUserEdit.user_cards_summary.length) || 0 }}</strong> 张名片；下方「关联 Cards」以
+                          <strong>id 最大</strong>
+                          的一张为准（与列表/保存一致）。所有分表字段均为当前数据库原始值（只读）。
+                        </p>
+
+                        <h4 class="detail-title">Users 表（全字段，只读）</h4>
+                        <div class="detail-grid">
+                          <div class="detail-key">id</div><div class="detail-val code is-disabled">{{ activeUserEdit.id }}</div>
+                          <div class="detail-key">openid</div><div class="detail-val code is-disabled">{{ activeUserEdit.openid || '-' }}</div>
+                          <div class="detail-key">name</div><div class="detail-val">{{ activeUserEdit.name || '-' }}</div>
+                          <div class="detail-key">nickname</div><div class="detail-val">{{ activeUserEdit.nickname || '-' }}</div>
+                          <div class="detail-key">avatar</div>
+                          <div class="detail-val">
+                            <img v-if="activeUserEdit.avatar" :src="activeUserEdit.avatar" class="avatar-mini" />
+                            <span class="code">{{ activeUserEdit.avatar || '-' }}</span>
+                          </div>
+                          <div class="detail-key">selected_avatar</div>
+                          <div class="detail-val">
+                            <img v-if="activeUserEdit.selected_avatar" :src="activeUserEdit.selected_avatar" class="avatar-mini" />
+                            <span class="code">{{ activeUserEdit.selected_avatar || '-' }}</span>
+                          </div>
+                          <div class="detail-key">wechat_id</div><div class="detail-val code">{{ activeUserEdit.wechat_id || '-' }}</div>
+                          <div class="detail-key">work_wechat_id</div><div class="detail-val code">{{ activeUserEdit.work_wechat_id || '-' }}</div>
+                          <div class="detail-key">gender</div><div class="detail-val">{{ activeUserEdit.gender || '-' }}</div>
+                          <div class="detail-key">birth_place</div><div class="detail-val">{{ activeUserEdit.birth_place || '-' }}</div>
+                          <div class="detail-key">is_staff</div><div class="detail-val">{{ activeUserEdit.is_staff ? '是' : '否' }}</div>
+                          <div class="detail-key">last_updated_by</div><div class="detail-val is-disabled">{{ activeUserEdit.last_updated_by ?? '-' }}</div>
+                          <div class="detail-key">last_updated_role</div><div class="detail-val is-disabled">{{ activeUserEdit.last_updated_role || '-' }}</div>
+                          <div class="detail-key">field_source</div><div class="detail-val code is-disabled">{{ activeUserEdit.field_source || '-' }}</div>
+                          <div class="detail-key">created_at</div><div class="detail-val code is-disabled">{{ activeUserEdit.created_at || '-' }}</div>
+                          <div class="detail-key">updated_at</div><div class="detail-val code is-disabled">{{ activeUserEdit.updated_at || '-' }}</div>
                         </div>
-                        <div class="detail-key">selected_avatar</div>
-                        <div>
-                          <img v-if="activeUserEdit.selected_avatar" :src="activeUserEdit.selected_avatar" class="avatar-mini" />
-                          <input class="detail-input code" v-model="activeUserEdit.selected_avatar" placeholder="selected_avatar URL" />
+
+                        <h4 class="detail-title" style="margin-top:16px;">user_cards 表（当前用于展示的那一张，全字段，只读）</h4>
+                        <div class="detail-grid">
+                          <div class="detail-key">card.id</div><div class="detail-val is-disabled">{{ activeUserEdit.card.id ?? '-' }}</div>
+                          <div class="detail-key">card.user_id</div><div class="detail-val is-disabled">{{ activeUserEdit.card.user_id ?? '-' }}</div>
+                          <div class="detail-key">card.name</div><div class="detail-val">{{ activeUserEdit.card.name || '-' }}</div>
+                          <div class="detail-key">card.title</div><div class="detail-val">{{ activeUserEdit.card.title || '-' }}</div>
+                          <div class="detail-key">card.company</div><div class="detail-val">{{ activeUserEdit.card.company || '-' }}</div>
+                          <div class="detail-key">card.phone</div><div class="detail-val">{{ activeUserEdit.card.phone || '-' }}</div>
+                          <div class="detail-key">card.email</div><div class="detail-val">{{ activeUserEdit.card.email || '-' }}</div>
+                          <div class="detail-key">card.bio</div><div class="detail-val">{{ activeUserEdit.card.bio || '-' }}</div>
+                          <div class="detail-key">card.industry</div><div class="detail-val">{{ activeUserEdit.card.industry || '-' }}</div>
+                          <div class="detail-key">card.association_title</div><div class="detail-val">{{ activeUserEdit.card.association_title || '-' }}</div>
+                          <div class="detail-key">card.personal_photos(JSON)</div><div class="detail-val code">{{ activeUserEdit.card.personal_photos }}</div>
+                          <div class="detail-key">card.field_visibility</div><div class="detail-val code is-disabled">{{ activeUserEdit.card.field_visibility }}</div>
+                          <div class="detail-key">card.field_source(JSON)</div><div class="detail-val code is-disabled">{{ activeUserEdit.card.field_source || '-' }}</div>
+                          <div class="detail-key">card.last_updated_by</div><div class="detail-val is-disabled">{{ activeUserEdit.card.last_updated_by ?? '-' }}</div>
+                          <div class="detail-key">card.last_updated_role</div><div class="detail-val is-disabled">{{ activeUserEdit.card.last_updated_role || '-' }}</div>
+                          <div class="detail-key">card.created_at</div><div class="detail-val code is-disabled">{{ activeUserEdit.card.created_at || '-' }}</div>
+                          <div class="detail-key">card.updated_at</div><div class="detail-val code is-disabled">{{ activeUserEdit.card.updated_at || '-' }}</div>
+                          <div class="detail-key">card.qr_code</div><div class="detail-val code is-disabled">{{ activeUserEdit.card.qr_code || '-' }}</div>
                         </div>
-                        <div class="detail-key">wechat_id</div><div><input class="detail-input code" v-model="activeUserEdit.wechat_id" /></div>
-                        <div class="detail-key">work_wechat_id</div><div><input class="detail-input code" v-model="activeUserEdit.work_wechat_id" /></div>
-                        <div class="detail-key">gender</div><div><input class="detail-input" v-model="activeUserEdit.gender" /></div>
-                        <div class="detail-key">birth_place</div><div><input class="detail-input" v-model="activeUserEdit.birth_place" /></div>
-                        <div class="detail-key">is_staff</div>
-                        <div>
-                          <select class="detail-select" v-model="activeUserEdit.is_staff">
-                            <option :value="false">否</option>
-                            <option :value="true">是</option>
-                          </select>
+
+                        <h4 class="detail-title" style="margin-top:16px;">位置 user_locations（全字段）</h4>
+                        <p class="muted" style="margin:0 0 8px;">来自表 <code>user_locations</code>（名片 step1 保存时写入）。若为空，多为未保存过带地址的 step1，或仅填在名片 JSON 未落库。</p>
+                        <div v-if="!activeUserEdit.locations || activeUserEdit.locations.length===0" class="muted">暂无位置记录</div>
+                        <div v-else class="detail-table-wrap">
+                          <table class="detail-mini-table">
+                            <thead>
+                              <tr>
+                                <th v-for="k in Object.keys(activeUserEdit.locations[0])" :key="'loc-h-'+k">{{ k }}</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr v-for="(loc, li) in activeUserEdit.locations" :key="'loc-'+li">
+                                <td v-for="k in Object.keys(activeUserEdit.locations[0])" :key="'loc-'+li+'-'+k">{{ loc[k] }}</td>
+                              </tr>
+                            </tbody>
+                          </table>
                         </div>
-                        <div class="detail-key">last_updated_by</div><div class="detail-val is-disabled">{{ activeUserEdit.last_updated_by ?? '-' }}</div>
-                        <div class="detail-key">last_updated_role</div><div class="detail-val is-disabled">{{ activeUserEdit.last_updated_role || '-' }}</div>
-                        <div class="detail-key">field_source</div><div class="detail-val code is-disabled">{{ activeUserEdit.field_source || '-' }}</div>
-                        <div class="detail-key">created_at</div><div class="detail-val code is-disabled">{{ activeUserEdit.created_at || '-' }}</div>
-                        <div class="detail-key">updated_at</div><div class="detail-val code is-disabled">{{ activeUserEdit.updated_at || '-' }}</div>
+
+                        <h4 class="detail-title" style="margin-top:16px;">教育 user_education（全字段）</h4>
+                        <pre class="detail-json">{{ JSON.stringify(activeUserEdit.education, null, 2) }}</pre>
+
+                        <h4 class="detail-title" style="margin-top:16px;">需求 user_needs（全字段）</h4>
+                        <pre class="detail-json">{{ JSON.stringify(activeUserEdit.needs, null, 2) }}</pre>
+
+                        <h4 class="detail-title" style="margin-top:16px;">资源 user_resources（多行，全字段）</h4>
+                        <div v-if="!activeUserEdit.resources || activeUserEdit.resources.length===0" class="muted">暂无资源记录</div>
+                        <div v-else class="detail-table-wrap">
+                          <table class="detail-mini-table">
+                            <thead>
+                              <tr>
+                                <th v-for="k in Object.keys(activeUserEdit.resources[0])" :key="'res-h-'+k">{{ k }}</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr v-for="(res, ri) in activeUserEdit.resources" :key="'res-'+ri">
+                                <td v-for="k in Object.keys(activeUserEdit.resources[0])" :key="'res-'+ri+'-'+k">{{ res[k] }}</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+
+                        <h4 class="detail-title" style="margin-top:16px;">校友会 user_association_info（全字段）</h4>
+                        <pre class="detail-json">{{ JSON.stringify(activeUserEdit.association, null, 2) }}</pre>
+
+                        <h4 class="detail-title" style="margin-top:16px;">名片录入 step6（user_cards.field_source 内嵌）</h4>
+                        <p class="muted" style="margin:0 0 8px;">与 <code>/api/card-entry/data</code> 返回的 step6 一致（隐藏信息等）。</p>
+                        <pre class="detail-json">{{ JSON.stringify(activeUserEdit.card_entry_step6, null, 2) }}</pre>
+
+                        <h4 class="detail-title" style="margin-top:16px;">Alumni 关联信息</h4>
+                        <div class="detail-grid">
+                          <div class="detail-key">is_alumni</div><div class="detail-val">{{ (activeUserRecord().openid || '').startsWith('alumni_') ? '是' : '否' }}</div>
+                          <div class="detail-key">alumni_openid</div><div class="detail-val code">{{ (activeUserRecord().openid || '').startsWith('alumni_') ? activeUserRecord().openid : '-' }}</div>
+                        </div>
                       </div>
 
-                      <h4 class="detail-title" style="margin-top:16px;">关联 Cards 字段</h4>
-                      <div class="detail-grid">
-                        <div class="detail-key">card.id</div><div class="detail-val is-disabled">{{ activeUserEdit.card.id ?? '-' }}</div>
-                        <div class="detail-key">card.user_id</div><div class="detail-val is-disabled">{{ activeUserEdit.card.user_id ?? '-' }}</div>
-                        <div class="detail-key">card.name</div><div><input class="detail-input" v-model="activeUserEdit.card.name" /></div>
-                        <div class="detail-key">card.title</div><div><input class="detail-input" v-model="activeUserEdit.card.title" /></div>
-                        <div class="detail-key">card.company</div><div><input class="detail-input" v-model="activeUserEdit.card.company" /></div>
-                        <div class="detail-key">card.phone</div><div><input class="detail-input" v-model="activeUserEdit.card.phone" /></div>
-                        <div class="detail-key">card.email</div><div><input class="detail-input" v-model="activeUserEdit.card.email" /></div>
-                        <div class="detail-key">card.bio</div><div><textarea class="detail-textarea" v-model="activeUserEdit.card.bio"></textarea></div>
-                        <div class="detail-key">card.industry</div><div><input class="detail-input" v-model="activeUserEdit.card.industry" /></div>
-                        <div class="detail-key">card.association_title</div><div><input class="detail-input" v-model="activeUserEdit.card.association_title" /></div>
-                        <div class="detail-key">card.personal_photos(JSON)</div><div><textarea class="detail-textarea code" v-model="activeUserEdit.card.personal_photos"></textarea></div>
-                        <div class="detail-key">card.field_visibility</div><div class="detail-val code is-disabled">{{ activeUserEdit.card.field_visibility }}</div>
-                        <div class="detail-key">card.field_source(JSON)</div><div class="detail-val code is-disabled">{{ activeUserEdit.card.field_source || '-' }}</div>
-                        <div class="detail-key">card.last_updated_by</div><div class="detail-val is-disabled">{{ activeUserEdit.card.last_updated_by ?? '-' }}</div>
-                        <div class="detail-key">card.last_updated_role</div><div class="detail-val is-disabled">{{ activeUserEdit.card.last_updated_role || '-' }}</div>
-                        <div class="detail-key">card.created_at</div><div class="detail-val code is-disabled">{{ activeUserEdit.card.created_at || '-' }}</div>
-                        <div class="detail-key">card.updated_at</div><div class="detail-val code is-disabled">{{ activeUserEdit.card.updated_at || '-' }}</div>
-                        <div class="detail-key">card.qr_code</div><div class="detail-val code is-disabled">{{ activeUserEdit.card.qr_code || '-' }}</div>
-                      </div>
+                      <!-- Tab 2：小程序展示 / 编辑 -->
+                      <div v-else>
+                        <p class="muted" style="margin:0 0 12px;">
+                          参考微信小程序 card_entry_v3：上方为基础信息与名片字段，可编辑并通过「保存修改」写回；下方 step2~6 目前仍按原始 JSON 展示，后续可逐步拆成表单。
+                        </p>
+                        <button class="btn primary" style="margin-bottom:10px;" @click="saveActiveUserDetail" :disabled="busy">保存修改（Users + 当前 user_cards）</button>
 
-                      <h4 class="detail-title" style="margin-top:16px;">位置 user_locations（全字段）</h4>
-                      <p class="muted" style="margin:0 0 8px;">来自表 <code>user_locations</code>（名片 step1 保存时写入）。若为空，多为未保存过带地址的 step1，或仅填在名片 JSON 未落库。</p>
-                      <div v-if="!activeUserEdit.locations || activeUserEdit.locations.length===0" class="muted">暂无位置记录</div>
-                      <div v-else class="detail-table-wrap">
-                        <table class="detail-mini-table">
-                          <thead>
-                            <tr>
-                              <th v-for="k in Object.keys(activeUserEdit.locations[0])" :key="'loc-h-'+k">{{ k }}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr v-for="(loc, li) in activeUserEdit.locations" :key="'loc-'+li">
-                              <td v-for="k in Object.keys(activeUserEdit.locations[0])" :key="'loc-'+li+'-'+k">{{ loc[k] }}</td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
+                        <h4 class="detail-title">Users 字段（可编辑）</h4>
+                        <div class="detail-grid">
+                          <div class="detail-key">id</div><div class="detail-val code is-disabled">{{ activeUserEdit.id }}</div>
+                          <div class="detail-key">openid</div><div class="detail-val code is-disabled">{{ activeUserEdit.openid || '-' }}</div>
+                          <div class="detail-key">name</div><div><input class="detail-input" v-model="activeUserEdit.name" /></div>
+                          <div class="detail-key">nickname</div><div><input class="detail-input" v-model="activeUserEdit.nickname" /></div>
+                          <div class="detail-key">avatar</div>
+                          <div>
+                            <img v-if="activeUserEdit.avatar" :src="activeUserEdit.avatar" class="avatar-mini" />
+                            <input class="detail-input code" v-model="activeUserEdit.avatar" placeholder="avatar URL" />
+                          </div>
+                          <div class="detail-key">selected_avatar</div>
+                          <div>
+                            <img v-if="activeUserEdit.selected_avatar" :src="activeUserEdit.selected_avatar" class="avatar-mini" />
+                            <input class="detail-input code" v-model="activeUserEdit.selected_avatar" placeholder="selected_avatar URL" />
+                          </div>
+                          <div class="detail-key">wechat_id</div><div><input class="detail-input code" v-model="activeUserEdit.wechat_id" /></div>
+                          <div class="detail-key">work_wechat_id</div><div><input class="detail-input code" v-model="activeUserEdit.work_wechat_id" /></div>
+                          <div class="detail-key">gender</div><div><input class="detail-input" v-model="activeUserEdit.gender" /></div>
+                          <div class="detail-key">birth_place</div><div><input class="detail-input" v-model="activeUserEdit.birth_place" /></div>
+                          <div class="detail-key">is_staff</div>
+                          <div>
+                            <select class="detail-select" v-model="activeUserEdit.is_staff">
+                              <option :value="false">否</option>
+                              <option :value="true">是</option>
+                            </select>
+                          </div>
+                          <div class="detail-key">last_updated_by</div><div class="detail-val is-disabled">{{ activeUserEdit.last_updated_by ?? '-' }}</div>
+                          <div class="detail-key">last_updated_role</div><div class="detail-val is-disabled">{{ activeUserEdit.last_updated_role || '-' }}</div>
+                          <div class="detail-key">field_source</div><div class="detail-val code is-disabled">{{ activeUserEdit.field_source || '-' }}</div>
+                          <div class="detail-key">created_at</div><div class="detail-val code is-disabled">{{ activeUserEdit.created_at || '-' }}</div>
+                          <div class="detail-key">updated_at</div><div class="detail-val code is-disabled">{{ activeUserEdit.updated_at || '-' }}</div>
+                        </div>
 
-                      <h4 class="detail-title" style="margin-top:16px;">教育 user_education（全字段）</h4>
-                      <pre class="detail-json">{{ JSON.stringify(activeUserEdit.education, null, 2) }}</pre>
+                        <h4 class="detail-title" style="margin-top:16px;">关联 Cards 字段（step1 名片）</h4>
+                        <div class="detail-grid">
+                          <div class="detail-key">card.id</div><div class="detail-val is-disabled">{{ activeUserEdit.card.id ?? '-' }}</div>
+                          <div class="detail-key">card.user_id</div><div class="detail-val is-disabled">{{ activeUserEdit.card.user_id ?? '-' }}</div>
+                          <div class="detail-key">card.name</div><div><input class="detail-input" v-model="activeUserEdit.card.name" /></div>
+                          <div class="detail-key">card.title</div><div><input class="detail-input" v-model="activeUserEdit.card.title" /></div>
+                          <div class="detail-key">card.company</div><div><input class="detail-input" v-model="activeUserEdit.card.company" /></div>
+                          <div class="detail-key">card.phone</div><div><input class="detail-input" v-model="activeUserEdit.card.phone" /></div>
+                          <div class="detail-key">card.email</div><div><input class="detail-input" v-model="activeUserEdit.card.email" /></div>
+                          <div class="detail-key">card.bio</div><div><textarea class="detail-textarea" v-model="activeUserEdit.card.bio"></textarea></div>
+                          <div class="detail-key">card.industry</div><div><input class="detail-input" v-model="activeUserEdit.card.industry" /></div>
+                          <div class="detail-key">card.association_title</div><div><input class="detail-input" v-model="activeUserEdit.card.association_title" /></div>
+                          <div class="detail-key">card.personal_photos(JSON)</div><div><textarea class="detail-textarea code" v-model="activeUserEdit.card.personal_photos"></textarea></div>
+                          <div class="detail-key">card.field_visibility</div><div class="detail-val code is-disabled">{{ activeUserEdit.card.field_visibility }}</div>
+                          <div class="detail-key">card.field_source(JSON)</div><div class="detail-val code is-disabled">{{ activeUserEdit.card.field_source || '-' }}</div>
+                          <div class="detail-key">card.last_updated_by</div><div class="detail-val is-disabled">{{ activeUserEdit.card.last_updated_by ?? '-' }}</div>
+                          <div class="detail-key">card.last_updated_role</div><div class="detail-val is-disabled">{{ activeUserEdit.card.last_updated_role || '-' }}</div>
+                          <div class="detail-key">card.created_at</div><div class="detail-val code is-disabled">{{ activeUserEdit.card.created_at || '-' }}</div>
+                          <div class="detail-key">card.updated_at</div><div class="detail-val code is-disabled">{{ activeUserEdit.card.updated_at || '-' }}</div>
+                          <div class="detail-key">card.qr_code</div><div class="detail-val code is-disabled">{{ activeUserEdit.card.qr_code || '-' }}</div>
+                        </div>
 
-                      <h4 class="detail-title" style="margin-top:16px;">需求 user_needs（全字段）</h4>
-                      <pre class="detail-json">{{ JSON.stringify(activeUserEdit.needs, null, 2) }}</pre>
+                        <h4 class="detail-title" style="margin-top:16px;">step2 ~ step6 源数据（暂只读，可对照小程序调试）</h4>
+                        <h5 class="detail-title" style="font-size:13px; margin-top:8px;">step2 教育 user_education</h5>
+                        <pre class="detail-json">{{ JSON.stringify(activeUserEdit.education, null, 2) }}</pre>
+                        <h5 class="detail-title" style="font-size:13px; margin-top:8px;">step3 需求 user_needs</h5>
+                        <pre class="detail-json">{{ JSON.stringify(activeUserEdit.needs, null, 2) }}</pre>
+                        <h5 class="detail-title" style="font-size:13px; margin-top:8px;">step4 资源 user_resources</h5>
+                        <pre class="detail-json">{{ JSON.stringify(activeUserEdit.resources, null, 2) }}</pre>
+                        <h5 class="detail-title" style="font-size:13px; margin-top:8px;">step5 校友会 user_association_info</h5>
+                        <pre class="detail-json">{{ JSON.stringify(activeUserEdit.association, null, 2) }}</pre>
+                        <h5 class="detail-title" style="font-size:13px; margin-top:8px;">step6 隐藏信息 card_entry_step6</h5>
+                        <pre class="detail-json">{{ JSON.stringify(activeUserEdit.card_entry_step6, null, 2) }}</pre>
 
-                      <h4 class="detail-title" style="margin-top:16px;">资源 user_resources（多行，全字段）</h4>
-                      <div v-if="!activeUserEdit.resources || activeUserEdit.resources.length===0" class="muted">暂无资源记录</div>
-                      <div v-else class="detail-table-wrap">
-                        <table class="detail-mini-table">
-                          <thead>
-                            <tr>
-                              <th v-for="k in Object.keys(activeUserEdit.resources[0])" :key="'res-h-'+k">{{ k }}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr v-for="(res, ri) in activeUserEdit.resources" :key="'res-'+ri">
-                              <td v-for="k in Object.keys(activeUserEdit.resources[0])" :key="'res-'+ri+'-'+k">{{ res[k] }}</td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-
-                      <h4 class="detail-title" style="margin-top:16px;">校友会 user_association_info（全字段）</h4>
-                      <pre class="detail-json">{{ JSON.stringify(activeUserEdit.association, null, 2) }}</pre>
-
-                      <h4 class="detail-title" style="margin-top:16px;">名片录入 step6（user_cards.field_source 内嵌）</h4>
-                      <p class="muted" style="margin:0 0 8px;">与 <code>/api/card-entry/data</code> 返回的 step6 一致（隐藏信息等）。</p>
-                      <pre class="detail-json">{{ JSON.stringify(activeUserEdit.card_entry_step6, null, 2) }}</pre>
-
-                      <h4 class="detail-title" style="margin-top:16px;">Alumni 关联信息</h4>
-                      <div class="detail-grid">
-                        <div class="detail-key">is_alumni</div><div class="detail-val">{{ (activeUserRecord().openid || '').startsWith('alumni_') ? '是' : '否' }}</div>
-                        <div class="detail-key">alumni_openid</div><div class="detail-val code">{{ (activeUserRecord().openid || '').startsWith('alumni_') ? activeUserRecord().openid : '-' }}</div>
+                        <h4 class="detail-title" style="margin-top:16px;">Alumni 关联信息</h4>
+                        <div class="detail-grid">
+                          <div class="detail-key">is_alumni</div><div class="detail-val">{{ (activeUserRecord().openid || '').startsWith('alumni_') ? '是' : '否' }}</div>
+                          <div class="detail-key">alumni_openid</div><div class="detail-val code">{{ (activeUserRecord().openid || '').startsWith('alumni_') ? activeUserRecord().openid : '-' }}</div>
+                        </div>
                       </div>
                     </div>
                     <div v-else class="muted" style="padding:12px;">请选择左侧用户记录</div>
