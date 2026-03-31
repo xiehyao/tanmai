@@ -130,7 +130,7 @@ Page({
   },
 
   onCreatePostTap() {
-    const tab = this.data.activeTab && this.data.activeTab !== 'plaza' ? this.data.activeTab : 'tea'
+    const tab = this.data.activeTab || 'plaza'
     wx.navigateTo({ url: `/pages/activity-post-create/activity-post-create?tab=${tab}` })
   },
 

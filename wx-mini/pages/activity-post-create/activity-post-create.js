@@ -5,6 +5,7 @@ Page({
     location: null,
     activityKey: 'tea',
     activityOptions: [
+      { key: 'plaza', label: '广场' },
       { key: 'tea', label: '喝茶局' },
       { key: 'innovation', label: '研学' },
       { key: 'sport', label: '运动局' },
@@ -16,7 +17,7 @@ Page({
 
   onLoad(options) {
     const tab = options && options.tab ? String(options.tab) : ''
-    const allowed = ['tea', 'innovation', 'sport', 'food']
+    const allowed = ['plaza', 'tea', 'innovation', 'sport', 'food']
     if (allowed.includes(tab)) this.setData({ activityKey: tab })
   },
 
