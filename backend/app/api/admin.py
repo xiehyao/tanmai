@@ -430,6 +430,7 @@ async def admin_list_cards(
                 personal_photos = []
         items.append(
             {
+                # card 核心字段
                 "id": c.id,
                 "user_id": c.user_id,
                 "name": (c.name if c.name else (u.name if u else None)) or (u.nickname if u else None),
@@ -442,8 +443,21 @@ async def admin_list_cards(
                 "industry": c.industry,
                 "association_title": c.association_title,
                 "personal_photos": personal_photos,
+                "qr_code": c.qr_code,
+                "field_visibility": _parse_json_maybe(c.field_visibility),
+                "last_updated_by": c.last_updated_by,
+                "last_updated_role": c.last_updated_role,
+                "field_source": _parse_json_maybe(c.field_source),
                 "created_at": c.created_at.isoformat() if isinstance(c.created_at, datetime) else c.created_at,
                 "updated_at": c.updated_at.isoformat() if isinstance(c.updated_at, datetime) else c.updated_at,
+                # 关联用户字段（便于管理台全字段查看）
+                "openid": u.openid if u else None,
+                "user_name": u.name if u else None,
+                "user_avatar": (u.selected_avatar or u.avatar) if u else None,
+                "user_wechat_id": u.wechat_id if u else None,
+                "user_birth_place": u.birth_place if u else None,
+                "user_gender": u.gender if u else None,
+                "user_is_staff": bool(u.is_staff) if u else False,
             }
         )
 
