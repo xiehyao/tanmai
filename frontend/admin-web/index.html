@@ -601,6 +601,7 @@
           const activeUserDetailTab = ref("raw"); // raw | mini
           const miniEditorType = ref(null); // avatar | locations | resource
           const miniEditorIndex = ref(null);
+          const miniEditorOffset = ref(0);
           const miniEditAvatar = ref("");
           const miniEditLocations = ref([]);
           const miniEditResources = ref([]);
@@ -1197,15 +1198,30 @@
             }
           }
 
-          function openMiniEditorAvatar() {
+          function computeMiniOffsetFromEvent(evt) {
+            try {
+              const shell = document.querySelector(".phone-shell");
+              if (!shell || !evt || !evt.currentTarget) return 0;
+              const shellRect = shell.getBoundingClientRect();
+              const rowRect = evt.currentTarget.getBoundingClientRect();
+              const raw = rowRect.top - shellRect.top - 10;
+              return raw > 0 ? raw : 0;
+            } catch {
+              return 0;
+            }
+          }
+
+          function openMiniEditorAvatar(evt) {
             miniEditorType.value = "avatar";
             miniEditorIndex.value = null;
+            miniEditorOffset.value = computeMiniOffsetFromEvent(evt);
             miniEditAvatar.value = activeUserEdit.selected_avatar || activeUserEdit.avatar || "";
           }
 
-          function openMiniEditorLocations() {
+          function openMiniEditorLocations(evt) {
             miniEditorType.value = "locations";
             miniEditorIndex.value = null;
+            miniEditorOffset.value = computeMiniOffsetFromEvent(evt);
             const src = Array.isArray(activeUserEdit.locations) ? activeUserEdit.locations : [];
             miniEditLocations.value = src.map((loc) => ({
               location_type: loc.location_type || "work",
@@ -1245,9 +1261,10 @@
             }
           }
 
-          function openMiniEditorResource(index) {
+          function openMiniEditorResource(index, evt) {
             miniEditorType.value = "resource";
             miniEditorIndex.value = index ?? null;
+            miniEditorOffset.value = computeMiniOffsetFromEvent(evt);
             const base = Array.isArray(activeUserEdit.resources) ? activeUserEdit.resources : [];
             miniEditResources.value = base.map((r) => ({
               resource_type: r.resource_type || "",
@@ -1287,6 +1304,7 @@
           function closeMiniEditor() {
             miniEditorType.value = null;
             miniEditorIndex.value = null;
+            miniEditorOffset.value = 0;
           }
 
           async function saveMiniAvatar() {
@@ -1747,6 +1765,7 @@
             activeUserDetailTab,
             miniEditorType,
             miniEditorIndex,
+            miniEditorOffset,
             miniEditAvatar,
             miniEditLocations,
             miniEditResources,
@@ -2069,7 +2088,7 @@
                               </div>
                             </div>
                             <div class="phone-scroll">
-                              <div class="phone-section" @click.stop="openMiniEditorAvatar">
+                              <div class="phone-section" @click.stop="openMiniEditorAvatar($event)">
                                 <div class="phone-section-title">1. 基本信息</div>
                                 <div class="phone-row">
                                   <div class="phone-label">姓名 *</div>
@@ -2147,7 +2166,7 @@
                                 </div>
                               </div>
 
-                              <div class="phone-section" @click.stop="openMiniEditorLocations">
+                              <div class="phone-section" @click.stop="openMiniEditorLocations($event)">
                                 <div class="phone-section-title">联系方式</div>
                                 <div class="phone-row">
                                   <div class="phone-label">手机</div>
@@ -2313,7 +2332,7 @@
                                     class="phone-row"
                                     v-for="(res, ri) in activeUserEdit.resources"
                                     :key="'res-mini-'+ri"
-                                    @click.stop="openMiniEditorResource(ri)"
+                                    @click.stop="openMiniEditorResource(ri, $event)"
                                   >
                                     <div class="phone-label">资源 {{ ri + 1 }}</div>
                                     <div class="phone-value">
@@ -2370,7 +2389,7 @@
                         <div
                           class="mini-editor-panel"
                           v-if="miniEditorType"
-                          :style="miniEditorType==='avatar' ? 'margin-top:0;' : miniEditorType==='locations' ? 'margin-top:40px;' : 'margin-top:80px;'"
+                          :style="{ marginTop: (miniEditorOffset || 0) + 'px' }"
                         >
                           <div class="mini-editor-title">
                             {{ miniEditorType === 'avatar'
