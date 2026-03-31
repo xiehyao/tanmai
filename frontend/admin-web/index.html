@@ -183,6 +183,29 @@
         word-break: break-all;
         white-space: pre-wrap;
       }
+      .detail-input,
+      .detail-select,
+      .detail-textarea {
+        width: 100%;
+        min-height: 28px;
+        padding: 6px 8px;
+        font-size: 12px;
+      }
+      .detail-textarea {
+        min-height: 56px;
+      }
+      .avatar-mini {
+        width: 14px;
+        height: 14px;
+        object-fit: cover;
+        border-radius: 3px;
+        border: 1px solid var(--border);
+        vertical-align: middle;
+        margin-right: 6px;
+      }
+      .is-disabled {
+        opacity: 0.7;
+      }
       .col-6 {
         grid-column: span 6;
       }
@@ -318,6 +341,39 @@
           const editingUserId = ref(null);
           const userViewOpen = ref(false);
           const userViewJson = ref("");
+          const activeUserEdit = reactive({
+            id: null,
+            openid: "",
+            name: "",
+            nickname: "",
+            avatar: "",
+            selected_avatar: "",
+            work_wechat_id: "",
+            wechat_id: "",
+            gender: "",
+            birth_place: "",
+            is_staff: false,
+            last_updated_by: null,
+            last_updated_role: "",
+            field_source: "",
+            created_at: "",
+            updated_at: "",
+            card: {
+              id: null,
+              user_id: null,
+              name: "",
+              title: "",
+              company: "",
+              phone: "",
+              email: "",
+              bio: "",
+              industry: "",
+              association_title: "",
+              personal_photos: "[]",
+              field_visibility: "{}",
+              qr_code: "",
+            },
+          });
           const userForm = reactive({
             openid: "",
             name: "",
@@ -708,6 +764,7 @@
               } else if (!usersItems.value.some((x) => x.id === activeUserId.value)) {
                 activeUserId.value = usersItems.value[0].id;
               }
+              hydrateActiveUserEdit();
             } catch (e) {
               setMessage("加载 users 失败：" + (e?.message || String(e)));
             } finally {
@@ -720,8 +777,92 @@
             return (usersItems.value || []).find((x) => x.id === activeUserId.value) || null;
           }
 
+          function hydrateActiveUserEdit() {
+            const r = activeUserRecord();
+            if (!r) return;
+            Object.assign(activeUserEdit, {
+              id: r.id ?? null,
+              openid: r.openid || "",
+              name: r.name || "",
+              nickname: r.nickname || "",
+              avatar: r.avatar || "",
+              selected_avatar: r.selected_avatar || "",
+              work_wechat_id: r.work_wechat_id || "",
+              wechat_id: r.wechat_id || "",
+              gender: r.gender || "",
+              birth_place: r.birth_place || "",
+              is_staff: Boolean(r.is_staff),
+              last_updated_by: r.last_updated_by ?? null,
+              last_updated_role: r.last_updated_role || "",
+              field_source: r.field_source || "",
+              created_at: r.created_at || "",
+              updated_at: r.updated_at || "",
+              card: {
+                id: r.card?.id ?? null,
+                user_id: r.card?.user_id ?? null,
+                name: r.card?.name || "",
+                title: r.card?.title || "",
+                company: r.card?.company || "",
+                phone: r.card?.phone || "",
+                email: r.card?.email || "",
+                bio: r.card?.bio || "",
+                industry: r.card?.industry || "",
+                association_title: r.card?.association_title || "",
+                personal_photos: JSON.stringify(r.card?.personal_photos || []),
+                field_visibility: JSON.stringify(r.card?.field_visibility || {}),
+                qr_code: r.card?.qr_code || "",
+              },
+            });
+          }
+
           function selectUserRecord(id) {
             activeUserId.value = id;
+            hydrateActiveUserEdit();
+          }
+
+          async function saveActiveUserDetail() {
+            const rid = activeUserEdit.id;
+            if (!rid) return;
+            busy.value = true;
+            try {
+              const cardPayload = {
+                name: activeUserEdit.card.name || undefined,
+                title: activeUserEdit.card.title || undefined,
+                company: activeUserEdit.card.company || undefined,
+                phone: activeUserEdit.card.phone || undefined,
+                email: activeUserEdit.card.email || undefined,
+                bio: activeUserEdit.card.bio || undefined,
+                industry: activeUserEdit.card.industry || undefined,
+                association_title: activeUserEdit.card.association_title || undefined,
+                personal_photos: activeUserEdit.card.personal_photos || undefined,
+              };
+              await apiRequest("/api/admin/users/" + rid, {
+                token: token.value,
+                method: "PUT",
+                body: {
+                  user: {
+                    name: activeUserEdit.name || undefined,
+                    nickname: activeUserEdit.nickname || undefined,
+                    avatar: activeUserEdit.avatar || undefined,
+                    selected_avatar: activeUserEdit.selected_avatar || undefined,
+                    work_wechat_id: activeUserEdit.work_wechat_id || undefined,
+                    gender: activeUserEdit.gender || undefined,
+                    birth_place: activeUserEdit.birth_place || undefined,
+                    wechat_id: activeUserEdit.wechat_id || undefined,
+                    is_staff: Boolean(activeUserEdit.is_staff),
+                  },
+                  card: cardPayload,
+                },
+              });
+              setMessage("保存成功");
+              await loadUsers();
+              if (activeUserId.value !== rid) activeUserId.value = rid;
+              hydrateActiveUserEdit();
+            } catch (e) {
+              setMessage("保存失败：" + (e?.message || String(e)));
+            } finally {
+              busy.value = false;
+            }
           }
 
           async function loadCards() {
@@ -1127,6 +1268,8 @@
             activeUserId,
             activeUserRecord,
             selectUserRecord,
+            activeUserEdit,
+            saveActiveUserDetail,
             openQuickCreate,
             submitQuickCreate,
             submitUserModal,
@@ -1288,45 +1431,59 @@
                         <h4 class="detail-title" style="margin:0;">用户详情（id={{ activeUserRecord().id }}）</h4>
                         <div class="spacer"></div>
                         <button class="btn ghost" @click="openViewUser(activeUserRecord())">查看(JSON)</button>
-                        <button class="btn" @click="openEditUser(activeUserRecord())">编辑</button>
+                        <button class="btn primary" @click="saveActiveUserDetail" :disabled="busy">保存修改</button>
                         <button class="btn danger" @click="deleteUser(activeUserRecord())">删除</button>
                       </div>
 
                       <h4 class="detail-title">Users 字段</h4>
                       <div class="detail-grid">
-                        <div class="detail-key">id</div><div class="detail-val">{{ activeUserRecord().id }}</div>
-                        <div class="detail-key">openid</div><div class="detail-val code">{{ activeUserRecord().openid || '-' }}</div>
-                        <div class="detail-key">name</div><div class="detail-val">{{ activeUserRecord().name || '-' }}</div>
-                        <div class="detail-key">nickname</div><div class="detail-val">{{ activeUserRecord().nickname || '-' }}</div>
-                        <div class="detail-key">avatar</div><div class="detail-val code">{{ activeUserRecord().avatar || '-' }}</div>
-                        <div class="detail-key">selected_avatar</div><div class="detail-val code">{{ activeUserRecord().selected_avatar || '-' }}</div>
-                        <div class="detail-key">wechat_id</div><div class="detail-val code">{{ activeUserRecord().wechat_id || '-' }}</div>
-                        <div class="detail-key">work_wechat_id</div><div class="detail-val code">{{ activeUserRecord().work_wechat_id || '-' }}</div>
-                        <div class="detail-key">gender</div><div class="detail-val">{{ activeUserRecord().gender || '-' }}</div>
-                        <div class="detail-key">birth_place</div><div class="detail-val">{{ activeUserRecord().birth_place || '-' }}</div>
-                        <div class="detail-key">is_staff</div><div class="detail-val">{{ activeUserRecord().is_staff ? '是' : '否' }}</div>
-                        <div class="detail-key">last_updated_by</div><div class="detail-val">{{ activeUserRecord().last_updated_by ?? '-' }}</div>
-                        <div class="detail-key">last_updated_role</div><div class="detail-val">{{ activeUserRecord().last_updated_role || '-' }}</div>
-                        <div class="detail-key">field_source</div><div class="detail-val code">{{ activeUserRecord().field_source || '-' }}</div>
-                        <div class="detail-key">created_at</div><div class="detail-val code">{{ activeUserRecord().created_at || '-' }}</div>
-                        <div class="detail-key">updated_at</div><div class="detail-val code">{{ activeUserRecord().updated_at || '-' }}</div>
+                        <div class="detail-key">id</div><div class="detail-val code is-disabled">{{ activeUserEdit.id }}</div>
+                        <div class="detail-key">openid</div><div class="detail-val code is-disabled">{{ activeUserEdit.openid || '-' }}</div>
+                        <div class="detail-key">name</div><div><input class="detail-input" v-model="activeUserEdit.name" /></div>
+                        <div class="detail-key">nickname</div><div><input class="detail-input" v-model="activeUserEdit.nickname" /></div>
+                        <div class="detail-key">avatar</div>
+                        <div>
+                          <img v-if="activeUserEdit.avatar" :src="activeUserEdit.avatar" class="avatar-mini" />
+                          <input class="detail-input code" v-model="activeUserEdit.avatar" placeholder="avatar URL" />
+                        </div>
+                        <div class="detail-key">selected_avatar</div>
+                        <div>
+                          <img v-if="activeUserEdit.selected_avatar" :src="activeUserEdit.selected_avatar" class="avatar-mini" />
+                          <input class="detail-input code" v-model="activeUserEdit.selected_avatar" placeholder="selected_avatar URL" />
+                        </div>
+                        <div class="detail-key">wechat_id</div><div><input class="detail-input code" v-model="activeUserEdit.wechat_id" /></div>
+                        <div class="detail-key">work_wechat_id</div><div><input class="detail-input code" v-model="activeUserEdit.work_wechat_id" /></div>
+                        <div class="detail-key">gender</div><div><input class="detail-input" v-model="activeUserEdit.gender" /></div>
+                        <div class="detail-key">birth_place</div><div><input class="detail-input" v-model="activeUserEdit.birth_place" /></div>
+                        <div class="detail-key">is_staff</div>
+                        <div>
+                          <select class="detail-select" v-model="activeUserEdit.is_staff">
+                            <option :value="false">否</option>
+                            <option :value="true">是</option>
+                          </select>
+                        </div>
+                        <div class="detail-key">last_updated_by</div><div class="detail-val is-disabled">{{ activeUserEdit.last_updated_by ?? '-' }}</div>
+                        <div class="detail-key">last_updated_role</div><div class="detail-val is-disabled">{{ activeUserEdit.last_updated_role || '-' }}</div>
+                        <div class="detail-key">field_source</div><div class="detail-val code is-disabled">{{ activeUserEdit.field_source || '-' }}</div>
+                        <div class="detail-key">created_at</div><div class="detail-val code is-disabled">{{ activeUserEdit.created_at || '-' }}</div>
+                        <div class="detail-key">updated_at</div><div class="detail-val code is-disabled">{{ activeUserEdit.updated_at || '-' }}</div>
                       </div>
 
                       <h4 class="detail-title" style="margin-top:16px;">关联 Cards 字段</h4>
                       <div class="detail-grid">
-                        <div class="detail-key">card.id</div><div class="detail-val">{{ activeUserRecord().card?.id ?? '-' }}</div>
-                        <div class="detail-key">card.user_id</div><div class="detail-val">{{ activeUserRecord().card?.user_id ?? '-' }}</div>
-                        <div class="detail-key">card.name</div><div class="detail-val">{{ activeUserRecord().card?.name || '-' }}</div>
-                        <div class="detail-key">card.title</div><div class="detail-val">{{ activeUserRecord().card?.title || '-' }}</div>
-                        <div class="detail-key">card.company</div><div class="detail-val">{{ activeUserRecord().card?.company || '-' }}</div>
-                        <div class="detail-key">card.phone</div><div class="detail-val">{{ activeUserRecord().card?.phone || '-' }}</div>
-                        <div class="detail-key">card.email</div><div class="detail-val">{{ activeUserRecord().card?.email || '-' }}</div>
-                        <div class="detail-key">card.bio</div><div class="detail-val">{{ activeUserRecord().card?.bio || '-' }}</div>
-                        <div class="detail-key">card.industry</div><div class="detail-val">{{ activeUserRecord().card?.industry || '-' }}</div>
-                        <div class="detail-key">card.association_title</div><div class="detail-val">{{ activeUserRecord().card?.association_title || '-' }}</div>
-                        <div class="detail-key">card.personal_photos</div><div class="detail-val code">{{ JSON.stringify(activeUserRecord().card?.personal_photos || []) }}</div>
-                        <div class="detail-key">card.field_visibility</div><div class="detail-val code">{{ JSON.stringify(activeUserRecord().card?.field_visibility || {}) }}</div>
-                        <div class="detail-key">card.qr_code</div><div class="detail-val code">{{ activeUserRecord().card?.qr_code || '-' }}</div>
+                        <div class="detail-key">card.id</div><div class="detail-val is-disabled">{{ activeUserEdit.card.id ?? '-' }}</div>
+                        <div class="detail-key">card.user_id</div><div class="detail-val is-disabled">{{ activeUserEdit.card.user_id ?? '-' }}</div>
+                        <div class="detail-key">card.name</div><div><input class="detail-input" v-model="activeUserEdit.card.name" /></div>
+                        <div class="detail-key">card.title</div><div><input class="detail-input" v-model="activeUserEdit.card.title" /></div>
+                        <div class="detail-key">card.company</div><div><input class="detail-input" v-model="activeUserEdit.card.company" /></div>
+                        <div class="detail-key">card.phone</div><div><input class="detail-input" v-model="activeUserEdit.card.phone" /></div>
+                        <div class="detail-key">card.email</div><div><input class="detail-input" v-model="activeUserEdit.card.email" /></div>
+                        <div class="detail-key">card.bio</div><div><textarea class="detail-textarea" v-model="activeUserEdit.card.bio"></textarea></div>
+                        <div class="detail-key">card.industry</div><div><input class="detail-input" v-model="activeUserEdit.card.industry" /></div>
+                        <div class="detail-key">card.association_title</div><div><input class="detail-input" v-model="activeUserEdit.card.association_title" /></div>
+                        <div class="detail-key">card.personal_photos(JSON)</div><div><textarea class="detail-textarea code" v-model="activeUserEdit.card.personal_photos"></textarea></div>
+                        <div class="detail-key">card.field_visibility</div><div class="detail-val code is-disabled">{{ activeUserEdit.card.field_visibility }}</div>
+                        <div class="detail-key">card.qr_code</div><div class="detail-val code is-disabled">{{ activeUserEdit.card.qr_code || '-' }}</div>
                       </div>
 
                       <h4 class="detail-title" style="margin-top:16px;">Alumni 关联信息</h4>
