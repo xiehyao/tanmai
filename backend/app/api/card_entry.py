@@ -335,7 +335,12 @@ def _save_association_info(db: Session, uid: int, b: dict) -> None:
 
 def _save_hidden_info(db: Session, uid: int, b: dict) -> None:
     """step6 存到 user_cards.field_source，与 step1 的 field_source 合并"""
-    card = db.query(UserCard).filter(UserCard.user_id == uid).first()
+    card = (
+        db.query(UserCard)
+        .filter(UserCard.user_id == uid)
+        .order_by(UserCard.id.desc())
+        .first()
+    )
     if not card:
         return
     hi = b.get("hidden_info") or {}

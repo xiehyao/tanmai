@@ -183,31 +183,66 @@ def _get_resources_rows(db: Session, user_id: int) -> List[Dict[str, Any]]:
 
 
 def _get_card_entry_step6(db: Session, user_id: int) -> Dict[str, Any]:
-    """名片录入 step6（隐藏信息），结构与 card_entry /data 一致。"""
+    """名片录入 step6：遍历该用户所有名片的 field_source，合并 step6（同名字段后者覆盖）。"""
     try:
         r = db.execute(
-            text("SELECT field_source FROM user_cards WHERE user_id = :uid ORDER BY id LIMIT 1"),
+            text("SELECT field_source FROM user_cards WHERE user_id = :uid ORDER BY id ASC"),
             {"uid": user_id},
         )
-        row = r.fetchone()
-        if not row:
-            return {"hidden_info": {}, "field_visibility": {}}
-        fs = row[0] if hasattr(row, "__getitem__") else getattr(row, "field_source", None)
-        if not fs:
-            return {"hidden_info": {}, "field_visibility": {}}
-        data = json.loads(fs) if isinstance(fs, str) else fs
-        if isinstance(data, dict) and "step6" in data:
-            return data["step6"]
+        merged_hi: Dict[str, Any] = {}
+        merged_fv: Dict[str, Any] = {}
+        for row in r.fetchall():
+            fs = row[0] if row else None
+            if not fs:
+                continue
+            try:
+                data = json.loads(fs) if isinstance(fs, str) else fs
+            except Exception:
+                continue
+            if not isinstance(data, dict) or "step6" not in data:
+                continue
+            s6 = data["step6"]
+            if not isinstance(s6, dict):
+                continue
+            hi = s6.get("hidden_info")
+            fv = s6.get("field_visibility")
+            if isinstance(hi, dict):
+                merged_hi = {**merged_hi, **hi}
+            if isinstance(fv, dict):
+                merged_fv = {**merged_fv, **fv}
+        return {"hidden_info": merged_hi, "field_visibility": merged_fv}
     except Exception:
-        pass
-    return {"hidden_info": {}, "field_visibility": {}}
+        return {"hidden_info": {}, "field_visibility": {}}
+
+
+def _user_cards_summary(db: Session, user_id: int) -> List[Dict[str, Any]]:
+    """该用户名下所有名片摘要（用于排查多张名片导致的数据不一致）。"""
+    try:
+        rows = (
+            db.query(UserCard)
+            .filter(UserCard.user_id == user_id)
+            .order_by(UserCard.id.asc())
+            .all()
+        )
+        return [
+            {
+                "id": c.id,
+                "created_at": _iso(c.created_at),
+                "updated_at": _iso(c.updated_at),
+                "has_field_source": bool(c.field_source and str(c.field_source).strip()),
+            }
+            for c in rows
+        ]
+    except Exception:
+        return []
 
 
 def _user_admin_full_detail(user: User, card: Optional[UserCard], db: Session) -> dict:
-    """单用户详情：users + 首张名片全列 + 关联子表（位置/教育/需求/资源/校友会/step6）。"""
+    """单用户详情：users + 用于展示的那张名片（默认同详情接口：id 最大）+ 关联子表。"""
     uid = user.id
     item = _user_card_to_item(user, card)
     item["card"] = _card_to_full_dict(card, uid)
+    item["user_cards_summary"] = _user_cards_summary(db, uid)
     item["locations"] = _get_locations_rows(db, uid)
     ed = _get_education(db, uid)
     item["education"] = _sanitize_row(ed) if ed else {}
@@ -220,11 +255,12 @@ def _user_admin_full_detail(user: User, card: Optional[UserCard], db: Session) -
     return item
 
 
-def _get_first_card(db: Session, user_id: int) -> Optional[UserCard]:
+def _get_latest_card(db: Session, user_id: int) -> Optional[UserCard]:
+    """同一用户多张名片时，取 id 最大的一张（通常与最近一次保存一致）。"""
     return (
         db.query(UserCard)
         .filter(UserCard.user_id == user_id)
-        .order_by(UserCard.id.asc())
+        .order_by(UserCard.id.desc())
         .first()
     )
 
@@ -390,7 +426,7 @@ async def admin_list_users(
 
     items: List[dict] = []
     for u in rows:
-        c = _get_first_card(db, u.id)
+        c = _get_latest_card(db, u.id)
         items.append(_user_card_to_item(u, c))
 
     return {
@@ -414,7 +450,7 @@ async def admin_get_user(
     u = db.query(User).filter(User.id == user_id).first()
     if not u:
         raise HTTPException(status_code=404, detail="用户不存在")
-    c = _get_first_card(db, u.id)
+    c = _get_latest_card(db, u.id)
     return {"success": True, "data": _user_admin_full_detail(u, c, db)}
 
 
@@ -478,7 +514,7 @@ async def admin_update_user(
     _apply_user_patch(u, body.user)
 
     if body.card is not None:
-        card_obj = _get_first_card(db, u.id)
+        card_obj = _get_latest_card(db, u.id)
         if not card_obj:
             card_obj = UserCard(user_id=u.id)
             db.add(card_obj)
@@ -486,7 +522,7 @@ async def admin_update_user(
         _apply_card_patch(card_obj, body.card)
 
     db.commit()
-    card_obj = _get_first_card(db, u.id)
+    card_obj = _get_latest_card(db, u.id)
     return {"success": True, "data": _user_card_to_item(u, card_obj)}
 
 
@@ -623,7 +659,7 @@ async def admin_upsert_card(
     if not u:
         raise HTTPException(status_code=404, detail="user_id 对应用户不存在")
 
-    card_obj = _get_first_card(db, body.user_id)
+    card_obj = _get_latest_card(db, body.user_id)
     created = False
     if not card_obj:
         card_obj = UserCard(user_id=body.user_id)
@@ -713,7 +749,7 @@ async def admin_list_alumni(
 
     items: List[dict] = []
     for u in rows:
-        c = _get_first_card(db, u.id)
+        c = _get_latest_card(db, u.id)
         items.append(_user_card_to_item(u, c))
 
     return {
@@ -789,7 +825,7 @@ async def admin_update_alumni(
 
     _apply_user_patch(u, body.user)
     if body.card is not None:
-        card_obj = _get_first_card(db, u.id)
+        card_obj = _get_latest_card(db, u.id)
         if not card_obj:
             card_obj = UserCard(user_id=u.id)
             db.add(card_obj)
@@ -797,7 +833,7 @@ async def admin_update_alumni(
         _apply_card_patch(card_obj, body.card)
     db.commit()
 
-    card_obj = _get_first_card(db, u.id)
+    card_obj = _get_latest_card(db, u.id)
     return {"success": True, "data": _user_card_to_item(u, card_obj)}
 
 
