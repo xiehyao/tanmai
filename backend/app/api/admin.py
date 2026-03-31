@@ -18,6 +18,11 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import verify_token
+from app.core.alumni_data import (
+    _get_education,
+    _get_needs,
+    _get_association_info,
+)
 from app.models.card import UserCard
 from app.models.user import User
 
@@ -46,17 +51,79 @@ def _parse_json_maybe(v: Any) -> Any:
     return v
 
 
-def _user_card_to_item(user: User, card: Optional[UserCard]) -> dict:
-    # personal_photos/field_visibility 可能为 JSON 字符串或实际结构（取决于上次写入方式）
-    personal_photos = []
-    if card and card.personal_photos:
+def _iso(dt: Any) -> Any:
+    if isinstance(dt, datetime):
+        return dt.isoformat()
+    return dt
+
+
+def _sanitize_row(d: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    if not d:
+        return {}
+    out: Dict[str, Any] = {}
+    for k, v in d.items():
+        if isinstance(v, datetime):
+            out[k] = v.isoformat()
+        else:
+            out[k] = v
+    return out
+
+
+def _card_to_full_dict(card: Optional[UserCard], user_id: int) -> dict:
+    """user_cards 表全部列（管理台展示）。"""
+    if not card:
+        return {
+            "id": None,
+            "user_id": user_id,
+            "name": None,
+            "title": None,
+            "company": None,
+            "phone": None,
+            "email": None,
+            "bio": None,
+            "qr_code": None,
+            "created_at": None,
+            "updated_at": None,
+            "field_visibility": None,
+            "last_updated_by": None,
+            "last_updated_role": None,
+            "field_source": None,
+            "personal_photos": [],
+            "association_title": None,
+            "industry": None,
+        }
+    personal_photos: Any = []
+    if card.personal_photos:
         try:
             personal_photos = json.loads(card.personal_photos) if isinstance(card.personal_photos, str) else card.personal_photos
         except Exception:
             personal_photos = []
-
     return {
-        # users 全字段（用于管理后台展示/查看）
+        "id": card.id,
+        "user_id": card.user_id,
+        "name": card.name,
+        "title": card.title,
+        "company": card.company,
+        "phone": card.phone,
+        "email": card.email,
+        "bio": card.bio,
+        "qr_code": getattr(card, "qr_code", None),
+        "created_at": _iso(card.created_at),
+        "updated_at": _iso(card.updated_at),
+        "field_visibility": _parse_json_maybe(card.field_visibility),
+        "last_updated_by": card.last_updated_by,
+        "last_updated_role": card.last_updated_role,
+        "field_source": _parse_json_maybe(card.field_source),
+        "personal_photos": personal_photos,
+        "association_title": card.association_title,
+        "industry": card.industry,
+    }
+
+
+def _user_card_to_item(user: User, card: Optional[UserCard]) -> dict:
+    """列表/简要：users + 首张名片核心字段（不含其它关联表）。"""
+    full = _card_to_full_dict(card, user.id)
+    return {
         "id": user.id,
         "openid": user.openid,
         "name": user.name,
@@ -64,8 +131,8 @@ def _user_card_to_item(user: User, card: Optional[UserCard]) -> dict:
         "avatar": user.avatar,
         "selected_avatar": user.selected_avatar,
         "work_wechat_id": user.work_wechat_id,
-        "created_at": user.created_at.isoformat() if isinstance(user.created_at, datetime) else user.created_at,
-        "updated_at": user.updated_at.isoformat() if isinstance(user.updated_at, datetime) else user.updated_at,
+        "created_at": _iso(user.created_at),
+        "updated_at": _iso(user.updated_at),
         "birth_place": user.birth_place,
         "is_staff": bool(user.is_staff),
         "last_updated_by": user.last_updated_by,
@@ -73,24 +140,84 @@ def _user_card_to_item(user: User, card: Optional[UserCard]) -> dict:
         "field_source": user.field_source,
         "gender": user.gender,
         "wechat_id": user.wechat_id,
-        # 首张名片（便于列表快速查看）
         "card": {
-            "id": card.id if card else None,
+            "id": full.get("id"),
             "user_id": user.id,
-            "name": card.name if card else None,
-            "title": card.title if card else None,
-            "company": card.company if card else None,
-            "phone": card.phone if card else None,
-            "email": card.email if card else None,
-            "bio": card.bio if card else None,
-            "industry": card.industry if card else None,
-            "association_title": card.association_title if card else None,
-            "personal_photos": personal_photos,
-            "field_visibility": _parse_json_maybe(card.field_visibility) if card else None,
-            # card.personal_photos 已在 personal_photos 里解析过
-            "qr_code": getattr(card, "qr_code", None) if card else None,
+            "name": full.get("name"),
+            "title": full.get("title"),
+            "company": full.get("company"),
+            "phone": full.get("phone"),
+            "email": full.get("email"),
+            "bio": full.get("bio"),
+            "industry": full.get("industry"),
+            "association_title": full.get("association_title"),
+            "personal_photos": full.get("personal_photos") or [],
+            "field_visibility": full.get("field_visibility"),
+            "qr_code": full.get("qr_code"),
         },
     }
+
+
+def _get_locations_rows(db: Session, user_id: int) -> List[Dict[str, Any]]:
+    try:
+        r = db.execute(
+            text("SELECT * FROM user_locations WHERE user_id = :uid ORDER BY id"),
+            {"uid": user_id},
+        )
+        rows = r.fetchall()
+        return [_sanitize_row(dict(row._mapping)) for row in rows]
+    except Exception:
+        return []
+
+
+def _get_resources_rows(db: Session, user_id: int) -> List[Dict[str, Any]]:
+    try:
+        r = db.execute(
+            text("SELECT * FROM user_resources WHERE user_id = :uid ORDER BY id"),
+            {"uid": user_id},
+        )
+        rows = r.fetchall()
+        return [_sanitize_row(dict(row._mapping)) for row in rows]
+    except Exception:
+        return []
+
+
+def _get_card_entry_step6(db: Session, user_id: int) -> Dict[str, Any]:
+    """名片录入 step6（隐藏信息），结构与 card_entry /data 一致。"""
+    try:
+        r = db.execute(
+            text("SELECT field_source FROM user_cards WHERE user_id = :uid ORDER BY id LIMIT 1"),
+            {"uid": user_id},
+        )
+        row = r.fetchone()
+        if not row:
+            return {"hidden_info": {}, "field_visibility": {}}
+        fs = row[0] if hasattr(row, "__getitem__") else getattr(row, "field_source", None)
+        if not fs:
+            return {"hidden_info": {}, "field_visibility": {}}
+        data = json.loads(fs) if isinstance(fs, str) else fs
+        if isinstance(data, dict) and "step6" in data:
+            return data["step6"]
+    except Exception:
+        pass
+    return {"hidden_info": {}, "field_visibility": {}}
+
+
+def _user_admin_full_detail(user: User, card: Optional[UserCard], db: Session) -> dict:
+    """单用户详情：users + 首张名片全列 + 关联子表（位置/教育/需求/资源/校友会/step6）。"""
+    uid = user.id
+    item = _user_card_to_item(user, card)
+    item["card"] = _card_to_full_dict(card, uid)
+    item["locations"] = _get_locations_rows(db, uid)
+    ed = _get_education(db, uid)
+    item["education"] = _sanitize_row(ed) if ed else {}
+    nd = _get_needs(db, uid)
+    item["needs"] = _sanitize_row(nd) if nd else {}
+    item["resources"] = _get_resources_rows(db, uid)
+    ai = _get_association_info(db, uid)
+    item["association"] = _sanitize_row(ai) if ai else {}
+    item["card_entry_step6"] = _get_card_entry_step6(db, uid)
+    return item
 
 
 def _get_first_card(db: Session, user_id: int) -> Optional[UserCard]:
@@ -275,6 +402,20 @@ async def admin_list_users(
             "page_size": pag["page_size"],
         },
     }
+
+
+@router.get("/users/{user_id}")
+async def admin_get_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    token: dict = Depends(verify_token),
+):
+    """单用户完整详情（含 user_locations / education / needs / resources / association / step6）。"""
+    u = db.query(User).filter(User.id == user_id).first()
+    if not u:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    c = _get_first_card(db, u.id)
+    return {"success": True, "data": _user_admin_full_detail(u, c, db)}
 
 
 @router.post("/users")

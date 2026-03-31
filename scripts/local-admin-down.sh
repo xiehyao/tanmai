@@ -5,6 +5,9 @@
 
 set -euo pipefail
 
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+GUARD_SCRIPT="$ROOT_DIR/scripts/local-admin-tunnel-guard.sh"
+
 BACKEND_PORT=8000
 TUNNEL_LOCAL_PORT=3307
 
@@ -16,6 +19,16 @@ if [ -n "${backend_pids}" ]; then
   echo "    Killed: ${backend_pids}"
 else
   echo "    No backend listener."
+fi
+
+echo ">>> Stop tunnel guard"
+guard_pids="$(pgrep -f "${GUARD_SCRIPT}" || true)"
+if [ -n "${guard_pids}" ]; then
+  # shellcheck disable=SC2086
+  kill ${guard_pids} 2>/dev/null || true
+  echo "    Killed: ${guard_pids}"
+else
+  echo "    No tunnel guard process."
 fi
 
 echo ">>> Stop tunnel :${TUNNEL_LOCAL_PORT}"

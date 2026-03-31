@@ -8,6 +8,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 BACKEND_DIR="$ROOT_DIR/backend"
+GUARD_SCRIPT="$ROOT_DIR/scripts/local-admin-tunnel-guard.sh"
 
 TUNNEL_HOST="www.pengyoo.com"
 TUNNEL_USER="root"
@@ -19,6 +20,7 @@ BACKEND_PORT=8000
 DB_URL="mysql+pymysql://apache:pengyoo123@127.0.0.1:${TUNNEL_LOCAL_PORT}/tanmai"
 
 TUNNEL_LOG="/tmp/tanmai-ssh-tunnel.log"
+GUARD_LOG="/tmp/tanmai-ssh-tunnel-guard.log"
 UVICORN_LOG="/tmp/tanmai-uvicorn-admin-current.log"
 
 echo ">>> [1/4] Ensure SSH tunnel on :${TUNNEL_LOCAL_PORT}"
@@ -36,6 +38,21 @@ else
     exit 1
   fi
   echo "    Tunnel started."
+fi
+
+echo ">>> [1.5/4] Ensure tunnel auto-reconnect guard"
+if pgrep -f "${GUARD_SCRIPT}" >/dev/null 2>&1; then
+  echo "    Guard already running."
+else
+  chmod +x "${GUARD_SCRIPT}"
+  nohup "${GUARD_SCRIPT}" >"${GUARD_LOG}" 2>&1 &
+  sleep 1
+  if pgrep -f "${GUARD_SCRIPT}" >/dev/null 2>&1; then
+    echo "    Guard started."
+  else
+    echo "    ERROR: guard failed to start."
+    exit 1
+  fi
 fi
 
 echo ">>> [2/4] Restart backend on :${BACKEND_PORT}"
