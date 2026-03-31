@@ -27,7 +27,11 @@ class Settings:
     ALIYUN_ACCESS_KEY_SECRET: Optional[str] = os.getenv("ALIYUN_ACCESS_KEY_SECRET")
     DASHSCOPE_API_KEY: Optional[str] = os.getenv("DASHSCOPE_API_KEY")
     TENCENT_MAP_KEY: Optional[str] = os.getenv("TENCENT_MAP_KEY")
-    DEEPSEEK_API_KEY: Optional[str] = os.getenv("DEEPSEEK_API_KEY")
+    # DeepSeek 默认使用内置密钥，若环境变量 DEEPSEEK_API_KEY 存在则优先生效
+    DEEPSEEK_API_KEY: Optional[str] = os.getenv(
+        "DEEPSEEK_API_KEY",
+        "sk-t3AhQqlihlE7MOWiBa76kQpFuZ04b4Kn9r5pccQqSA2pvPAS",
+    )
     # 默认走腾讯云 DeepSeek OpenAI 接口网关，而不是直连官方 DeepSeek
     # 参考文档：https://cloud.tencent.com/document/product/1772/115969
     DEEPSEEK_BASE_URL: str = os.getenv(

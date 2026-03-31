@@ -1,6 +1,6 @@
 {
   "libVersion": "3.13.2",
-  "projectname": "AIlumni",
+  "projectname": "wx-mini",
   "setting": {
     "urlCheck": false,
     "coverView": true,
@@ -9,6 +9,15 @@
     "preloadBackgroundData": false,
     "autoAudits": false,
     "showShadowRootInWxmlPanel": true,
-    "compileHotReLoad": true
-  }
+    "compileHotReLoad": true,
+    "useApiHook": true,
+    "useStaticServer": false,
+    "useLanDebug": false,
+    "showES6CompileOption": false,
+    "checkInvalidKey": true,
+    "ignoreDevUnusedFiles": true,
+    "bigPackageSizeSupport": false,
+    "useIsolateContext": true
+  },
+  "condition": {}
 }
