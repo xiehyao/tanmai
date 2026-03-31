@@ -324,24 +324,25 @@
       }
       .mini-editor-panel {
         margin-left: 12px;
-        flex: 1;
+        width: 320px;
         border-radius: 10px;
-        border: 1px solid var(--border);
-        background: rgba(15, 23, 42, 0.55);
+        border: 1px solid #e5e7eb;
+        background: #ffffff;
         padding: 12px 14px;
         min-height: 320px;
         display: flex;
         flex-direction: column;
         gap: 8px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
       }
       .mini-editor-title {
         font-size: 13px;
         font-weight: 600;
-        color: #e5e7eb;
+        color: #111827;
       }
       .mini-editor-hint {
         font-size: 11px;
-        color: var(--muted);
+        color: #6b7280;
       }
       .mini-editor-field {
         margin-top: 6px;
@@ -359,9 +360,9 @@
       .mini-editor-select {
         width: 100%;
         border-radius: 6px;
-        border: 1px solid var(--border);
-        background: rgba(15, 23, 42, 0.9);
-        color: #e5e7eb;
+        border: 1px solid #e5e7eb;
+        background: #ffffff;
+        color: #111827;
         font-size: 12px;
         padding: 6px 8px;
       }
@@ -2366,7 +2367,11 @@
                             </div>
                           </div>
                         </div>
-                        <div class="mini-editor-panel" v-if="miniEditorType">
+                        <div
+                          class="mini-editor-panel"
+                          v-if="miniEditorType"
+                          :style="miniEditorType==='avatar' ? 'margin-top:0;' : miniEditorType==='locations' ? 'margin-top:40px;' : 'margin-top:80px;'"
+                        >
                           <div class="mini-editor-title">
                             {{ miniEditorType === 'avatar'
                               ? '头像设置'
