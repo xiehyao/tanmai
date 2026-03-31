@@ -102,6 +102,37 @@ def _get_first_card(db: Session, user_id: int) -> Optional[UserCard]:
     )
 
 
+def _delete_user_related_rows(db: Session, user_id: int) -> None:
+    """尽量清理所有可能引用 users.id 的子表记录（兼容不同库版本）。"""
+    # 标准 user_id 关联表
+    tables = [
+        "user_education",
+        "user_needs",
+        "user_resources",
+        "user_association_info",
+        "user_locations",
+        "user_cards",
+    ]
+    for table in tables:
+        try:
+            db.execute(text(f"DELETE FROM {table} WHERE user_id = :uid"), {"uid": user_id})
+        except Exception:
+            # 子表可能不存在（不同环境/历史版本），允许跳过
+            pass
+
+    # staff 代填日志：通常有 operator_id / target_user_id 两种外键引用 users.id
+    # 不同环境字段可能不一致，分别尝试删除，失败则跳过。
+    for sql in [
+        "DELETE FROM staff_card_fill_log WHERE operator_id = :uid",
+        "DELETE FROM staff_card_fill_log WHERE target_user_id = :uid",
+        "DELETE FROM staff_card_fill_log WHERE user_id = :uid",
+    ]:
+        try:
+            db.execute(text(sql), {"uid": user_id})
+        except Exception:
+            pass
+
+
 class AdminLoginRequired(BaseModel):
     # 占位：仅为了让接口文档更清晰
     pass
@@ -327,22 +358,8 @@ async def admin_delete_user(
     if not u:
         raise HTTPException(status_code=404, detail="用户不存在")
 
-    # 删除子表再删 users，尽量避免外键约束阻塞
-    tables = [
-        "user_education",
-        "user_needs",
-        "user_resources",
-        "user_association_info",
-        "user_locations",
-        "user_cards",
-    ]
     try:
-        for table in tables:
-            try:
-                db.execute(text(f"DELETE FROM {table} WHERE user_id = :uid"), {"uid": user_id})
-            except Exception:
-                # 子表可能不存在（不同环境/历史版本），允许跳过
-                pass
+        _delete_user_related_rows(db, user_id)
         db.execute(text("DELETE FROM users WHERE id = :uid"), {"uid": user_id})
         db.commit()
     except Exception as e:
@@ -640,20 +657,8 @@ async def admin_delete_alumni(
     if not u.openid.startswith("alumni_"):
         raise HTTPException(status_code=400, detail="该用户不是校友（openid 非 alumni_ 前缀）")
 
-    tables = [
-        "user_education",
-        "user_needs",
-        "user_resources",
-        "user_association_info",
-        "user_locations",
-        "user_cards",
-    ]
     try:
-        for table in tables:
-            try:
-                db.execute(text(f"DELETE FROM {table} WHERE user_id = :uid"), {"uid": user_id})
-            except Exception:
-                pass
+        _delete_user_related_rows(db, user_id)
         db.execute(text("DELETE FROM users WHERE id = :uid"), {"uid": user_id})
         db.commit()
     except Exception as e:
