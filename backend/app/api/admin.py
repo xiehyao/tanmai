@@ -26,7 +26,7 @@ router = APIRouter()
 
 def _paginate(page: int, page_size: int) -> Dict[str, int]:
     page = max(1, int(page))
-    page_size = min(100, max(1, int(page_size)))
+    page_size = min(200, max(1, int(page_size)))
     return {"page": page, "page_size": page_size, "offset": (page - 1) * page_size}
 
 
@@ -197,7 +197,7 @@ def _apply_card_patch(card: UserCard, payload: UserCardPayload) -> None:
 async def admin_list_users(
     keyword: str = Query(default="", description="搜索姓名/昵称/公司"),
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=20, ge=1, le=100),
+    page_size: int = Query(default=20, ge=1, le=200),
     db: Session = Depends(get_db),
     token: dict = Depends(verify_token),
 ):
@@ -359,7 +359,7 @@ async def admin_delete_user(
 async def admin_list_cards(
     keyword: str = Query(default="", description="搜索姓名/昵称/名片标题/公司"),
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=20, ge=1, le=100),
+    page_size: int = Query(default=20, ge=1, le=200),
     db: Session = Depends(get_db),
     token: dict = Depends(verify_token),
 ):
@@ -506,7 +506,7 @@ class AlumniUpsertRequest(UserUpsertRequest):
 async def admin_list_alumni(
     keyword: str = Query(default="", description="搜索姓名/昵称/公司"),
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=20, ge=1, le=100),
+    page_size: int = Query(default=20, ge=1, le=200),
     db: Session = Depends(get_db),
     token: dict = Depends(verify_token),
 ):
