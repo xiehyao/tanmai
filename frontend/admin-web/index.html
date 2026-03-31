@@ -322,6 +322,59 @@
         font-size: 12px;
         font-weight: 600;
       }
+      .mini-editor-panel {
+        margin-left: 12px;
+        flex: 1;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: rgba(15, 23, 42, 0.55);
+        padding: 12px 14px;
+        min-height: 320px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .mini-editor-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: #e5e7eb;
+      }
+      .mini-editor-hint {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .mini-editor-field {
+        margin-top: 6px;
+        font-size: 12px;
+        color: #e5e7eb;
+      }
+      .mini-editor-label {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .mini-editor-input,
+      .mini-editor-textarea,
+      .mini-editor-select {
+        width: 100%;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: rgba(15, 23, 42, 0.9);
+        color: #e5e7eb;
+        font-size: 12px;
+        padding: 6px 8px;
+      }
+      .mini-editor-textarea {
+        min-height: 72px;
+        resize: vertical;
+      }
+      .mini-editor-actions {
+        margin-top: 10px;
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+      }
       .grid {
         display: grid;
         grid-template-columns: repeat(12, 1fr);
@@ -545,6 +598,11 @@
           const selectedUserIds = ref([]);
           const activeUserId = ref(null);
           const activeUserDetailTab = ref("raw"); // raw | mini
+          const miniEditorType = ref(null); // avatar | locations | resource
+          const miniEditorIndex = ref(null);
+          const miniEditAvatar = ref("");
+          const miniEditLocations = ref([]);
+          const miniEditResources = ref([]);
 
           const userModalOpen = ref(false);
           const editingUserId = ref(null);
@@ -1129,8 +1187,153 @@
               await loadUsers();
               if (activeUserId.value !== rid) activeUserId.value = rid;
               hydrateActiveUserEdit();
+              miniEditorType.value = null;
+              miniEditorIndex.value = null;
             } catch (e) {
               setMessage("保存失败：" + (e?.message || String(e)));
+            } finally {
+              busy.value = false;
+            }
+          }
+
+          function openMiniEditorAvatar() {
+            miniEditorType.value = "avatar";
+            miniEditorIndex.value = null;
+            miniEditAvatar.value = activeUserEdit.selected_avatar || activeUserEdit.avatar || "";
+          }
+
+          function openMiniEditorLocations() {
+            miniEditorType.value = "locations";
+            miniEditorIndex.value = null;
+            const src = Array.isArray(activeUserEdit.locations) ? activeUserEdit.locations : [];
+            miniEditLocations.value = src.map((loc) => ({
+              location_type: loc.location_type || "work",
+              address: loc.address || "",
+              latitude: loc.latitude ?? null,
+              longitude: loc.longitude ?? null,
+              location_visibility: loc.location_visibility || null,
+              source: loc.source || null,
+            }));
+            if (!miniEditLocations.value.length) {
+              miniEditLocations.value.push({
+                location_type: "work",
+                address: "",
+                latitude: null,
+                longitude: null,
+                location_visibility: null,
+                source: null,
+              });
+            }
+          }
+
+          function addMiniLocation() {
+            miniEditLocations.value.push({
+              location_type: "work",
+              address: "",
+              latitude: null,
+              longitude: null,
+              location_visibility: null,
+              source: null,
+            });
+          }
+
+          function removeMiniLocation(idx) {
+            miniEditLocations.value.splice(idx, 1);
+            if (!miniEditLocations.value.length) {
+              addMiniLocation();
+            }
+          }
+
+          function openMiniEditorResource(index) {
+            miniEditorType.value = "resource";
+            miniEditorIndex.value = index ?? null;
+            const base = Array.isArray(activeUserEdit.resources) ? activeUserEdit.resources : [];
+            miniEditResources.value = base.map((r) => ({
+              resource_type: r.resource_type || "",
+              resource_title: r.resource_title || "",
+              resource_description: r.resource_description || "",
+              sharing_mode: r.sharing_mode || "",
+            }));
+            if (!miniEditResources.value.length) {
+              miniEditResources.value.push({
+                resource_type: "",
+                resource_title: "",
+                resource_description: "",
+                sharing_mode: "",
+              });
+            }
+            if (typeof index === "number" && index >= 0 && index < miniEditResources.value.length) {
+              miniEditorIndex.value = index;
+            }
+          }
+
+          function addMiniResource() {
+            miniEditResources.value.push({
+              resource_type: "",
+              resource_title: "",
+              resource_description: "",
+              sharing_mode: "",
+            });
+          }
+
+          function removeMiniResource(idx) {
+            miniEditResources.value.splice(idx, 1);
+            if (!miniEditResources.value.length) {
+              addMiniResource();
+            }
+          }
+
+          function closeMiniEditor() {
+            miniEditorType.value = null;
+            miniEditorIndex.value = null;
+          }
+
+          async function saveMiniAvatar() {
+            activeUserEdit.selected_avatar = miniEditAvatar.value || "";
+            await saveActiveUserDetail();
+          }
+
+          async function saveMiniLocations() {
+            const rid = activeUserEdit.id;
+            if (!rid) return;
+            busy.value = true;
+            try {
+              await apiRequest("/api/card-entry/save-step/1?target_user_id=" + rid, {
+                token: token.value,
+                method: "POST",
+                body: {
+                  locations: miniEditLocations.value,
+                },
+              });
+              setMessage("地址已保存");
+              await fetchUserDetail(rid);
+              hydrateActiveUserEdit();
+              miniEditorType.value = null;
+            } catch (e) {
+              setMessage("保存地址失败：" + (e?.message || String(e)));
+            } finally {
+              busy.value = false;
+            }
+          }
+
+          async function saveMiniResources() {
+            const rid = activeUserEdit.id;
+            if (!rid) return;
+            busy.value = true;
+            try {
+              await apiRequest("/api/card-entry/save-step/4?target_user_id=" + rid, {
+                token: token.value,
+                method: "POST",
+                body: {
+                  resources: miniEditResources.value,
+                },
+              });
+              setMessage("资源已保存");
+              await fetchUserDetail(rid);
+              hydrateActiveUserEdit();
+              miniEditorType.value = null;
+            } catch (e) {
+              setMessage("保存资源失败：" + (e?.message || String(e)));
             } finally {
               busy.value = false;
             }
@@ -1541,7 +1744,23 @@
             selectUserRecord,
             activeUserEdit,
             activeUserDetailTab,
+            miniEditorType,
+            miniEditorIndex,
+            miniEditAvatar,
+            miniEditLocations,
+            miniEditResources,
             saveActiveUserDetail,
+            openMiniEditorAvatar,
+            openMiniEditorLocations,
+            openMiniEditorResource,
+            addMiniLocation,
+            removeMiniLocation,
+            addMiniResource,
+            removeMiniResource,
+            closeMiniEditor,
+            saveMiniAvatar,
+            saveMiniLocations,
+            saveMiniResources,
             openQuickCreate,
             submitQuickCreate,
             submitUserModal,
@@ -1837,7 +2056,7 @@
                       </div>
 
                       <!-- Tab 2：小程序展示 / 编辑（手机预览样式） -->
-                      <div v-else>
+                      <div v-else style="display:flex; align-items:flex-start;">
                         <div class="phone-shell">
                           <div class="phone-notch"></div>
                           <div class="phone-screen">
@@ -1849,7 +2068,7 @@
                               </div>
                             </div>
                             <div class="phone-scroll">
-                              <div class="phone-section">
+                              <div class="phone-section" @click.stop="openMiniEditorAvatar">
                                 <div class="phone-section-title">1. 基本信息</div>
                                 <div class="phone-row">
                                   <div class="phone-label">姓名 *</div>
@@ -1927,7 +2146,7 @@
                                 </div>
                               </div>
 
-                              <div class="phone-section">
+                              <div class="phone-section" @click.stop="openMiniEditorLocations">
                                 <div class="phone-section-title">联系方式</div>
                                 <div class="phone-row">
                                   <div class="phone-label">手机</div>
@@ -2093,6 +2312,7 @@
                                     class="phone-row"
                                     v-for="(res, ri) in activeUserEdit.resources"
                                     :key="'res-mini-'+ri"
+                                    @click.stop="openMiniEditorResource(ri)"
                                   >
                                     <div class="phone-label">资源 {{ ri + 1 }}</div>
                                     <div class="phone-value">
@@ -2144,6 +2364,143 @@
                               <button class="phone-footer-preview">预览名片</button>
                               <button class="phone-footer-save" @click="saveActiveUserDetail" :disabled="busy">保存</button>
                             </div>
+                          </div>
+                        </div>
+                        <div class="mini-editor-panel" v-if="miniEditorType">
+                          <div class="mini-editor-title">
+                            {{ miniEditorType === 'avatar'
+                              ? '头像设置'
+                              : miniEditorType === 'locations'
+                              ? '地址（user_locations）编辑'
+                              : miniEditorType === 'resource'
+                              ? '资源（user_resources）编辑'
+                              : '' }}
+                          </div>
+                          <div class="mini-editor-hint" v-if="miniEditorType === 'avatar'">
+                            修改头像 URL（优先 selected_avatar），保存后会同步到 Users 与名片，微信小程序名片将使用该头像。
+                          </div>
+                          <div class="mini-editor-hint" v-else-if="miniEditorType === 'locations'">
+                            对应表 <code>user_locations</code>，保存时会调用 <code>/api/card-entry/save-step/1</code> 更新 locations。
+                          </div>
+                          <div class="mini-editor-hint" v-else-if="miniEditorType === 'resource'">
+                            对应表 <code>user_resources</code>，保存时会调用 <code>/api/card-entry/save-step/4</code>。
+                          </div>
+
+                          <div v-if="miniEditorType === 'avatar'">
+                            <div class="mini-editor-field">
+                              <span class="mini-editor-label">当前头像预览</span>
+                              <div style="display:flex;align-items:center;gap:8px;">
+                                <img
+                                  v-if="miniEditAvatar || activeUserEdit.selected_avatar || activeUserEdit.avatar"
+                                  :src="miniEditAvatar || activeUserEdit.selected_avatar || activeUserEdit.avatar"
+                                  class="phone-avatar"
+                                />
+                                <span class="muted" v-else>暂无头像</span>
+                              </div>
+                            </div>
+                            <div class="mini-editor-field">
+                              <span class="mini-editor-label">头像 URL</span>
+                              <input
+                                class="mini-editor-input"
+                                v-model="miniEditAvatar"
+                                placeholder="https://.../avatars/xxx.png"
+                              />
+                            </div>
+                          </div>
+
+                          <div v-else-if="miniEditorType === 'locations'">
+                            <div
+                              class="mini-editor-field"
+                              v-for="(loc, li) in miniEditLocations"
+                              :key="'edit-loc-'+li"
+                            >
+                              <span class="mini-editor-label">地址 {{ li + 1 }}</span>
+                              <select class="mini-editor-select" v-model="loc.location_type">
+                                <option value="residence">居住地址</option>
+                                <option value="work">公司地址</option>
+                                <option value="temp_event">临时活动地址</option>
+                                <option value="other">其它</option>
+                              </select>
+                              <input
+                                class="mini-editor-input"
+                                v-model="loc.address"
+                                placeholder="详细地址"
+                                style="margin-top:4px;"
+                              />
+                              <div class="mini-editor-actions" style="justify-content:flex-start;margin-top:4px;">
+                                <button class="btn danger small" @click="removeMiniLocation(li)">删除该地址</button>
+                              </div>
+                            </div>
+                            <div class="mini-editor-actions" style="justify-content:flex-start;">
+                              <button class="btn small" @click="addMiniLocation">+ 新增地址</button>
+                            </div>
+                          </div>
+
+                          <div v-else-if="miniEditorType === 'resource'">
+                            <div
+                              class="mini-editor-field"
+                              v-for="(res, ri) in miniEditResources"
+                              :key="'edit-res-'+ri"
+                            >
+                              <span class="mini-editor-label">资源 {{ ri + 1 }}</span>
+                              <input
+                                class="mini-editor-input"
+                                v-model="res.resource_title"
+                                placeholder="资源标题"
+                              />
+                              <textarea
+                                class="mini-editor-textarea"
+                                v-model="res.resource_description"
+                                placeholder="资源描述"
+                                style="margin-top:4px;"
+                              ></textarea>
+                              <input
+                                class="mini-editor-input"
+                                v-model="res.resource_type"
+                                placeholder="类型（如 experience / connection / other）"
+                                style="margin-top:4px;"
+                              />
+                              <input
+                                class="mini-editor-input"
+                                v-model="res.sharing_mode"
+                                placeholder="分享方式（如 free / collaboration）"
+                                style="margin-top:4px;"
+                              />
+                              <div class="mini-editor-actions" style="justify-content:flex-start;margin-top:4px;">
+                                <button class="btn danger small" @click="removeMiniResource(ri)">删除该资源</button>
+                              </div>
+                            </div>
+                            <div class="mini-editor-actions" style="justify-content:flex-start;">
+                              <button class="btn small" @click="addMiniResource">+ 新增资源</button>
+                            </div>
+                          </div>
+
+                          <div class="mini-editor-actions">
+                            <button class="btn ghost small" @click="closeMiniEditor">取消</button>
+                            <button
+                              v-if="miniEditorType === 'avatar'"
+                              class="btn primary small"
+                              :disabled="busy"
+                              @click="saveMiniAvatar"
+                            >
+                              保存头像
+                            </button>
+                            <button
+                              v-else-if="miniEditorType === 'locations'"
+                              class="btn primary small"
+                              :disabled="busy"
+                              @click="saveMiniLocations"
+                            >
+                              保存地址
+                            </button>
+                            <button
+                              v-else-if="miniEditorType === 'resource'"
+                              class="btn primary small"
+                              :disabled="busy"
+                              @click="saveMiniResources"
+                            >
+                              保存资源
+                            </button>
                           </div>
                         </div>
                       </div>
