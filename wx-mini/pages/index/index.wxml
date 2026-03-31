@@ -30,8 +30,8 @@
             class="activity-item"
             wx:for="{{activityList}}"
             wx:key="key"
-            data-post-id="{{item.postId}}"
-            bindtap="goToPostDetail"
+            data-tab-key="{{item.tabKey}}"
+            bindtap="goToActivityTab"
           >
             <view class="activity-poster poster-{{item.key}}"></view>
             <text class="activity-title">{{item.title}}</text>

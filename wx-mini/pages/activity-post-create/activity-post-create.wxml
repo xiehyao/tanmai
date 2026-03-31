@@ -1,5 +1,18 @@
 <view class="create-page">
   <view class="card">
+    <view class="section-title">活动类型</view>
+    <view class="activity-tabs">
+      <view
+        wx:for="{{activityOptions}}"
+        wx:key="key"
+        class="activity-tab {{activityKey === item.key ? 'activity-tab-active' : ''}}"
+        data-key="{{item.key}}"
+        bindtap="onActivityChange"
+      >{{item.label}}</view>
+    </view>
+  </view>
+
+  <view class="card">
     <textarea
       class="content-input"
       placeholder="这一刻的想法..."
@@ -27,6 +40,18 @@
       <switch checked="{{enableSignup}}" bindchange="onToggleSignup" color="#667eea" />
     </view>
     <text class="signup-tip" wx:if="{{enableSignup}}">发布后在帖子详情中显示「报名/待定」与报名列表。</text>
+  </view>
+
+  <view class="card">
+    <view class="signup-row">
+      <text class="section-title">标定地址</text>
+      <view class="location-actions">
+        <button class="location-btn" size="mini" bindtap="chooseLocation">选择地址</button>
+        <button class="location-btn location-btn-clear" size="mini" wx:if="{{location}}" bindtap="clearLocation">清除</button>
+      </view>
+    </view>
+    <text class="location-text" wx:if="{{location}}">{{location.address || location.name}}</text>
+    <text class="location-tip" wx:else>未设置地址</text>
   </view>
 
   <view class="bottom-actions">

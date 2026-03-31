@@ -24,7 +24,7 @@
   <scroll-view scroll-y class="feed-scroll" enable-back-to-top>
     <view class="post-list">
       <view
-        wx:for="{{posts}}"
+        wx:for="{{filteredPosts}}"
         wx:key="id"
         class="post-card"
         data-id="{{item.id}}"

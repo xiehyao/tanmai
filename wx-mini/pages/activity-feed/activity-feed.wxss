@@ -154,11 +154,14 @@
 .create-post-btn {
   width: 360rpx;
   height: 78rpx;
-  line-height: 78rpx;
+  padding: 0;
   border-radius: 999rpx;
   border: none;
   color: #fff;
   font-size: 30rpx;
   font-weight: 600;
   background: linear-gradient(135deg,#667eea 0%,#7f5af0 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

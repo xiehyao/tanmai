@@ -37,6 +37,7 @@ def _include_routers():
         ("app.api.cards", "router", "/api/cards", "cards"),
         ("app.api.map", "router", "/api/map", "map"),
         ("app.api.alumni", "router", "/api/alumni", "alumni"),
+        ("app.api.posts", "router", "/api/posts", "posts"),
         # 新增的 LLM 助手与配套模块
         ("app.api.assistant", "router", "/api/assistant", "assistant"),
         ("app.api.match", "router", "/api/match", "match"),

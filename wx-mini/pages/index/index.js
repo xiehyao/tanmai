@@ -128,9 +128,9 @@ Page({
     },
     currentAlumniList: getRandomPlaceholders(8, 'alumni-ph-'),
     activityList: [
-      { key: 'tea', title: '线下喝茶局', postId: 'tea-1', desc: '周末约三五校友，小范围轻松闲聊、交换近况与想法。' },
-      { key: 'innovation', title: '科创研学', postId: 'innovation-1', desc: '一起走进科创园区、实验室或企业，了解前沿项目与合作机会。' },
-      { key: 'food', title: '泉州菜走起', postId: 'food-1', desc: '在一桌泉州菜里，聊聊家乡、聊聊故事，也聊聊未来的可能性。' }
+      { key: 'tea', title: '线下喝茶局', tabKey: 'tea', postId: 'tea-1', desc: '周末约三五校友，小范围轻松闲聊、交换近况与想法。' },
+      { key: 'innovation', title: '科创研学', tabKey: 'innovation', postId: 'innovation-1', desc: '一起走进科创园区、实验室或企业，了解前沿项目与合作机会。' },
+      { key: 'food', title: '泉州菜走起', tabKey: 'food', postId: 'food-1', desc: '在一桌泉州菜里，聊聊家乡、聊聊故事，也聊聊未来的可能性。' }
     ]
   },
 
@@ -294,9 +294,10 @@ Page({
     wx.navigateTo({ url: '/pages/activity-feed/activity-feed' })
   },
 
-  goToPostDetail(e) {
-    const postId = e.currentTarget.dataset.postId
-    if (postId) wx.navigateTo({ url: `/pages/post-detail/post-detail?post_id=${postId}` })
+  goToActivityTab(e) {
+    const tabKey = e.currentTarget.dataset.tabKey
+    const tab = tabKey || 'plaza'
+    wx.navigateTo({ url: `/pages/activity-feed/activity-feed?tab=${tab}` })
   },
 
   goToAlumniLink() {

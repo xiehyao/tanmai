@@ -1,54 +1,5 @@
 // pages/post-detail/post-detail.js - 帖子详情页（类似朋友圈阅读评论）
 const request = require('../../utils/request.js')
-const STORAGE_KEY = 'activity_feed_user_posts'
-
-function mockPost(id) {
-  const userPosts = wx.getStorageSync(STORAGE_KEY)
-  if (Array.isArray(userPosts)) {
-    const found = userPosts.find(p => p && p.id === id)
-    if (found) return found
-  }
-  const posts = {
-    'tea-1': {
-      id: 'tea-1',
-      author: { id: 1, name: '于涛', subtitle: '00通信工程', avatar: 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png', followerCount: 10 },
-      content: '这周六下午17:00在北邮科技大厦开北邮深港澳校友会筹备会。大家到了可以先在一楼大厅稍等。',
-      images: [],
-      location: '深圳 北邮科技大厦',
-      timeText: '昨天',
-      likeCount: 42,
-      shareCount: 42,
-      commentCount: 12,
-      activityKey: 'tea'
-    },
-    'innovation-1': {
-      id: 'innovation-1',
-      author: { id: 2, name: '孟楠', subtitle: '北邮深圳研究院', avatar: 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/female-young.png', followerCount: 8 },
-      content: '科创研学活动报名中，一起走进腾讯滨海大厦，了解前沿技术。',
-      images: [],
-      location: '深圳 南山区',
-      timeText: '2天前',
-      likeCount: 28,
-      shareCount: 15,
-      commentCount: 5,
-      activityKey: 'innovation'
-    },
-    'food-1': {
-      id: 'food-1',
-      author: { id: 3, name: '于涛', subtitle: '00通信工程', avatar: 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png', followerCount: 10 },
-      content: '看风景。',
-      images: ['https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=600'],
-      location: '泰国 普吉岛',
-      timeText: '昨天',
-      likeCount: 156,
-      shareCount: 42,
-      commentCount: 297,
-      activityKey: 'food'
-    }
-  }
-  return posts[id] || posts['food-1']
-}
-
 const AVATAR_BASE = 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/'
 
 function mockSignups(postId) {
@@ -127,41 +78,63 @@ Page({
     this.loadPost(postId)
   },
 
-  loadPost(postId) {
-    const post = mockPost(postId)
-    const comments = mockComments(postId)
-    const signups = mockSignups(postId)
-    const commentTotal = post.commentCount || comments.length
-    wx.setNavigationBarTitle({ title: post.author ? `${post.author.subtitle}-${post.author.name}` : '帖子详情' })
-    this.setData({ post, comments, commentTotal, signups })
+  async loadPost(postId) {
+    try {
+      const [postRes, signupRes] = await Promise.all([
+        request.get(`/api/posts/${postId}`),
+        request.get(`/api/posts/${postId}/signups`)
+      ])
+      const post = (postRes && postRes.success) ? postRes.data : null
+      if (!post) throw new Error('帖子不存在')
+      const comments = mockComments(postId)
+      const signups = (signupRes && signupRes.success)
+        ? { confirmed: signupRes.confirmed || [], pending: signupRes.pending || [] }
+        : { confirmed: [], pending: [] }
+      const meId = wx.getStorageSync('token') ? ((getApp().globalData.user && getApp().globalData.user.id) || null) : null
+      let signupStatus = 'none'
+      if (meId) {
+        if (signups.confirmed.some(s => Number(s.id) === Number(meId))) signupStatus = 'confirmed'
+        else if (signups.pending.some(s => Number(s.id) === Number(meId))) signupStatus = 'pending'
+      }
+      const commentTotal = post.commentCount || comments.length
+      wx.setNavigationBarTitle({ title: post.author ? `${post.author.subtitle}-${post.author.name}` : '帖子详情' })
+      this.setData({ post, comments, commentTotal, signups, signupStatus })
+    } catch (e) {
+      wx.showToast({ title: '加载失败', icon: 'none' })
+    }
   },
 
-  onSignupTap() {
+  async onSignupTap() {
+    if (!this.data.post || this.data.post.enableSignup === false) return
     if (this.data.signupStatus === 'none') {
       wx.showActionSheet({
         itemList: ['确定参加', '待定'],
-        success: (res) => {
+        success: async (res) => {
           const status = res.tapIndex === 0 ? 'confirmed' : 'pending'
-          this.setData({ signupStatus: status })
-          const signups = { ...this.data.signups }
-          const me = { id: 0, name: '我', avatar: 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png', status }
-          if (status === 'confirmed') {
-            signups.confirmed = [me, ...signups.confirmed]
-          } else {
-            signups.pending = [me, ...signups.pending]
+          try {
+            await request.post(`/api/posts/${this.data.post.id}/signup`, { status })
+            this.setData({ signupStatus: status })
+            await this.loadPost(this.data.post.id)
+            wx.showToast({ title: status === 'confirmed' ? '已报名' : '已标记待定', icon: 'success' })
+          } catch (e) {
+            wx.showToast({ title: '操作失败', icon: 'none' })
           }
-          this.setData({ signups })
-          wx.showToast({ title: status === 'confirmed' ? '已报名' : '已标记待定', icon: 'success' })
         }
       })
     } else {
       wx.showModal({
         title: '取消报名',
         content: '确定要取消报名吗？',
-        success: (res) => {
+        success: async (res) => {
           if (res.confirm) {
-            this.setData({ signupStatus: 'none' })
-            wx.showToast({ title: '已取消', icon: 'success' })
+            try {
+              await request.post(`/api/posts/${this.data.post.id}/signup`, { status: 'none' })
+              this.setData({ signupStatus: 'none' })
+              await this.loadPost(this.data.post.id)
+              wx.showToast({ title: '已取消', icon: 'success' })
+            } catch (e) {
+              wx.showToast({ title: '操作失败', icon: 'none' })
+            }
           }
         }
       })
