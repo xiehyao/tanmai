@@ -897,7 +897,14 @@
               if (idx >= 0) usersItems.value[idx] = { ...usersItems.value[idx], ...row };
               else usersItems.value.push(row);
             } catch (e) {
-              setMessage("加载用户详情失败：" + (e?.message || String(e)));
+              const msg = e?.message || String(e);
+              if (/Method Not Allowed|405/i.test(msg)) {
+                setMessage(
+                  "加载用户详情失败：后端未注册 GET /api/admin/users/{id}（多为未重启 uvicorn）。请在本机执行 ./scripts/local-admin-up.sh 后刷新。"
+                );
+              } else {
+                setMessage("加载用户详情失败：" + msg);
+              }
             }
           }
 
