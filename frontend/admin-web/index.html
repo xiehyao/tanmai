@@ -1992,6 +1992,88 @@
                                 </div>
                               </div>
 
+                              <!-- 工作经历（企业介绍之后、我的需求之前） -->
+                              <div class="phone-section">
+                                <div class="phone-section-title">工作经历</div>
+                                <div class="phone-row">
+                                  <div class="phone-label">当前工作</div>
+                                  <div class="phone-value">
+                                    <div>
+                                      {{
+                                        (activeUserEdit.card.company || '') && (activeUserEdit.card.title || '')
+                                          ? activeUserEdit.card.company + ' · ' + activeUserEdit.card.title
+                                          : (activeUserEdit.card.company || activeUserEdit.card.title || '公司 · 职位')
+                                      }}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <!-- 教育经历：根据 education 字段拼出多条 -->
+                              <div class="phone-section">
+                                <div class="phone-section-title">教育经历</div>
+                                <div v-if="activeUserEdit.education && Object.keys(activeUserEdit.education).length">
+                                  <div class="phone-row" v-if="activeUserEdit.education.primary_school || activeUserEdit.education.primary_graduation_year">
+                                    <div class="phone-label">小学</div>
+                                    <div class="phone-value">
+                                      {{
+                                        (activeUserEdit.education.primary_school || '') +
+                                        (activeUserEdit.education.primary_graduation_year ? ' · ' + activeUserEdit.education.primary_graduation_year + '届' : '')
+                                      }}
+                                    </div>
+                                  </div>
+                                  <div class="phone-row" v-if="activeUserEdit.education.middle_school || activeUserEdit.education.middle_graduation_year">
+                                    <div class="phone-label">初中</div>
+                                    <div class="phone-value">
+                                      {{
+                                        (activeUserEdit.education.middle_school || '') +
+                                        (activeUserEdit.education.middle_graduation_year ? ' · ' + activeUserEdit.education.middle_graduation_year + '届' : '')
+                                      }}
+                                    </div>
+                                  </div>
+                                  <div class="phone-row" v-if="activeUserEdit.education.high_school || activeUserEdit.education.high_graduation_year">
+                                    <div class="phone-label">高中</div>
+                                    <div class="phone-value">
+                                      {{
+                                        (activeUserEdit.education.high_school || '') +
+                                        (activeUserEdit.education.high_graduation_year ? ' · ' + activeUserEdit.education.high_graduation_year + '届' : '')
+                                      }}
+                                    </div>
+                                  </div>
+                                  <div class="phone-row" v-if="activeUserEdit.education.bachelor_university || activeUserEdit.education.bachelor_graduation_year">
+                                    <div class="phone-label">本科</div>
+                                    <div class="phone-value">
+                                      {{
+                                        (activeUserEdit.education.bachelor_university || '') +
+                                        (activeUserEdit.education.bachelor_major ? ' · ' + activeUserEdit.education.bachelor_major : '') +
+                                        (activeUserEdit.education.bachelor_graduation_year ? ' · ' + activeUserEdit.education.bachelor_graduation_year + '届' : '')
+                                      }}
+                                    </div>
+                                  </div>
+                                  <div class="phone-row" v-if="activeUserEdit.education.master_university || activeUserEdit.education.master_graduation_year">
+                                    <div class="phone-label">硕士</div>
+                                    <div class="phone-value">
+                                      {{
+                                        (activeUserEdit.education.master_university || '') +
+                                        (activeUserEdit.education.master_major ? ' · ' + activeUserEdit.education.master_major : '') +
+                                        (activeUserEdit.education.master_graduation_year ? ' · ' + activeUserEdit.education.master_graduation_year + '届' : '')
+                                      }}
+                                    </div>
+                                  </div>
+                                  <div class="phone-row" v-if="activeUserEdit.education.doctor_university || activeUserEdit.education.doctor_graduation_year">
+                                    <div class="phone-label">博士</div>
+                                    <div class="phone-value">
+                                      {{
+                                        (activeUserEdit.education.doctor_university || '') +
+                                        (activeUserEdit.education.doctor_major ? ' · ' + activeUserEdit.education.doctor_major : '') +
+                                        (activeUserEdit.education.doctor_graduation_year ? ' · ' + activeUserEdit.education.doctor_graduation_year + '届' : '')
+                                      }}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div v-else class="muted" style="font-size:11px;">暂无教育经历记录</div>
+                              </div>
+
                               <div class="phone-section">
                                 <div class="phone-section-title">我的需求</div>
                                 <div class="phone-row">
