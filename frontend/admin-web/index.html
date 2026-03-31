@@ -328,6 +328,25 @@
           });
 
           const isAuthed = computed(() => Boolean(token.value));
+          const quickCreateOpen = ref(false);
+          const quickCreateType = ref("alumni"); // users | cards | alumni
+          const quickCreateForm = reactive({
+            openid: "",
+            name: "",
+            nickname: "",
+            gender: "",
+            birth_place: "",
+            wechat_id: "",
+            is_staff: false,
+            company: "",
+            title: "",
+            phone: "",
+            email: "",
+            bio: "",
+            industry: "",
+            association_title: "",
+            user_id: "",
+          });
 
           function setMessage(s) {
             message.value = s;
@@ -395,6 +414,121 @@
               personal_photos: "",
               field_visibility: "",
             });
+          }
+
+          function resetQuickCreateForm() {
+            Object.assign(quickCreateForm, {
+              openid: "",
+              name: "",
+              nickname: "",
+              gender: "",
+              birth_place: "",
+              wechat_id: "",
+              is_staff: false,
+              company: "",
+              title: "",
+              phone: "",
+              email: "",
+              bio: "",
+              industry: "",
+              association_title: "",
+              user_id: "",
+            });
+          }
+
+          function openQuickCreate() {
+            quickCreateType.value = page.value === "cards" ? "cards" : page.value === "users" ? "users" : "alumni";
+            resetQuickCreateForm();
+            quickCreateOpen.value = true;
+          }
+
+          async function submitQuickCreate() {
+            busy.value = true;
+            try {
+              if (quickCreateType.value === "cards") {
+                const uid = Number(quickCreateForm.user_id);
+                if (!uid || uid < 1) throw new Error("创建名片时 user_id 必填");
+                await apiRequest("/api/admin/cards", {
+                  token: token.value,
+                  method: "POST",
+                  body: {
+                    user_id: uid,
+                    payload: {
+                      name: quickCreateForm.name || undefined,
+                      title: quickCreateForm.title || undefined,
+                      company: quickCreateForm.company || undefined,
+                      phone: quickCreateForm.phone || undefined,
+                      email: quickCreateForm.email || undefined,
+                      bio: quickCreateForm.bio || undefined,
+                      industry: quickCreateForm.industry || undefined,
+                      association_title: quickCreateForm.association_title || undefined,
+                    },
+                  },
+                });
+                setMessage("新建名片成功");
+              } else if (quickCreateType.value === "users") {
+                await apiRequest("/api/admin/users", {
+                  token: token.value,
+                  method: "POST",
+                  body: {
+                    user: {
+                      openid: quickCreateForm.openid || undefined,
+                      name: quickCreateForm.name || undefined,
+                      nickname: quickCreateForm.nickname || undefined,
+                      gender: quickCreateForm.gender || undefined,
+                      birth_place: quickCreateForm.birth_place || undefined,
+                      wechat_id: quickCreateForm.wechat_id || undefined,
+                      is_staff: quickCreateForm.is_staff,
+                    },
+                    card: {
+                      name: quickCreateForm.name || undefined,
+                      title: quickCreateForm.title || undefined,
+                      company: quickCreateForm.company || undefined,
+                      phone: quickCreateForm.phone || undefined,
+                      email: quickCreateForm.email || undefined,
+                      bio: quickCreateForm.bio || undefined,
+                      industry: quickCreateForm.industry || undefined,
+                      association_title: quickCreateForm.association_title || undefined,
+                    },
+                  },
+                });
+                setMessage("新建用户记录成功");
+              } else {
+                await apiRequest("/api/admin/alumni", {
+                  token: token.value,
+                  method: "POST",
+                  body: {
+                    user: {
+                      openid: quickCreateForm.openid || undefined,
+                      name: quickCreateForm.name || undefined,
+                      nickname: quickCreateForm.nickname || undefined,
+                      gender: quickCreateForm.gender || undefined,
+                      birth_place: quickCreateForm.birth_place || undefined,
+                      wechat_id: quickCreateForm.wechat_id || undefined,
+                      is_staff: quickCreateForm.is_staff,
+                    },
+                    card: {
+                      name: quickCreateForm.name || undefined,
+                      title: quickCreateForm.title || undefined,
+                      company: quickCreateForm.company || undefined,
+                      phone: quickCreateForm.phone || undefined,
+                      email: quickCreateForm.email || undefined,
+                      bio: quickCreateForm.bio || undefined,
+                      industry: quickCreateForm.industry || undefined,
+                      association_title: quickCreateForm.association_title || undefined,
+                    },
+                  },
+                });
+                setMessage("新建校友记录成功");
+              }
+
+              quickCreateOpen.value = false;
+              await refreshCurrentList();
+            } catch (e) {
+              setMessage("新建失败：" + (e?.message || String(e)));
+            } finally {
+              busy.value = false;
+            }
           }
 
           function clearSelection() {
@@ -911,6 +1045,8 @@
             openCreateUser,
             openEditUser,
             openViewUser,
+            openQuickCreate,
+            submitQuickCreate,
             submitUserModal,
             deleteUser,
             loadUsers,
@@ -940,6 +1076,9 @@
             alumniTotal,
             alumniItems,
             selectedAlumniIds,
+            quickCreateOpen,
+            quickCreateType,
+            quickCreateForm,
             alumniModalOpen,
             editingAlumniId,
             alumniForm,
@@ -1008,6 +1147,7 @@
                   <button class="btn" @click="loadUsers" :disabled="busy">查询</button>
                   <button class="btn" @click="selectAllOnPage">全选</button>
                   <button class="btn danger" :disabled="selectedUserIds.length===0" @click="batchDelete">批量删除</button>
+                  <button class="btn primary" @click="openQuickCreate">新建校友记录</button>
                   <div class="spacer"></div>
                   <button class="btn primary" @click="openCreateUser">新增用户</button>
                 </div>
@@ -1120,6 +1260,7 @@
                   <button class="btn" @click="loadCards" :disabled="busy">查询</button>
                   <button class="btn" @click="selectAllOnPage">全选</button>
                   <button class="btn danger" :disabled="selectedCardIds.length===0" @click="batchDelete">批量删除</button>
+                  <button class="btn primary" @click="openQuickCreate">新建校友记录</button>
                   <div class="spacer"></div>
                   <button class="btn primary" @click="openCreateCard">新增/保存名片</button>
                 </div>
@@ -1200,6 +1341,7 @@
                   <button class="btn" @click="loadAlumni" :disabled="busy">查询</button>
                   <button class="btn" @click="selectAllOnPage">全选</button>
                   <button class="btn danger" :disabled="selectedAlumniIds.length===0" @click="batchDelete">批量删除</button>
+                  <button class="btn primary" @click="openQuickCreate">新建校友记录</button>
                   <div class="spacer"></div>
                   <button class="btn primary" @click="openCreateAlumni">新增校友</button>
                 </div>
@@ -1358,6 +1500,97 @@
                   <div class="row" style="margin-top:14px;">
                     <button class="btn ghost" @click="userViewOpen=false">关闭</button>
                     <div class="spacer"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quick Create Modal -->
+              <div v-if="quickCreateOpen" class="modal-backdrop">
+                <div class="modal">
+                  <h3>新建校友记录（涵盖 Users / Cards / Alumni）</h3>
+                  <div class="row" style="margin:10px 0;">
+                    <label>目标表</label>
+                    <select v-model="quickCreateType" style="min-width:220px;">
+                      <option value="users">Users（新建用户）</option>
+                      <option value="cards">Cards（新建名片）</option>
+                      <option value="alumni">Alumni（新建校友）</option>
+                    </select>
+                  </div>
+
+                  <div class="grid">
+                    <div class="col-6" v-if="quickCreateType!=='cards'">
+                      <label>openid（可选，Users/Alumni 留空自动生成）</label>
+                      <input v-model="quickCreateForm.openid" />
+                    </div>
+                    <div class="col-6" v-if="quickCreateType==='cards'">
+                      <label>user_id（Cards 必填）</label>
+                      <input v-model="quickCreateForm.user_id" placeholder="例如 268" />
+                    </div>
+                    <div class="col-6">
+                      <label>姓名</label>
+                      <input v-model="quickCreateForm.name" />
+                    </div>
+                    <div class="col-6" v-if="quickCreateType!=='cards'">
+                      <label>昵称</label>
+                      <input v-model="quickCreateForm.nickname" />
+                    </div>
+                    <div class="col-6" v-if="quickCreateType!=='cards'">
+                      <label>性别</label>
+                      <input v-model="quickCreateForm.gender" />
+                    </div>
+                    <div class="col-6" v-if="quickCreateType!=='cards'">
+                      <label>出生地</label>
+                      <input v-model="quickCreateForm.birth_place" />
+                    </div>
+                    <div class="col-6" v-if="quickCreateType!=='cards'">
+                      <label>wechat_id</label>
+                      <input v-model="quickCreateForm.wechat_id" />
+                    </div>
+                    <div class="col-3" v-if="quickCreateType!=='cards'">
+                      <label>is_staff</label>
+                      <select v-model="quickCreateForm.is_staff" style="min-width:120px;">
+                        <option :value="false">否</option>
+                        <option :value="true">是</option>
+                      </select>
+                    </div>
+
+                    <div class="col-12" style="margin-top:8px;">
+                      <div class="muted">名片字段</div>
+                    </div>
+                    <div class="col-6">
+                      <label>公司</label>
+                      <input v-model="quickCreateForm.company" />
+                    </div>
+                    <div class="col-6">
+                      <label>头衔/职位</label>
+                      <input v-model="quickCreateForm.title" />
+                    </div>
+                    <div class="col-6">
+                      <label>电话</label>
+                      <input v-model="quickCreateForm.phone" />
+                    </div>
+                    <div class="col-6">
+                      <label>邮箱</label>
+                      <input v-model="quickCreateForm.email" />
+                    </div>
+                    <div class="col-6">
+                      <label>行业</label>
+                      <input v-model="quickCreateForm.industry" />
+                    </div>
+                    <div class="col-6">
+                      <label>校友会/协会头衔</label>
+                      <input v-model="quickCreateForm.association_title" />
+                    </div>
+                    <div class="col-12">
+                      <label>简介 bio</label>
+                      <textarea v-model="quickCreateForm.bio"></textarea>
+                    </div>
+                  </div>
+
+                  <div class="row" style="margin-top:14px;">
+                    <button class="btn ghost" @click="quickCreateOpen=false">取消</button>
+                    <div class="spacer"></div>
+                    <button class="btn primary" @click="submitQuickCreate" :disabled="busy">保存</button>
                   </div>
                 </div>
               </div>
