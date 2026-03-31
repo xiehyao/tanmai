@@ -112,6 +112,7 @@ def _delete_user_related_rows(db: Session, user_id: int) -> None:
         "user_association_info",
         "user_locations",
         "user_cards",
+        "user_card_entry_progress",
     ]
     for table in tables:
         try:
