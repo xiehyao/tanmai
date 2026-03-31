@@ -1020,6 +1020,8 @@
                     <option :value="10">10</option>
                     <option :value="20">20</option>
                     <option :value="50">50</option>
+                    <option :value="100">100</option>
+                    <option :value="200">200</option>
                   </select>
                   <button class="btn" @click="pagerGo('prev')" :disabled="userPage<=1">上一页</button>
                   <button class="btn" @click="pagerGo('next')" :disabled="userPage>=pageCount(usersTotal, userPageSize)">下一页</button>
@@ -1130,6 +1132,8 @@
                     <option :value="10">10</option>
                     <option :value="20">20</option>
                     <option :value="50">50</option>
+                    <option :value="100">100</option>
+                    <option :value="200">200</option>
                   </select>
                   <button class="btn" @click="pagerGo('prev')" :disabled="cardPage<=1">上一页</button>
                   <button class="btn" @click="pagerGo('next')" :disabled="cardPage>=pageCount(cardsTotal, cardPageSize)">下一页</button>
@@ -1208,6 +1212,8 @@
                     <option :value="10">10</option>
                     <option :value="20">20</option>
                     <option :value="50">50</option>
+                    <option :value="100">100</option>
+                    <option :value="200">200</option>
                   </select>
                   <button class="btn" @click="pagerGo('prev')" :disabled="alumniPage<=1">上一页</button>
                   <button class="btn" @click="pagerGo('next')" :disabled="alumniPage>=pageCount(alumniTotal, alumniPageSize)">下一页</button>
