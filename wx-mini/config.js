@@ -3,7 +3,8 @@
 // - 本地后端：'http://localhost:端口' 或 'http://127.0.0.1:端口'
 // - 服务器 IP：'http://43.143.224.158'（仅开发时，且需在微信开发者工具勾选「不校验合法域名」）
 const config = {
-  apiBase: 'http://127.0.0.1:8000',
+  // 本地联调：改为 'http://127.0.0.1:8000'
+  apiBase: 'https://www.pengyoo.com',
 }
 
 module.exports = config
