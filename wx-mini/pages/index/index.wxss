@@ -190,17 +190,29 @@
   background: linear-gradient(135deg, #667eea 0%, #7f5af0 100%);
 }
 
-/* 不同活动卡片的彩色渐变背景 */
+/* 不同活动卡片的彩色渐变背景 + 场景图 */
 .poster-tea {
-  background: linear-gradient(135deg, #f97316 0%, #fb923c 45%, #facc15 100%);
+  background-image:
+    linear-gradient(135deg, rgba(249,115,22,0.88), rgba(251,146,60,0.82), rgba(250,204,21,0.78)),
+    url('https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=1200&auto=format&fit=crop');
+  background-size: cover;
+  background-position: center;
 }
 
 .poster-innovation {
-  background: linear-gradient(135deg, #22c1c3 0%, #4f46e5 50%, #a855f7 100%);
+  background-image:
+    linear-gradient(135deg, rgba(34,193,195,0.9), rgba(79,70,229,0.85), rgba(168,85,247,0.8)),
+    url('https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&auto=format&fit=crop');
+  background-size: cover;
+  background-position: center;
 }
 
 .poster-food {
-  background: linear-gradient(135deg, #fb7185 0%, #f97373 45%, #facc15 100%);
+  background-image:
+    linear-gradient(135deg, rgba(251,113,133,0.9), rgba(249,115,115,0.85), rgba(250,204,21,0.8)),
+    url('https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1200&auto=format&fit=crop');
+  background-size: cover;
+  background-position: center;
 }
 
 .activity-title {
