@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 from typing import Optional, Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -10,6 +10,7 @@ from app.core.database import get_db, Base, engine
 from app.core.security import verify_token
 from app.models.post import Post, PostSignup
 from app.models.user import User
+from app.services.cos import upload_post_image_to_cos
 
 router = APIRouter()
 
@@ -26,6 +27,29 @@ class CreatePostRequest(BaseModel):
 
 class SignupRequest(BaseModel):
     status: Literal["confirmed", "pending", "none"]
+
+
+@router.post("/upload-image")
+async def upload_post_image(
+    file: UploadFile = File(...),
+    token: dict = Depends(verify_token),
+):
+    if not token.get("sub"):
+        raise HTTPException(status_code=401, detail="未登录")
+    content_type = (file.content_type or "").lower()
+    if not content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="仅支持图片文件")
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="空文件")
+    if len(data) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="单张图片不能超过 10MB")
+    uploaded = upload_post_image_to_cos(
+        file_bytes=data,
+        filename=file.filename or "",
+        content_type=content_type,
+    )
+    return {"success": True, "data": uploaded}
 
 
 def _ensure_tables_and_seed(db: Session):

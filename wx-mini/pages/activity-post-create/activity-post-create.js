@@ -1,3 +1,14 @@
+const request = require('../../utils/request.js')
+const config = require('../../config.js')
+
+function getApiBase() {
+  try {
+    const app = getApp()
+    if (app && app.globalData && app.globalData.apiBase) return app.globalData.apiBase
+  } catch (e) {}
+  return config.apiBase || 'https://www.pengyoo.com'
+}
+
 Page({
   data: {
     content: '',
@@ -98,9 +109,10 @@ Page({
     }
     this.setData({ publishing: true })
     try {
+      const uploadedImageUrls = await this.uploadImagesToCos(this.data.images || [])
       const payload = {
         content,
-        images: this.data.images.slice(),
+        images: uploadedImageUrls,
         location: this.data.location ? (this.data.location.address || this.data.location.name || '') : '',
         activity_key: this.data.activityKey,
         enable_signup: !!this.data.enableSignup
@@ -117,6 +129,54 @@ Page({
       wx.showToast({ title: e.message || '发布失败', icon: 'none' })
     } finally {
       this.setData({ publishing: false })
+    }
+  },
+
+  async uploadImagesToCos(localPaths) {
+    const paths = Array.isArray(localPaths) ? localPaths.filter(Boolean) : []
+    if (!paths.length) return []
+    const token = wx.getStorageSync('token')
+    if (!token) throw new Error('未登录，请先登录后发布')
+    const apiBase = getApiBase()
+
+    const uploaded = []
+    try {
+      for (let i = 0; i < paths.length; i += 1) {
+        const localPath = paths[i]
+        wx.showLoading({ title: `上传图片 ${i + 1}/${paths.length}`, mask: true })
+        const url = await new Promise((resolve, reject) => {
+          wx.uploadFile({
+            url: `${apiBase}/api/posts/upload-image`,
+            filePath: localPath,
+            name: 'file',
+            header: {
+              Authorization: `Bearer ${token}`
+            },
+            success: (res) => {
+              if (res.statusCode !== 200) {
+                reject(new Error(`上传失败(${res.statusCode})`))
+                return
+              }
+              try {
+                const data = JSON.parse(res.data || '{}')
+                const cosUrl = data && data.success && data.data && data.data.url
+                if (!cosUrl) {
+                  reject(new Error((data && data.detail) || '上传失败'))
+                  return
+                }
+                resolve(cosUrl)
+              } catch (e) {
+                reject(new Error('上传返回解析失败'))
+              }
+            },
+            fail: (err) => reject(new Error((err && err.errMsg) || '图片上传失败'))
+          })
+        })
+        uploaded.push(url)
+      }
+      return uploaded
+    } finally {
+      wx.hideLoading()
     }
   }
 })
