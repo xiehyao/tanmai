@@ -9,6 +9,7 @@ from app.core.database import get_db
 from app.core.security import create_access_token, verify_token
 from app.core.config import settings
 from app.models.user import User
+from app.services.wechat import jscode2session
 
 router = APIRouter()
 
@@ -45,16 +46,16 @@ async def login(
     db: Session = Depends(get_db),
 ):
     """
-    小程序登录接口（简化版）：
-    - 使用 code 作为 openid 的稳定来源（不再调用微信服务端，用于当前环境恢复功能）。
-    - 首次登录创建用户，之后复用。
+    小程序登录：
+    - 使用 wx.login 的 code 调用微信 jscode2session 换取稳定 openid。
+    - 首次登录创建用户，之后按 openid 复用。
     """
     code = body.code.strip()
     if not code:
         raise HTTPException(status_code=400, detail="code 不能为空")
 
-    # 简化：使用 code 映射为 openid（之前通过 wechat 服务端换取）
-    openid = f"wx_{code}"
+    wx_data = await jscode2session(code)
+    openid = wx_data["openid"]
 
     user = db.query(User).filter(User.openid == openid).first()
     if not user:

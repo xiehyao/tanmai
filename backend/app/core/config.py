@@ -22,6 +22,8 @@ class Settings:
     SECRET_KEY: str = os.getenv("SECRET_KEY", "tanmai-secret-key-change-in-production")
     ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "10080"))  # 7天
+    # 小程序：WECHAT_APPID + WECHAT_SECRET（AppSecret），勿写入仓库，仅环境变量 / 服务器 .env
+    WECHAT_APPID: Optional[str] = os.getenv("WECHAT_APPID")
     WECHAT_SECRET: Optional[str] = os.getenv("WECHAT_SECRET")
     ALIYUN_ACCESS_KEY_ID: Optional[str] = os.getenv("ALIYUN_ACCESS_KEY_ID")
     ALIYUN_ACCESS_KEY_SECRET: Optional[str] = os.getenv("ALIYUN_ACCESS_KEY_SECRET")

@@ -126,6 +126,20 @@ if os.getenv("DATABASE_URL", "").startswith("sqlite:"):
     _init_sqlite_test_db()
 
 
+@pytest.fixture(autouse=True)
+def _mock_wechat_jscode2session(monkeypatch):
+    """单元测试不请求真实微信接口；按 code 生成稳定 mock openid。"""
+    import app.api.auth as auth_mod
+
+    async def fake_jscode2session(js_code: str) -> dict:
+        return {
+            "openid": f"wx_test_{js_code}",
+            "session_key": "mock_session_key",
+        }
+
+    monkeypatch.setattr(auth_mod, "jscode2session", fake_jscode2session)
+
+
 @pytest.fixture
 def client():
     """FastAPI TestClient"""
