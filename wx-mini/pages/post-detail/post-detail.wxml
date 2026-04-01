@@ -1,5 +1,5 @@
 <!--pages/post-detail/post-detail.wxml - 帖子详情页（朋友圈阅读评论体验）-->
-<view class="detail-page" wx:if="{{post}}">
+<view class="detail-page" wx:if="{{post}}" bindtap="closeActionMenu">
   <scroll-view scroll-y class="detail-scroll">
     <!-- 主贴卡片 -->
     <view class="post-card main-post">
@@ -27,7 +27,18 @@
             <text class="post-time">{{post.timeText}}</text>
           </view>
         </view>
-        <text class="post-more">⋯</text>
+        <view class="post-more-wrap" catchtap="onMoreTap">
+          <text class="post-more">⋯</text>
+          <view class="post-action-menu" wx:if="{{showActionMenu}}">
+            <text class="menu-action" catchtap="onMenuLikeTap">{{post.liked ? '取消' : '赞'}}</text>
+            <text class="menu-divider"></text>
+            <text class="menu-action" catchtap="onMenuCommentTap">评论</text>
+            <block wx:if="{{post.canDelete}}">
+              <text class="menu-divider"></text>
+              <text class="menu-action menu-action-danger" catchtap="onMenuDeleteTap">删除</text>
+            </block>
+          </view>
+        </view>
       </view>
     </view>
 

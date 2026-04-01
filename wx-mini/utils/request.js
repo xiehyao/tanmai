@@ -52,7 +52,8 @@ function request(options) {
           const detail = res.data && (res.data.detail || res.data.message)
           reject(new Error(detail || '服务器暂时不可用，请稍后重试'))
         } else {
-          reject(new Error(res.data?.message || '请求失败'))
+          const detail = res.data && (res.data.detail || res.data.message)
+          reject(new Error(detail || `请求失败(${res.statusCode})`))
         }
       },
       fail: (err) => {

@@ -123,7 +123,9 @@ Page({
     signupStatus: 'none',  // none | confirmed | pending
     showParticipantModal: false,
     participantTab: 'confirmed',  // confirmed | pending
-    avatarDisplayCount: 5
+    avatarDisplayCount: 5,
+    showActionMenu: false,
+    meId: null
   },
 
   onLoad(options) {
@@ -132,8 +134,18 @@ Page({
       wx.showToast({ title: '参数错误', icon: 'none' })
       return
     }
+    this.syncMeId()
     this.setData({ postId })
     this.loadPost(postId)
+  },
+
+  syncMeId() {
+    let meId = null
+    try {
+      const app = getApp()
+      meId = app && app.globalData && app.globalData.user ? app.globalData.user.id : null
+    } catch (e) {}
+    this.setData({ meId: meId || null })
   },
 
   async loadPost(postId) {
@@ -143,7 +155,13 @@ Page({
       const signups = mockSignups(postId)
       const commentTotal = localPost.commentCount || comments.length
       wx.setNavigationBarTitle({ title: localPost.author ? `${localPost.author.subtitle}-${localPost.author.name}` : '帖子详情' })
-      this.setData({ post: localPost, comments, commentTotal, signups, signupStatus: 'none' })
+      this.setData({
+        post: { ...localPost, liked: !!localPost.liked, canDelete: !!(this.data.meId && Number(localPost.author.id) === Number(this.data.meId)) },
+        comments,
+        commentTotal,
+        signups,
+        signupStatus: 'none'
+      })
       return
     }
     try {
@@ -165,7 +183,13 @@ Page({
       }
       const commentTotal = post.commentCount || comments.length
       wx.setNavigationBarTitle({ title: post.author ? `${post.author.subtitle}-${post.author.name}` : '帖子详情' })
-      this.setData({ post, comments, commentTotal, signups, signupStatus })
+      this.setData({
+        post: { ...post, liked: !!post.liked, canDelete: !!(this.data.meId && post.author && Number(post.author.id) === Number(this.data.meId)) },
+        comments,
+        commentTotal,
+        signups,
+        signupStatus
+      })
     } catch (e) {
       wx.showToast({ title: '加载失败', icon: 'none' })
     }
@@ -230,10 +254,11 @@ Page({
   onLikeTap() {
     const post = this.data.post
     if (!post) return
-    const liked = !this.data.liked
+    const liked = !post.liked
     const likeCount = post.likeCount + (liked ? 1 : -1)
     this.setData({
       liked,
+      'post.liked': liked,
       'post.likeCount': Math.max(0, likeCount)
     })
   },
@@ -247,7 +272,48 @@ Page({
   },
 
   onCommentTap() {
-    wx.showToast({ title: '评论功能开发中', icon: 'none' })
+    wx.showToast({ title: '评论输入功能开发中', icon: 'none' })
+  },
+
+  onMoreTap() {
+    this.setData({ showActionMenu: !this.data.showActionMenu })
+  },
+
+  closeActionMenu() {
+    if (!this.data.showActionMenu) return
+    this.setData({ showActionMenu: false })
+  },
+
+  onMenuLikeTap() {
+    this.onLikeTap()
+    this.setData({ showActionMenu: false })
+  },
+
+  onMenuCommentTap() {
+    this.setData({ showActionMenu: false })
+    this.onCommentTap()
+  },
+
+  onMenuDeleteTap() {
+    const post = this.data.post
+    if (!post || !post.id) return
+    wx.showModal({
+      title: '删除帖子',
+      content: '删除后将无法恢复，确定删除吗？',
+      confirmColor: '#ef4444',
+      success: async (res) => {
+        if (!res.confirm) return
+        try {
+          await request.delete(`/api/posts/${post.id}`)
+          wx.showToast({ title: '已删除', icon: 'success' })
+          setTimeout(() => {
+            wx.navigateBack()
+          }, 300)
+        } catch (err) {
+          wx.showToast({ title: (err && err.message) || '删除失败', icon: 'none' })
+        }
+      }
+    })
   },
 
   closeComments() {

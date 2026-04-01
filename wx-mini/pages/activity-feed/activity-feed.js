@@ -71,13 +71,16 @@ Page({
       { key: 'food', label: '泉州菜走起' }
     ],
     activeTab: 'plaza',
-    searchKeyword: ''
+    searchKeyword: '',
+    activeMenuPostId: '',
+    meId: null
   },
 
   onLoad(options) {
     const tab = options && options.tab ? String(options.tab) : ''
     const validTabs = ['plaza', 'tea', 'innovation', 'sport', 'food']
     if (tab && validTabs.includes(tab)) this.setData({ activeTab: tab })
+    this.syncMeId()
     this.loadPosts()
   },
 
@@ -121,7 +124,22 @@ Page({
         ((item.author && item.author.name ? item.author.name : '').toLowerCase().includes(keyword))
       )
     }
+    const meId = this.data.meId
+    list = list.map(item => ({
+      ...item,
+      liked: !!item.liked,
+      canDelete: !!(meId && item.author && Number(item.author.id) === Number(meId))
+    }))
     this.setData({ filteredPosts: list })
+  },
+
+  syncMeId() {
+    let meId = null
+    try {
+      const app = getApp()
+      meId = app && app.globalData && app.globalData.user ? app.globalData.user.id : null
+    } catch (e) {}
+    this.setData({ meId: meId || null })
   },
 
   goToPostDetail(e) {
@@ -135,6 +153,58 @@ Page({
   },
 
   onShow() {
+    this.syncMeId()
     this.loadPosts()
+  },
+
+  onMoreTap(e) {
+    const postId = e.currentTarget.dataset.id || ''
+    if (!postId) return
+    this.setData({ activeMenuPostId: this.data.activeMenuPostId === postId ? '' : postId })
+  },
+
+  closeMenu() {
+    if (!this.data.activeMenuPostId) return
+    this.setData({ activeMenuPostId: '' })
+  },
+
+  onMenuLikeTap(e) {
+    const postId = e.currentTarget.dataset.id
+    const posts = this.data.posts.slice()
+    const idx = posts.findIndex(p => String(p.id) === String(postId))
+    if (idx < 0) return
+    const post = posts[idx]
+    const liked = !post.liked
+    const likeCount = Math.max(0, Number(post.likeCount || 0) + (liked ? 1 : -1))
+    posts[idx] = { ...post, liked, likeCount }
+    this.setData({ posts, activeMenuPostId: '' }, () => this.applyFilters())
+  },
+
+  onMenuCommentTap(e) {
+    const postId = e.currentTarget.dataset.id
+    if (!postId) return
+    this.setData({ activeMenuPostId: '' })
+    wx.navigateTo({ url: `/pages/post-detail/post-detail?post_id=${postId}&focus_comment=1` })
+  },
+
+  onMenuDeleteTap(e) {
+    const postId = e.currentTarget.dataset.id
+    if (!postId) return
+    wx.showModal({
+      title: '删除帖子',
+      content: '删除后将无法恢复，确定删除吗？',
+      confirmColor: '#ef4444',
+      success: async (res) => {
+        if (!res.confirm) return
+        try {
+          await request.delete(`/api/posts/${postId}`)
+          const posts = this.data.posts.filter(p => String(p.id) !== String(postId))
+          this.setData({ posts, activeMenuPostId: '' }, () => this.applyFilters())
+          wx.showToast({ title: '已删除', icon: 'success' })
+        } catch (err) {
+          wx.showToast({ title: (err && err.message) || '删除失败', icon: 'none' })
+        }
+      }
+    })
   }
 })

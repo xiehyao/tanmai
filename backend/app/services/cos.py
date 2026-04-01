@@ -12,9 +12,12 @@ from app.core.config import settings
 
 try:
     from qcloud_cos import CosConfig, CosS3Client  # type: ignore
+    from qcloud_cos.cos_exception import CosClientError, CosServiceError  # type: ignore
 except Exception:  # pragma: no cover
     CosConfig = None  # type: ignore
     CosS3Client = None  # type: ignore
+    CosClientError = Exception  # type: ignore
+    CosServiceError = Exception  # type: ignore
 
 
 def _guess_ext(filename: Optional[str], content_type: Optional[str]) -> str:
@@ -55,13 +58,25 @@ def upload_post_image_to_cos(file_bytes: bytes, filename: str, content_type: str
 
     config = CosConfig(Region=region, SecretId=secret_id, SecretKey=secret_key)
     client = CosS3Client(config)
-    client.put_object(
-        Bucket=bucket,
-        Body=file_bytes,
-        Key=key,
-        ContentType=content_type or "application/octet-stream",
-        ACL="public-read",
-    )
+    try:
+        client.put_object(
+            Bucket=bucket,
+            Body=file_bytes,
+            Key=key,
+            ContentType=content_type or "application/octet-stream",
+            ACL="public-read",
+        )
+    except CosServiceError as e:
+        code = getattr(e, "get_error_code", lambda: "")() or ""
+        # Most common production issue: stale/incorrect secret for current bucket account.
+        if code == "SignatureDoesNotMatch":
+            raise HTTPException(
+                status_code=502,
+                detail="COS 鉴权失败：签名不匹配，请检查 COS_SECRET_ID/COS_SECRET_KEY 是否与桶账号一致",
+            )
+        raise HTTPException(status_code=502, detail=f"COS 服务异常：{code or 'unknown'}")
+    except CosClientError:
+        raise HTTPException(status_code=502, detail="COS 客户端异常：网络或配置错误")
 
     base_url = settings.UPLOAD_URL_BASE or f"https://{bucket}.cos.{region}.myqcloud.com"
     return {"key": key, "url": f"{base_url.rstrip('/')}/{key}"}

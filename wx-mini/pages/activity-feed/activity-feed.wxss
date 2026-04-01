@@ -136,6 +136,41 @@
   flex-shrink: 0;
 }
 
+.post-more-wrap {
+  position: relative;
+  padding-left: 12rpx;
+}
+
+.post-action-menu {
+  position: absolute;
+  right: 0;
+  top: 52rpx;
+  background: rgba(0, 0, 0, 0.85);
+  border-radius: 12rpx;
+  padding: 14rpx 18rpx;
+  display: flex;
+  align-items: center;
+  z-index: 20;
+  min-width: 260rpx;
+}
+
+.menu-action {
+  color: #fff;
+  font-size: 24rpx;
+  line-height: 1;
+}
+
+.menu-action-danger {
+  color: #fda4af;
+}
+
+.menu-divider {
+  width: 1rpx;
+  height: 24rpx;
+  background: rgba(255, 255, 255, 0.35);
+  margin: 0 16rpx;
+}
+
 .feed-bottom-pad {
   height: 140rpx;
 }

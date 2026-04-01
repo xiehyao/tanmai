@@ -11,6 +11,11 @@
 .post-footer{margin-top:16rpx;display:flex;align-items:center;gap:16rpx}
 .post-location,.post-time{font-size:24rpx;color:#9ca3af}
 .post-more{font-size:40rpx;color:#9ca3af;padding:0 8rpx;flex-shrink:0}
+.post-more-wrap{position:relative;padding-left:12rpx}
+.post-action-menu{position:absolute;right:0;top:54rpx;background:rgba(0,0,0,.85);border-radius:12rpx;padding:14rpx 18rpx;display:flex;align-items:center;z-index:20;min-width:260rpx}
+.menu-action{color:#fff;font-size:24rpx;line-height:1}
+.menu-action-danger{color:#fda4af}
+.menu-divider{width:1rpx;height:24rpx;background:rgba(255,255,255,.35);margin:0 16rpx}
 
 /* 活动参与区 */
 .participation-section{margin:0 24rpx 24rpx;padding:24rpx 28rpx;background:#fff;border-radius:20rpx;box-shadow:0 4rpx 20rpx rgba(0,0,0,.06)}

@@ -285,3 +285,25 @@ async def signup_post(
         db.add(PostSignup(post_id=post.id, user_id=user_id, status=body.status))
     db.commit()
     return {"success": True}
+
+
+@router.delete("/{post_id}")
+async def delete_post(
+    post_id: str,
+    db: Session = Depends(get_db),
+    token: dict = Depends(verify_token),
+):
+    _ensure_tables_and_seed(db)
+    post = _resolve_post(db, post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail="post 不存在")
+    uid = token.get("sub")
+    if not uid:
+        raise HTTPException(status_code=401, detail="未登录")
+    if not post.user_id or int(post.user_id) != int(uid):
+        raise HTTPException(status_code=403, detail="仅作者可删除该帖子")
+
+    db.query(PostSignup).filter(PostSignup.post_id == post.id).delete(synchronize_session=False)
+    db.delete(post)
+    db.commit()
+    return {"success": True}
