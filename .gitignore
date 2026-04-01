@@ -12,9 +12,10 @@ ENV/
 dist/
 build/
 
-# Environment
+# Environment（根目录与其它路径的 .env 仍忽略；backend/.env 纳入仓库便于服务器拉取启动）
 .env
 .env.local
+!backend/.env
 
 # IDE
 .vscode/
