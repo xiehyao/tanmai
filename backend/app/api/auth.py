@@ -9,6 +9,8 @@ from app.core.database import get_db
 from app.core.security import create_access_token, verify_token
 from app.core.config import settings
 from app.models.user import User
+from app.models.card import UserCard
+from app.services.avatar_display import display_avatar_url
 from app.services.wechat import jscode2session
 
 router = APIRouter()
@@ -20,18 +22,13 @@ class LoginRequest(BaseModel):
     avatar: Optional[str] = None
 
 
-def _display_avatar(user: User) -> Optional[str]:
-    """优先使用用户选择头像，其次微信头像。"""
-    return user.selected_avatar or user.avatar
-
-
-def _user_to_dict(user: User) -> dict:
+def _user_to_dict(user: User, card: Optional[UserCard] = None) -> dict:
     return {
         "id": user.id,
         "openid": user.openid,
         "name": user.name,
         "nickname": user.nickname,
-        "avatar": _display_avatar(user),
+        "avatar": display_avatar_url(user, card),
         "wechat_avatar": user.avatar,
         "gender": user.gender,
         "wechat_id": user.wechat_id,
@@ -71,6 +68,13 @@ async def login(
     db.commit()
     db.refresh(user)
 
+    card = (
+        db.query(UserCard)
+        .filter(UserCard.user_id == user.id)
+        .order_by(UserCard.id.asc())
+        .first()
+    )
+
     access_token_expires = timedelta(
         minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
@@ -80,7 +84,7 @@ async def login(
         expires_delta=access_token_expires,
     )
 
-    user_dict = _user_to_dict(user)
+    user_dict = _user_to_dict(user, card)
 
     # 为兼容现有小程序 index.js：
     # - 需要 res.success / res.token / res.user
@@ -106,6 +110,12 @@ async def me(
     if not user:
         raise HTTPException(status_code=404, detail="用户不存在")
 
+    card = (
+        db.query(UserCard)
+        .filter(UserCard.user_id == user.id)
+        .order_by(UserCard.id.asc())
+        .first()
+    )
     # 小程序 getUserInfo 里直接期望拿到用户对象（res.id...）
-    return _user_to_dict(user)
+    return _user_to_dict(user, card)
 

@@ -859,8 +859,7 @@ Page({
       const res = await request.get(`/api/users/${userId}`)
       if (res.success && res.data) {
         const cardData = { ...res.data }
-        if (cardData.selected_avatar) cardData.display_avatar = cardData.selected_avatar
-        else if (cardData.avatar) cardData.display_avatar = cardData.avatar
+        cardData.display_avatar = cardData.avatar || cardData.selected_avatar
         this.setData({ alumniCardData: cardData, showAlumniCard: true })
       } else {
         wx.showToast({ title: res.error || '加载失败', icon: 'none' })

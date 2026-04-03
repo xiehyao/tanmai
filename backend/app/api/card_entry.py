@@ -14,6 +14,7 @@ from app.core.database import get_db
 from app.core.security import verify_token
 from app.models.user import User
 from app.models.card import UserCard
+from app.services.avatar_display import display_avatar_url
 from app.core.alumni_data import (
     _get_education,
     _get_needs,
@@ -42,6 +43,61 @@ def _parse_target_user_id(request: Request) -> Optional[int]:
         return int(tid)
     except ValueError:
         return None
+
+
+def _apply_avatar_photo_urls_from_body(card: UserCard, body: dict) -> None:
+    """step1：可选写入 COS 原图与混元风格化图 URL。"""
+    if "avatar_photo_original_url" in body:
+        v = body.get("avatar_photo_original_url")
+        card.avatar_photo_original_url = (str(v).strip() or None) if v is not None else None
+    if "avatar_photo_cartoon_url" in body:
+        v = body.get("avatar_photo_cartoon_url")
+        card.avatar_photo_cartoon_url = (str(v).strip() or None) if v is not None else None
+
+
+@router.post("/stylize-avatar-photo")
+async def stylize_avatar_photo(
+    request: Request,
+    token: dict = Depends(verify_token),
+):
+    """
+    将已上传到 COS 的相片 URL 经混元 ImageToImage 风格化，再上传 COS，返回 cartoon_url。
+    任一步失败时 success=false，前端可仅展示原图。
+    """
+    if not token.get("sub"):
+        raise HTTPException(status_code=401, detail="未登录")
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="无效的 JSON")
+    input_url = (body.get("input_url") or "").strip()
+    if not input_url:
+        raise HTTPException(status_code=400, detail="需要 input_url")
+
+    try:
+        import httpx
+
+        from app.services.cos import upload_bytes_to_cos
+        from app.services.tencent_aiart import image_to_image_url
+
+        temp_url = image_to_image_url(input_url)
+        with httpx.Client(timeout=120.0) as client:
+            r = client.get(temp_url)
+            r.raise_for_status()
+            raw = r.content
+        ctype = (r.headers.get("content-type") or "").lower()
+        if "png" in ctype:
+            ct = "image/png"
+        elif "webp" in ctype:
+            ct = "image/webp"
+        else:
+            ct = "image/jpeg"
+        uploaded = upload_bytes_to_cos(raw, ct, "avatars/aiart")
+        return {"success": True, "data": {"cartoon_url": uploaded["url"]}}
+    except HTTPException as he:
+        return {"success": False, "detail": str(he.detail)}
+    except Exception as e:
+        return {"success": False, "detail": str(e)}
 
 
 @router.post("/save-step/1")
@@ -116,6 +172,7 @@ async def save_step_1(
         personal_photos = body.get("personal_photos")
         if isinstance(personal_photos, list):
             card.personal_photos = json.dumps(personal_photos)
+        _apply_avatar_photo_urls_from_body(card, body)
         db.add(card)
         db.commit()
         db.refresh(user)
@@ -157,6 +214,7 @@ async def save_step_1(
     photos = body.get("personal_photos")
     if isinstance(photos, list):
         card.personal_photos = json.dumps(photos)
+    _apply_avatar_photo_urls_from_body(card, body)
     db.commit()
     return {"ok": True}
 
@@ -448,6 +506,7 @@ def _build_step1_from_user_card(db: Session, user: User, card: Optional[UserCard
         except Exception:
             pass
     locations = _get_locations(db, user_id)
+    display_av = display_avatar_url(user, card)
     return {
         "name": (card.name if card else None) or user.name,
         "nickname": user.nickname,
@@ -455,6 +514,9 @@ def _build_step1_from_user_card(db: Session, user: User, card: Optional[UserCard
         "gender": user.gender,
         "wechat_id": user.wechat_id,
         "selected_avatar": user.selected_avatar,
+        "display_avatar": display_av,
+        "avatar_photo_original_url": (card.avatar_photo_original_url if card else None),
+        "avatar_photo_cartoon_url": (card.avatar_photo_cartoon_url if card else None),
         "personal_photos": photos,
         "birth_place": user.birth_place,
         "title": card.title if card else None,

@@ -52,10 +52,6 @@ async def search_users(
     return {"success": True, "users": users}
 
 
-def _display_avatar(user: User) -> Optional[str]:
-    return user.selected_avatar or user.avatar
-
-
 def _user_with_card(user: User, card: Optional[UserCard], db: Session) -> dict:
     from .cards import _user_card_to_dict  # 重用同一结构
 

@@ -3,6 +3,59 @@
 
 const request = require('../../utils/request.js')
 
+function getApiBase() {
+  try {
+    const app = getApp()
+    if (app && app.globalData && app.globalData.apiBase) return app.globalData.apiBase
+  } catch (e) {}
+  try {
+    return require('../../config.js').apiBase || 'https://www.pengyoo.com'
+  } catch (e) {
+    return 'https://www.pengyoo.com'
+  }
+}
+
+function uploadLocalImageToCos(localPath) {
+  const token = wx.getStorageSync('token')
+  if (!token) return Promise.reject(new Error('请先登录'))
+  const apiBase = getApiBase()
+  return new Promise((resolve, reject) => {
+    wx.uploadFile({
+      url: `${apiBase}/api/posts/upload-image`,
+      filePath: localPath,
+      name: 'file',
+      header: { Authorization: `Bearer ${token}` },
+      success: (res) => {
+        if (res.statusCode !== 200) {
+          reject(new Error(`上传失败(${res.statusCode})`))
+          return
+        }
+        try {
+          const data = JSON.parse(res.data || '{}')
+          const cosUrl = data && data.success && data.data && data.data.url
+          if (!cosUrl) reject(new Error((data && data.detail) || '上传失败'))
+          else resolve(cosUrl)
+        } catch (e) {
+          reject(new Error('上传返回解析失败'))
+        }
+      },
+      fail: (err) => reject(new Error((err && err.errMsg) || '图片上传失败'))
+    })
+  })
+}
+
+/** 混元风格化：成功返回 cartoon_url，失败返回 null（仍可用原图展示） */
+function stylizeAvatarFromCosUrl(cosUrl) {
+  const token = wx.getStorageSync('token')
+  if (!token) return Promise.reject(new Error('请先登录'))
+  return request
+    .post('/api/card-entry/stylize-avatar-photo', { input_url: cosUrl })
+    .then((res) => {
+      if (res && res.success && res.data && res.data.cartoon_url) return res.data.cartoon_url
+      return null
+    })
+}
+
 const GENDER_OPTIONS = [
   { label: '请选择', value: '' },
   { label: '男', value: 'male' },
@@ -435,6 +488,8 @@ Page({
     avatar: '',
     photoUrl: '', // 兼容：单张相片展示，与 personal_photos[0] 同步
     personal_photos: [], // 多张相片，对应后端 step1.personal_photos
+    avatar_photo_original_url: '', // COS 原图
+    avatar_photo_cartoon_url: '', // 混元风格化 COS（有则对外优先展示）
     wechatId: '',
     name: '',
     nickname: '',
@@ -909,7 +964,9 @@ Page({
         bio: this.data.personalIntro,
         field_visibility: this.data.fieldVisibility || {},
         selected_avatar: this.data.avatar || '',
-        personal_photos: Array.isArray(this.data.personal_photos) ? this.data.personal_photos : []
+        personal_photos: Array.isArray(this.data.personal_photos) ? this.data.personal_photos : [],
+        avatar_photo_original_url: this.data.avatar_photo_original_url || '',
+        avatar_photo_cartoon_url: this.data.avatar_photo_cartoon_url || ''
       }
       request.post('/api/card-entry/save-step/1' + qs, payload).catch(e => console.error('saveStep1 error:', e))
     }
@@ -987,10 +1044,20 @@ Page({
               s1.main_address || (s1.locations && s1.locations[0] && s1.locations[0].address) || ''
             )
         const firstAddress = hasLocations ? (s1.locations[0].address || '') : (s1.main_address || (s1.locations && s1.locations[0] && s1.locations[0].address) || '')
+        const origPhoto = s1.avatar_photo_original_url || ''
+        const cartoonPhoto = s1.avatar_photo_cartoon_url || ''
+        let pp = Array.isArray(s1.personal_photos) ? [...s1.personal_photos] : []
+        if (origPhoto || cartoonPhoto) {
+          const head = cartoonPhoto || origPhoto
+          if (pp.length === 0) pp = head ? [head] : []
+          else pp[0] = head
+        }
         this.setData({
           avatar: s1.display_avatar || s1.selected_avatar || s1.avatar || this.data.avatar,
-          personal_photos: Array.isArray(s1.personal_photos) ? s1.personal_photos : [],
-          photoUrl: (s1.personal_photos && s1.personal_photos[0]) || s1.photo_url || this.data.photoUrl || '',
+          personal_photos: pp,
+          photoUrl: (pp && pp[0]) || s1.photo_url || this.data.photoUrl || '',
+          avatar_photo_original_url: origPhoto,
+          avatar_photo_cartoon_url: cartoonPhoto,
           wechatId: s1.wechat_id || this.data.wechatId || '',
           name: s1.name || this.data.name,
           nickname: s1.nickname || '',
@@ -1295,12 +1362,51 @@ Page({
           count: remain,
           mediaType: ['image'],
           sourceType,
-          success: (r) => {
-            const newUrls = (r.tempFiles || []).map(f => f.tempFilePath)
-            const personal_photos = [...current, ...newUrls]
-            const photoUrl = personal_photos[0] || ''
-            this.setData({ personal_photos, photoUrl })
-            wx.showToast({ title: '已添加相片', icon: 'success' })
+          success: async (r) => {
+            const token = wx.getStorageSync('token')
+            if (!token) {
+              wx.showToast({ title: '请先登录', icon: 'none' })
+              return
+            }
+            const files = r.tempFiles || []
+            const tempPaths = (files || []).map(f => f.tempFilePath).filter(Boolean)
+            if (!tempPaths.length) return
+            let working = [...current]
+            let orig = this.data.avatar_photo_original_url || ''
+            let cartoon = this.data.avatar_photo_cartoon_url || ''
+            wx.showLoading({ title: '上传中...', mask: true })
+            try {
+              for (let i = 0; i < tempPaths.length; i += 1) {
+                const cosUrl = await uploadLocalImageToCos(tempPaths[i])
+                if (working.length === 0 && i === 0) {
+                  orig = cosUrl
+                  cartoon = ''
+                  wx.showLoading({ title: '生成卡通头像...', mask: true })
+                  try {
+                    const cu = await stylizeAvatarFromCosUrl(cosUrl)
+                    if (cu) cartoon = cu
+                  } catch (e) {
+                    console.warn('stylize avatar:', e)
+                  }
+                  const display = cartoon || cosUrl
+                  working = [display]
+                } else {
+                  working.push(cosUrl)
+                }
+              }
+              const photoUrl = working[0] || ''
+              this.setData({
+                personal_photos: working,
+                photoUrl,
+                avatar_photo_original_url: orig,
+                avatar_photo_cartoon_url: cartoon
+              })
+              wx.showToast({ title: '已添加相片', icon: 'success' })
+            } catch (e) {
+              wx.showToast({ title: (e && e.message) ? e.message : '上传失败', icon: 'none' })
+            } finally {
+              wx.hideLoading()
+            }
           }
         })
       }
@@ -1310,7 +1416,13 @@ Page({
     const index = parseInt(e.currentTarget.dataset.index, 10)
     const personal_photos = (this.data.personal_photos || []).filter((_, i) => i !== index)
     const photoUrl = personal_photos[0] || ''
-    this.setData({ personal_photos, photoUrl })
+    let orig = this.data.avatar_photo_original_url
+    let cartoon = this.data.avatar_photo_cartoon_url
+    if (index === 0) {
+      orig = ''
+      cartoon = ''
+    }
+    this.setData({ personal_photos, photoUrl, avatar_photo_original_url: orig, avatar_photo_cartoon_url: cartoon })
   },
   onPickAvatar() {
     this.setData({ showAvatarSheet: true })
@@ -1836,7 +1948,9 @@ Page({
         bio: this.data.personalIntro,
         field_visibility: this.data.fieldVisibility || {},
         selected_avatar: this.data.avatar || '',
-        personal_photos: Array.isArray(this.data.personal_photos) ? this.data.personal_photos : []
+        personal_photos: Array.isArray(this.data.personal_photos) ? this.data.personal_photos : [],
+        avatar_photo_original_url: this.data.avatar_photo_original_url || '',
+        avatar_photo_cartoon_url: this.data.avatar_photo_cartoon_url || ''
       }
       let targetId = this.data.staffTargetUserId
       // 新增模式：第一步用 create_new 创建用户，拿到 user_id 后作为目标继续保存

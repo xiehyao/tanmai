@@ -1,11 +1,13 @@
 import math
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends
+import requests
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from app.core.database import get_db
+from app.core.config import settings
 
 
 def _haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
@@ -19,12 +21,9 @@ def _haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
 from app.core.security import verify_token
 from app.models.user import User
 from app.models.card import UserCard
+from app.services.avatar_display import display_avatar_url
 
 router = APIRouter()
-
-
-def _display_avatar(user: User) -> Optional[str]:
-    return user.selected_avatar or user.avatar
 
 
 def _friend_from_user(user: User, card: Optional[UserCard], lat: Optional[float] = None, lng: Optional[float] = None, address: Optional[str] = None) -> dict:
@@ -35,7 +34,7 @@ def _friend_from_user(user: User, card: Optional[UserCard], lat: Optional[float]
         "user_id": user.id,
         "name": name,
         "nickname": user.nickname,
-        "avatar": _display_avatar(user),
+        "avatar": display_avatar_url(user, card),
         "gender": user.gender,
         "wechat_id": user.wechat_id,
     }
@@ -100,5 +99,49 @@ async def nearby_friends(
     return {
         "success": True,
         "friends": friends,
+    }
+
+
+@router.get("/geocode")
+async def geocode_address(
+    address: str,
+    token: dict = Depends(verify_token),
+):
+    if not token.get("sub"):
+        raise HTTPException(status_code=401, detail="未登录")
+    addr = (address or "").strip()
+    if not addr:
+        raise HTTPException(status_code=400, detail="address 不能为空")
+    key = (settings.TENCENT_MAP_KEY or "").strip()
+    if not key:
+        raise HTTPException(status_code=503, detail="地图服务未配置")
+
+    try:
+        resp = requests.get(
+            "https://apis.map.qq.com/ws/geocoder/v1/",
+            params={"address": addr, "key": key},
+            timeout=5,
+        )
+        data = resp.json() if resp.content else {}
+    except Exception:
+        raise HTTPException(status_code=502, detail="地图服务不可用")
+
+    if resp.status_code != 200:
+        raise HTTPException(status_code=502, detail="地图服务不可用")
+
+    status = data.get("status")
+    location = ((data.get("result") or {}).get("location") or {}) if isinstance(data, dict) else {}
+    lat = location.get("lat")
+    lng = location.get("lng")
+    if status != 0 or lat is None or lng is None:
+        raise HTTPException(status_code=404, detail="地址解析失败")
+    return {
+        "success": True,
+        "data": {
+            "latitude": float(lat),
+            "longitude": float(lng),
+            "address": addr,
+            "title": ((data.get("result") or {}).get("title") or addr),
+        },
     }
 

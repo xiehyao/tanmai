@@ -3,3 +3,4 @@ pytest>=7.0
 httpx>=0.24
 python-multipart>=0.0.9
 cos-python-sdk-v5>=1.9.30
+tencentcloud-sdk-python>=3.0.0

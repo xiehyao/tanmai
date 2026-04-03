@@ -8,12 +8,9 @@ from app.core.database import get_db
 from app.core.security import verify_token
 from app.models.user import User
 from app.models.card import UserCard
+from app.services.avatar_display import display_avatar_url
 
 router = APIRouter()
-
-
-def _display_avatar(user: User) -> Optional[str]:
-    return user.selected_avatar or user.avatar
 
 
 def _user_card_to_dict(user: User, card: Optional[UserCard]) -> dict:
@@ -35,11 +32,13 @@ def _user_card_to_dict(user: User, card: Optional[UserCard]) -> dict:
         "phone": card.phone if card else None,
         "email": card.email if card else None,
         "bio": card.bio if card else None,
-        "avatar": _display_avatar(user),
+        "avatar": display_avatar_url(user, card),
         "wechat_avatar": user.avatar,
         "gender": user.gender,
         "wechat_id": user.wechat_id,
         "selected_avatar": user.selected_avatar,
+        "avatar_photo_original_url": (card.avatar_photo_original_url if card else None),
+        "avatar_photo_cartoon_url": (card.avatar_photo_cartoon_url if card else None),
         "personal_photos": personal_photos,
     }
 

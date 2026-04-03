@@ -116,6 +116,8 @@ const ALUMNI_TAB_LIST = [
 Page({
   data: {
     user: {},
+    myCard: {},
+    myCardReady: false,
     nearbyFriends: [],
     showAlumniCard: false,
     alumniCardData: {},
@@ -146,6 +148,7 @@ Page({
     if (wx.getStorageSync('token')) {
       this.loadNearbyFriends()
       this.loadAlumniByTab(this.data.activeAlumniTab)
+      this.loadMyCard()
     } else {
       this.setData({
         nearbyDisplay: getRandomPlaceholders(8, 'ph-'),
@@ -183,9 +186,58 @@ Page({
       if (res && res.id) {
         app.globalData.user = res
         this.setData({ user: res })
+        this.loadMyCard()
       }
     } catch (e) {
       console.error('getUserInfo error', e)
+    }
+  },
+
+  pickMainAddress(locations) {
+    const list = Array.isArray(locations) ? locations : []
+    if (!list.length) return ''
+    const rank = { residence: 1, work: 2, temp_event: 3, other: 4 }
+    const sorted = list
+      .filter(i => i && i.address)
+      .sort((a, b) => (rank[a.location_type] || 99) - (rank[b.location_type] || 99))
+    return (sorted[0] && sorted[0].address) || ''
+  },
+
+  hasRealValue(v) {
+    return !!(v != null && String(v).trim() && !String(v).includes('未填写'))
+  },
+
+  normalizeMultiline(v) {
+    if (v == null) return ''
+    return String(v).replace(/\\n/g, '\n').trim()
+  },
+
+  async loadMyCard() {
+    try {
+      const [myCardWrap, entryWrap] = await Promise.allSettled([
+        request.get('/api/cards/my'),
+        request.get('/api/card-entry/data')
+      ])
+      const myCardRes = myCardWrap.status === 'fulfilled' ? myCardWrap.value : null
+      const entryData = entryWrap.status === 'fulfilled' ? entryWrap.value : null
+      const card = (myCardRes && myCardRes.success && myCardRes.data) ? myCardRes.data : {}
+      const step1 = (entryData && entryData.step1) ? entryData.step1 : {}
+      const address = this.pickMainAddress(step1.locations || [])
+      const merged = {
+        name: this.normalizeMultiline(card.name || step1.name || this.data.user.name || this.data.user.nickname || ''),
+        company: this.normalizeMultiline(card.company || step1.company || ''),
+        title: this.normalizeMultiline(card.title || step1.title || ''),
+        association_title: this.normalizeMultiline(step1.association_title || ''),
+        phone: this.normalizeMultiline(card.phone || step1.phone || ''),
+        email: this.normalizeMultiline(card.email || step1.email || ''),
+        address: this.normalizeMultiline(address || '')
+      }
+      const ready = this.hasRealValue(merged.name) &&
+        (this.hasRealValue(merged.company) || this.hasRealValue(merged.title) || this.hasRealValue(merged.association_title)) &&
+        (this.hasRealValue(merged.phone) || this.hasRealValue(merged.email) || this.hasRealValue(merged.address))
+      this.setData({ myCard: merged, myCardReady: ready })
+    } catch (e) {
+      console.error('loadMyCard error', e)
     }
   },
 
@@ -205,6 +257,7 @@ Page({
         this.setData({ user: res.user })
         this.loadNearbyFriends()
         this.loadAlumniByTab(this.data.activeAlumniTab)
+        this.loadMyCard()
       }
     } catch (error) {
       if (error.message && error.message.includes('服务器')) {
@@ -255,8 +308,8 @@ Page({
       const res = await request.get(`/api/users/${userId}`)
       if (res.success && res.data) {
         const cardData = { ...res.data }
-        if (cardData.selected_avatar) cardData.display_avatar = cardData.selected_avatar
-        else if (cardData.avatar) cardData.display_avatar = cardData.avatar
+        // 后端 avatar 已含：混元卡通 > 上传原图 > 预设 > 微信头像
+        cardData.display_avatar = cardData.avatar || cardData.selected_avatar
         this.setData({ alumniCardData: cardData, showAlumniCard: true })
       } else {
         wx.showToast({ title: res.error || '加载失败', icon: 'none' })
@@ -359,6 +412,27 @@ Page({
       this.setData({ nearbyFriends: friends, nearbyDisplay: friends })
     } catch (e) {
       this.setData({ nearbyFriends: [], nearbyDisplay: getRandomPlaceholders(8, 'ph-') })
+    }
+  },
+
+  onShareMyCardTap() {},
+
+  onShareAppMessage() {
+    if (!this.data.myCardReady) {
+      return {
+        title: '探脉校友名片',
+        path: '/pages/index/index'
+      }
+    }
+    const c = this.data.myCard || {}
+    const name = c.name || '校友'
+    const companyTitle = [c.company, c.title].filter(Boolean).join('-')
+    const subtitle = companyTitle || c.association_title || '欢迎联系交流'
+    return {
+      title: `${name}的校友名片`,
+      path: '/pages/index/index',
+      imageUrl: '',
+      desc: subtitle
     }
   }
 })

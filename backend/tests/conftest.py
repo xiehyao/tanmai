@@ -100,6 +100,15 @@ def _init_sqlite_test_db() -> None:
                 """
             )
         )
+        # 兼容旧 sqlite 文件：补充 user_cards 新列
+        for stmt in (
+            "ALTER TABLE user_cards ADD COLUMN avatar_photo_original_url VARCHAR(500)",
+            "ALTER TABLE user_cards ADD COLUMN avatar_photo_cartoon_url VARCHAR(500)",
+        ):
+            try:
+                conn.execute(sql_text(stmt))
+            except Exception:
+                pass
         conn.execute(
             sql_text(
                 """
