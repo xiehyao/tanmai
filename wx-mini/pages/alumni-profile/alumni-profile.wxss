@@ -13,11 +13,12 @@
   margin-bottom: 32rpx;
 }
 
+/* 区块标题：仅作区隔，弱化 */
 .section-title {
-  font-size: 32rpx;
-  font-weight: 700;
-  color: #111827;
-  padding: 24rpx 28rpx 12rpx;
+  font-size: 24rpx;
+  font-weight: 400;
+  color: #9ca3af;
+  padding: 20rpx 28rpx 10rpx;
 }
 
 .card-card {
@@ -134,9 +135,19 @@
   color: #9ca3af;
 }
 
-.pair-help-btn {
-  margin-top: 28rpx;
+.intro-pair-btn-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
   width: 100%;
+  margin-top: 28rpx;
+  padding-top: 8rpx;
+}
+
+.pair-help-btn {
+  margin: 0;
+  min-width: 280rpx;
+  max-width: 90%;
   height: 80rpx;
   line-height: 80rpx;
   background: #cbd5e1;
@@ -145,7 +156,7 @@
   font-size: 28rpx;
   font-weight: 500;
   border: none;
-  padding: 0;
+  padding: 0 40rpx;
 }
 
 .pair-help-btn::after {

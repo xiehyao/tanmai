@@ -170,8 +170,6 @@ Page({
     introCards: [],
     matchContent: '',
     ownerName: '校友',
-    sectionTitleIntro: '校友的简介',
-    sectionTitleCard: '校友的名片',
     displayName: '',
     displayPhotos: [],
     displayConstellation: '',
@@ -243,9 +241,7 @@ Page({
         this.setData({
           user,
           pageTitle: name + '的卡片',
-          ownerName: name,
-          sectionTitleIntro: name + '的简介',
-          sectionTitleCard: name + '的名片'
+          ownerName: name
         })
         wx.setNavigationBarTitle({ title: this.data.pageTitle })
         await this.loadProfileData(uid, user)
@@ -276,9 +272,7 @@ Page({
         profileData: res,
         ...display,
         ...intro,
-        ownerName,
-        sectionTitleIntro: ownerName + '的简介',
-        sectionTitleCard: ownerName + '的名片'
+        ownerName
       })
     } catch (e) {
       this._applyDisplayFromUser(user)
@@ -293,9 +287,7 @@ Page({
     this.setData({
       ...display,
       ...intro,
-      ownerName,
-      sectionTitleIntro: ownerName + '的简介',
-      sectionTitleCard: ownerName + '的名片'
+      ownerName
     })
   },
 

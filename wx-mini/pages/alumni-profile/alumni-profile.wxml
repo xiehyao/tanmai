@@ -1,9 +1,9 @@
 <!--pages/alumni-profile/alumni-profile.wxml-->
 <view class="profile-page" wx:if="{{user}}">
   <scroll-view scroll-y class="profile-scroll">
-    <!-- 1. 简介（新布局：姓名 + 大图 + 正文） -->
+    <!-- 1. 简介（新布局：姓名 + 大图 + 正文 + 帮我连连看） -->
     <view class="section">
-      <view class="section-title">{{sectionTitleIntro}}</view>
+      <view class="section-title">我的简介</view>
       <view class="card-card intro-card-v2">
         <text class="intro-name-head">{{displayName || ownerName}}</text>
         <image
@@ -16,12 +16,15 @@
         <view class="intro-bio-empty" wx:else>
           <text class="intro-text-muted">暂无简介</text>
         </view>
+        <view class="intro-pair-btn-wrap">
+          <button class="pair-help-btn" bindtap="onPairHelpTap">帮我连连看</button>
+        </view>
       </view>
     </view>
 
     <!-- 2. 名片（整块下移） -->
     <view class="section">
-      <view class="section-title">{{sectionTitleCard}}</view>
+      <view class="section-title">我的名片</view>
       <view class="card-card my-card-style">
         <view class="card-row">
           <image
@@ -47,7 +50,6 @@
       <view class="section-title">校友连连看</view>
       <view class="card-card match-card-style">
         <text class="match-text">{{matchContent}}</text>
-        <button class="pair-help-btn" bindtap="onPairHelpTap">帮我连连看</button>
       </view>
     </view>
 
