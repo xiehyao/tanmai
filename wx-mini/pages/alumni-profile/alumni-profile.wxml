@@ -39,6 +39,8 @@
             <text class="card-meta" wx:if="{{user.email}}">{{user.email}}</text>
             <text class="card-meta" wx:if="{{user.wechat_id}}">微信：{{user.wechat_id}}</text>
             <text class="card-meta" wx:if="{{displayAddress}}">{{displayAddress}}</text>
+            <text class="card-meta card-meta-assoc" wx:if="{{displayAssociationTitle}}">社会团体：{{displayAssociationTitle}}</text>
+            <text class="card-meta" wx:if="{{displaySocialPositions}}">社会职务：{{displaySocialPositions}}</text>
           </view>
         </view>
       </view>

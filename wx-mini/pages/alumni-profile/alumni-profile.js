@@ -197,6 +197,7 @@ Page({
     displayMiddleSchool: '',
     displayUniversity: '',
     displayCompanyTitle: '',
+    displayAssociationTitle: '',
     displaySocialPositions: '',
     displayInterests: '',
     displayAssociationNeeds: '',
@@ -338,6 +339,10 @@ Page({
     const companyTitle = [u.company || s1.company, u.title || s1.title].filter(Boolean).join(' ')
     const contactParts = [u.phone || s1.phone, u.email || s1.email, u.wechat_id || s1.wechat_id].filter(Boolean)
     const addr = (s1.locations && s1.locations[0] && s1.locations[0].address) ? s1.locations[0].address : (u.address || '')
+    const assocTitle =
+      (s1.association_title != null && String(s1.association_title).trim()) ||
+      (u.association_title != null && String(u.association_title).trim()) ||
+      ''
     return {
       displayName: u.name || s1.name || u.nickname || s1.nickname || '',
       displayPhotos: Array.isArray(photos) ? photos : [],
@@ -345,6 +350,7 @@ Page({
       displayMiddleSchool: formatMiddleSchool(s2),
       displayUniversity: formatUniversity(s2),
       displayCompanyTitle: companyTitle || (u.company && u.title ? `${u.company} ${u.title}` : u.company || u.title || ''),
+      displayAssociationTitle: assocTitle,
       displaySocialPositions: formatSocialPositions(s5),
       displayInterests: formatInterests(profile),
       displayAssociationNeeds: s5?.association_needs || u.association_needs || '',
