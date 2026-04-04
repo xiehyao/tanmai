@@ -214,7 +214,12 @@ Page({
     pairInputValue: '',
     pairState: null,
     pairAllowFollow: true,
-    pairHasRecord: false
+    pairHasRecord: false,
+    // 关注（user_follows）
+    selfUserId: null,
+    followFollowing: false,
+    followFollowerCount: 0,
+    showFollowBtn: true
   },
 
   onLoad(options) {
@@ -226,6 +231,13 @@ Page({
     }
     this.setData({ userId: uid })
     this.loadUser(uid)
+  },
+
+  onShow() {
+    const uid = this.data.userId
+    if (!uid) return
+    this.loadSelfUserId()
+    this.loadFollowState(uid)
   },
 
   _ownerDisplayName(user, s1) {
@@ -273,7 +285,9 @@ Page({
         wx.setNavigationBarTitle({ title: this.data.pageTitle })
         await this.loadProfileData(uid, user)
         this.loadIntroCards(uid)
-        this.loadPairState(uid)
+        await this.loadSelfUserId()
+        await this.loadFollowState(uid)
+        await this.loadPairState(uid)
       } else {
         wx.showToast({ title: res.error || '加载失败', icon: 'none' })
       }
@@ -453,8 +467,75 @@ Page({
     }
   },
 
-  onFollowTap() {
-    wx.showToast({ title: '关注功能开发中', icon: 'none' })
+  _updateFollowBarUI() {
+    const uid = parseInt(this.data.userId, 10)
+    const selfId = this.data.selfUserId
+    const showFollowBtn = selfId == null || uid !== selfId
+    this.setData({ showFollowBtn })
+  },
+
+  async loadSelfUserId() {
+    const token = wx.getStorageSync('token')
+    if (!token) {
+      this.setData({ selfUserId: null }, () => this._updateFollowBarUI())
+      return
+    }
+    try {
+      const r = await request.get('/api/auth/me')
+      if (r && r.id != null) {
+        this.setData({ selfUserId: r.id }, () => this._updateFollowBarUI())
+      } else {
+        this.setData({ selfUserId: null }, () => this._updateFollowBarUI())
+      }
+    } catch (e) {
+      this.setData({ selfUserId: null }, () => this._updateFollowBarUI())
+    }
+  },
+
+  async loadFollowState(peerId) {
+    const pid = parseInt(peerId, 10)
+    if (!pid) return
+    try {
+      const res = await request.get(`/api/follows/status/${pid}`)
+      if (res && res.success) {
+        this.setData({
+          followFollowing: !!res.following,
+          followFollowerCount: typeof res.follower_count === 'number' ? res.follower_count : 0
+        })
+      }
+    } catch (e) {
+      this.setData({ followFollowing: false, followFollowerCount: 0 })
+    }
+  },
+
+  async onFollowTap() {
+    const token = wx.getStorageSync('token')
+    if (!token) {
+      wx.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+    const peerId = parseInt(this.data.userId, 10)
+    const selfId = this.data.selfUserId
+    if (selfId != null && peerId === selfId) {
+      wx.showToast({ title: '无需关注自己', icon: 'none' })
+      return
+    }
+    const following = this.data.followFollowing
+    wx.showLoading({ title: following ? '处理中…' : '关注中…', mask: true })
+    try {
+      if (following) {
+        await request.delete(`/api/follows/${peerId}`)
+      } else {
+        await request.post(`/api/follows/${peerId}`, {})
+      }
+      await this.loadFollowState(peerId)
+      wx.hideLoading()
+      wx.showToast({ title: following ? '已取消关注' : '已关注', icon: 'success' })
+    } catch (e) {
+      wx.hideLoading()
+      const msg = (e && e.message) ? String(e.message) : '操作失败'
+      wx.showToast({ title: msg, icon: 'none' })
+    }
   },
 
   closePairSheet() {

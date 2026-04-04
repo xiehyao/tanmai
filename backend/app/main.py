@@ -45,6 +45,7 @@ def _include_routers():
         ("app.api.payment", "router", "/api/payment", "payment"),
         ("app.api.config", "router", "/api/config", "config"),
         ("app.api.card_entry", "router", "/api/card-entry", "card-entry"),
+        ("app.api.follows", "router", "/api/follows", "follows"),
         # 管理后台（Web Admin）
         ("app.api.admin", "router", "/api/admin", "admin"),
     ]

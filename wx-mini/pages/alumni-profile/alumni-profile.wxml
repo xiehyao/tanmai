@@ -73,10 +73,14 @@
         />
         <view class="bar-info">
           <text class="bar-name">{{user.name || user.nickname || '校友'}}</text>
-          <text class="bar-follow">10个朋友关注</text>
+          <text class="bar-follow">{{followFollowerCount}}个朋友关注</text>
         </view>
       </view>
-      <view class="bar-follow-btn" bindtap="onFollowTap">+关注</view>
+      <view
+        wx:if="{{showFollowBtn}}"
+        class="bar-follow-btn {{followFollowing ? 'bar-follow-btn-on' : ''}}"
+        bindtap="onFollowTap"
+      >{{followFollowing ? '已关注' : '+关注'}}</view>
     </view>
     <view class="bar-icons">
       <view class="bar-icon-item">

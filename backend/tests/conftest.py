@@ -136,6 +136,19 @@ def _init_sqlite_test_db() -> None:
         conn.execute(
             sql_text(
                 """
+                CREATE TABLE IF NOT EXISTS user_follows (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    follower_user_id INTEGER NOT NULL,
+                    followee_user_id INTEGER NOT NULL,
+                    created_at TEXT,
+                    UNIQUE (follower_user_id, followee_user_id)
+                )
+                """
+            )
+        )
+        conn.execute(
+            sql_text(
+                """
                 CREATE TABLE IF NOT EXISTS user_association_info (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     user_id INTEGER NOT NULL,
