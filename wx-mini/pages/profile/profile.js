@@ -52,6 +52,16 @@ Page({
     wx.navigateTo({ url: '/pages/card/card' })
   },
 
+  onHeaderTapToAlumniProfile() {
+    const u = this.data.user || {}
+    const uid = u.user_id != null ? u.user_id : u.id
+    if (!uid) {
+      wx.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+    wx.navigateTo({ url: `/pages/alumni-profile/alumni-profile?user_id=${uid}` })
+  },
+
   goToMap() {
     wx.switchTab({ url: '/pages/map/map' })
   },

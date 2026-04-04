@@ -1,6 +1,6 @@
 <!--pages/profile/profile.wxml-->
 <view class="profile-page">
-  <view class="user-header">
+  <view class="user-header" bindtap="onHeaderTapToAlumniProfile">
     <image
       class="avatar"
       src="{{user.display_avatar || user.avatar || user.selected_avatar || 'https://tanmai-1318644773.cos.ap-guangzhou.myqcloud.com/avatars/male-young-1.png'}}"
