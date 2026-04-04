@@ -1173,15 +1173,14 @@ Page({
           // 教育经历列表
           eduExperiences: eduList.length ? eduList : this.data.eduExperiences
         }, () => {
+          // 目标用户若无 intro_cards，必须用当前已加载的 step1 状态生成默认卡；不可保留页面里上一任用户/本人残留的 introCards
           if (introFromFs && introFromFs.length) {
             this._syncVisibilityIconArrays && this._syncVisibilityIconArrays()
-          } else if (!this.data.introCards || !this.data.introCards.length) {
+          } else {
             const card = _buildDefaultIntroCardFromState(this.data)
             this.setData({ introCards: [card] }, () => {
               this._syncVisibilityIconArrays && this._syncVisibilityIconArrays()
             })
-          } else {
-            this._syncVisibilityIconArrays && this._syncVisibilityIconArrays()
           }
         })
         return
@@ -1190,7 +1189,12 @@ Page({
       console.error('Load card-entry data error (v3):', e)
     }
 
-    // 2. 兜底：从 /api/cards/my 读取基础卡片信息
+    // 工作人员代填：只能使用 target 的 card-entry 数据，禁止用 /api/cards/my（当前登录用户）
+    if (this.data.staffTargetUserId) {
+      return
+    }
+
+    // 2. 兜底：从 /api/cards/my 读取基础卡片信息（本人编辑）
     try {
       const res = await request.get('/api/cards/my')
       if (res.success && res.data) {
