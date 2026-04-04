@@ -162,6 +162,27 @@ function isSelfCardEntryComplete(entry) {
   return hasIntro || hasContact || hasEdu
 }
 
+/** 解析 wx.request 非 200 时的 FastAPI 错误文案 */
+function formatPairRequestError(res) {
+  const code = res.statusCode || 0
+  if (code === 401) return '登录已失效，请重新登录'
+  let raw = res.data
+  if (typeof raw === 'string') {
+    try {
+      const j = JSON.parse(raw)
+      if (j.detail != null) {
+        const d = j.detail
+        if (typeof d === 'string') return d
+        if (Array.isArray(d) && d[0] && d[0].msg) return d.map(x => x.msg).join('；')
+      }
+    } catch (e) {}
+  }
+  if (code === 404) {
+    return '连连看服务未就绪（404）。若管理员刚更新后端，请稍等片刻后重试；仍失败请联系管理员重启 API 服务。'
+  }
+  return '服务暂不可用(' + code + ')'
+}
+
 Page({
   data: {
     user: null,
@@ -402,7 +423,10 @@ Page({
       enableChunked: true,
       success: (res) => {
         if (res.statusCode && res.statusCode !== 200) {
-          this.setData({ pairLoading: false, pairStreamText: '服务暂不可用(' + res.statusCode + ')' })
+          this.setData({
+            pairLoading: false,
+            pairStreamText: formatPairRequestError(res)
+          })
         }
       },
       fail: () => {
