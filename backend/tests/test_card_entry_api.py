@@ -54,6 +54,28 @@ class TestCardEntrySave:
         )
         assert r.status_code == 200, f"Expected 200, got {r.status_code}: {r.text}"
 
+    def test_save_step1_intro_cards_persisted(self, client, auth_headers, user_id):
+        """card-entry-v3：简介卡片写入 field_source.intro_cards 与 bio"""
+        intro_cards = [
+            {"name": "张三", "photo": "", "introText": "长段简介文字测试", "scene": "线下活动"},
+        ]
+        r = client.post(
+            f"/api/card-entry/save-step/1?target_user_id={user_id}",
+            headers=auth_headers,
+            json={
+                "name": "测试用户",
+                "company": "测试公司",
+                "bio": "长段简介文字测试",
+                "intro_cards": intro_cards,
+            },
+        )
+        assert r.status_code == 200, f"Expected 200, got {r.status_code}: {r.text}"
+        d = client.get("/api/card-entry/data", headers=auth_headers).json()
+        fs = (d.get("step1") or {}).get("field_source") or {}
+        assert isinstance(fs, dict)
+        assert fs.get("intro_cards") == intro_cards
+        assert (d.get("step1") or {}).get("bio") == "长段简介文字测试"
+
     def test_save_step1_without_target_returns_400(self, client, auth_headers):
         """无 target_user_id 且非 create_new 应返回 400"""
         r = client.post(

@@ -397,6 +397,14 @@ function _joinNonEmpty(sep, parts) {
   return (parts || []).map(x => (x == null ? '' : String(x).trim())).filter(Boolean).join(sep)
 }
 
+/** 多张个人介绍卡片的「简介文字」合并为 user_cards.bio（与主保存一致） */
+function _introCardsToPersonalIntro(list) {
+  return (list || [])
+    .map((c) => (c && c.introText) ? String(c.introText).trim() : '')
+    .filter(Boolean)
+    .join('\n\n')
+}
+
 function _buildDefaultIntroCardFromState(data) {
   const d = data || {}
   const name = d.name || '示例姓名'
@@ -954,6 +962,41 @@ Page({
       console.error('saveDraft error:', e)
     }
   },
+  /**
+   * 保存 step1 到后端：bio 与 intro_cards 与「编辑简介」半屏一致（落库 user_cards.bio + field_source.intro_cards）
+   * @param {{ introCards?: Array, personalIntro?: string }} opts 可选覆盖当前页数据（保存简介半屏时用）
+   */
+  _buildSaveStep1Payload(opts) {
+    const o = opts || {}
+    const items = this.data.contactItems || []
+    const first = (type) => (items.find((c) => c.type === type) || {}).value
+    const cards = o.introCards != null ? o.introCards : this.data.introCards || []
+    const bio =
+      o.personalIntro != null
+        ? o.personalIntro
+        : _introCardsToPersonalIntro(cards) || this.data.personalIntro || ''
+    return {
+      name: this.data.name,
+      nickname: this.data.nickname,
+      gender: this.data.gender,
+      birth_place: this.data.birthPlace,
+      company: this.data.company,
+      title: this.data.title || this.data.positions?.[0]?.title || '',
+      association_title: this.data.association_title || '',
+      industry: this.data.industry || '',
+      phone: first('phone'),
+      wechat_id: this.data.wechatId || first('wechat'),
+      email: first('email'),
+      main_address: first('address') || this.data.address,
+      bio,
+      field_visibility: this.data.fieldVisibility || {},
+      selected_avatar: this.data.avatar || '',
+      personal_photos: Array.isArray(this.data.personal_photos) ? this.data.personal_photos : [],
+      avatar_photo_original_url: this.data.avatar_photo_original_url || '',
+      avatar_photo_cartoon_url: this.data.avatar_photo_cartoon_url || '',
+      intro_cards: cards
+    }
+  },
   async saveStepToServer(step) {
     if (!step) return
     // 工作人员模式且未选目标且非新增模式时不要保存，避免误写
@@ -966,28 +1009,7 @@ Page({
     const qs = targetId ? `?target_user_id=${targetId}` : ''
     if (!qs) return
     if (step === 1) {
-      const items = this.data.contactItems || []
-      const first = type => (items.find(c => c.type === type) || {}).value
-      const payload = {
-        name: this.data.name,
-        nickname: this.data.nickname,
-        gender: this.data.gender,
-        birth_place: this.data.birthPlace,
-        company: this.data.company,
-        title: this.data.title || this.data.positions?.[0]?.title || '',
-        association_title: this.data.association_title || '',
-        industry: this.data.industry || '',
-        phone: first('phone'),
-        wechat_id: this.data.wechatId || first('wechat'),
-        email: first('email'),
-        main_address: first('address') || this.data.address,
-        bio: this.data.personalIntro,
-        field_visibility: this.data.fieldVisibility || {},
-        selected_avatar: this.data.avatar || '',
-        personal_photos: Array.isArray(this.data.personal_photos) ? this.data.personal_photos : [],
-        avatar_photo_original_url: this.data.avatar_photo_original_url || '',
-        avatar_photo_cartoon_url: this.data.avatar_photo_cartoon_url || ''
-      }
+      const payload = this._buildSaveStep1Payload()
       request.post('/api/card-entry/save-step/1' + qs, payload).catch(e => console.error('saveStep1 error:', e))
     }
     if (step === 2) {
@@ -1021,6 +1043,11 @@ Page({
         const s4 = res.step4 || {}
         const s5 = res.step5 || {}
         const s6 = res.step6 || {}
+        const fsRaw = s1.field_source && typeof s1.field_source === 'object' ? s1.field_source : {}
+        const introFromFs = Array.isArray(fsRaw.intro_cards) && fsRaw.intro_cards.length ? fsRaw.intro_cards : null
+        const personalIntroMerged = introFromFs ? _introCardsToPersonalIntro(introFromFs) : ''
+        const personalIntroVal = personalIntroMerged || s2.intro_raw || s1.bio || ''
+        const introCardsPatch = introFromFs && introFromFs.length ? { introCards: introFromFs } : {}
 
         // 教育经历：按 step2 中各学历层级映射为列表，若无结构化数据则退化为 schools 概况
         const eduList = []
@@ -1094,7 +1121,8 @@ Page({
           contactItems: contactItemsBuilt,
           ..._previewFromContactItems(contactItemsBuilt),
           address: firstAddress || this.data.address,
-          personalIntro: s2.intro_raw || s1.bio || '',
+          personalIntro: personalIntroVal,
+          ...introCardsPatch,
           // 需求与状态（step3）
           needsText: s3.raw || '',
           marital_status: s3.marital_status || '',
@@ -1145,7 +1173,9 @@ Page({
           // 教育经历列表
           eduExperiences: eduList.length ? eduList : this.data.eduExperiences
         }, () => {
-          if (!this.data.introCards || !this.data.introCards.length) {
+          if (introFromFs && introFromFs.length) {
+            this._syncVisibilityIconArrays && this._syncVisibilityIconArrays()
+          } else if (!this.data.introCards || !this.data.introCards.length) {
             const card = _buildDefaultIntroCardFromState(this.data)
             this.setData({ introCards: [card] }, () => {
               this._syncVisibilityIconArrays && this._syncVisibilityIconArrays()
@@ -1651,19 +1681,90 @@ Page({
       }
     })
   },
-  saveIntroCard() {
+  async saveIntroCard() {
+    if (this.data.isStaffMode && !this.data.staffTargetUserId && !this.data.staffAddNewMode) {
+      wx.showToast({ title: '请先选择代填对象', icon: 'none' })
+      return
+    }
+    if (this.data.staffAddNewMode) {
+      wx.showToast({ title: '请先完成第一步保存创建用户', icon: 'none' })
+      return
+    }
     const { introForm, introCards, introEditIndex } = this.data
-    const item = { name: introForm.name, photo: introForm.photo, introText: introForm.introText, scene: introForm.scene }
+    let photo = introForm.photo
+    if (photo && typeof photo === 'string' && !/^https?:\/\//i.test(photo.trim())) {
+      try {
+        wx.showLoading({ title: '上传图片...', mask: true })
+        photo = await uploadLocalImageToCos(photo)
+        wx.hideLoading()
+      } catch (e) {
+        wx.hideLoading()
+        wx.showToast({ title: (e && e.message) || '图片上传失败', icon: 'none' })
+        return
+      }
+    }
+    const item = { name: introForm.name, photo, introText: introForm.introText, scene: introForm.scene }
     const list = [...(introCards || [])]
     if (introEditIndex >= 0) list[introEditIndex] = item
     else list.push(item)
-    this.setData({ introCards: list, showIntroSheet: false, introEditIndex: -1 }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
+    const personalIntro = _introCardsToPersonalIntro(list)
+    const isStaff = this.data.isStaffMode && this.data.staffTargetUserId
+    if (!isStaff) await this._ensureSelfUserId()
+    const targetId = isStaff ? this.data.staffTargetUserId : this.data.selfUserId
+    if (!targetId) {
+      wx.showToast({ title: '无法保存', icon: 'none' })
+      return
+    }
+    wx.showLoading({ title: '保存中...', mask: true })
+    try {
+      const payload = this._buildSaveStep1Payload({ introCards: list, personalIntro })
+      await request.post(`/api/card-entry/save-step/1?target_user_id=${targetId}`, payload)
+      this.setData({ introCards: list, personalIntro, showIntroSheet: false, introEditIndex: -1 }, () => {
+        this._syncVisibilityIconArrays && this._syncVisibilityIconArrays()
+      })
+      wx.hideLoading()
+      wx.showToast({ title: '已保存', icon: 'success' })
+    } catch (e) {
+      wx.hideLoading()
+      wx.showToast({ title: '保存失败', icon: 'none' })
+    }
   },
-  deleteIntroCard() {
+  async deleteIntroCard() {
     const { introCards, introEditIndex } = this.data
-    if (introEditIndex < 0) { this.closeIntroSheet(); return }
+    if (introEditIndex < 0) {
+      this.closeIntroSheet()
+      return
+    }
+    if (this.data.isStaffMode && !this.data.staffTargetUserId && !this.data.staffAddNewMode) {
+      wx.showToast({ title: '请先选择代填对象', icon: 'none' })
+      return
+    }
+    if (this.data.staffAddNewMode) {
+      wx.showToast({ title: '请先完成第一步保存创建用户', icon: 'none' })
+      return
+    }
     const list = introCards.filter((_, i) => i !== introEditIndex)
-    this.setData({ introCards: list, showIntroSheet: false, introEditIndex: -1 }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
+    const personalIntro = _introCardsToPersonalIntro(list)
+    const isStaff = this.data.isStaffMode && this.data.staffTargetUserId
+    if (!isStaff) await this._ensureSelfUserId()
+    const targetId = isStaff ? this.data.staffTargetUserId : this.data.selfUserId
+    if (!targetId) {
+      wx.showToast({ title: '无法保存', icon: 'none' })
+      return
+    }
+    wx.showLoading({ title: '保存中...', mask: true })
+    try {
+      const payload = this._buildSaveStep1Payload({ introCards: list, personalIntro })
+      await request.post(`/api/card-entry/save-step/1?target_user_id=${targetId}`, payload)
+      this.setData({ introCards: list, personalIntro, showIntroSheet: false, introEditIndex: -1 }, () => {
+        this._syncVisibilityIconArrays && this._syncVisibilityIconArrays()
+      })
+      wx.hideLoading()
+      wx.showToast({ title: '已删除', icon: 'success' })
+    } catch (e) {
+      wx.hideLoading()
+      wx.showToast({ title: '保存失败', icon: 'none' })
+    }
   },
 
   onAddBusinessIntro() {
@@ -2047,28 +2148,7 @@ Page({
     }
     wx.showLoading({ title: '保存中...' })
     try {
-      const items = this.data.contactItems || []
-      const first = (type) => (items.find(c => c.type === type) || {}).value
-      const payload = {
-        name: this.data.name,
-        nickname: this.data.nickname,
-        gender: this.data.gender,
-        birth_place: this.data.birthPlace,
-        company: this.data.company,
-        title: this.data.title || this.data.positions?.[0]?.title || '',
-        association_title: this.data.association_title || '',
-        industry: this.data.industry || '',
-        phone: first('phone'),
-        wechat_id: this.data.wechatId || first('wechat'),
-        email: first('email'),
-        main_address: first('address') || this.data.address,
-        bio: this.data.personalIntro,
-        field_visibility: this.data.fieldVisibility || {},
-        selected_avatar: this.data.avatar || '',
-        personal_photos: Array.isArray(this.data.personal_photos) ? this.data.personal_photos : [],
-        avatar_photo_original_url: this.data.avatar_photo_original_url || '',
-        avatar_photo_cartoon_url: this.data.avatar_photo_cartoon_url || ''
-      }
+      const payload = this._buildSaveStep1Payload()
       let targetId = this.data.staffTargetUserId
       // 新增模式：第一步用 create_new 创建用户，拿到 user_id 后作为目标继续保存
       if (this.data.staffAddNewMode && this.data.currentStep === 1) {

@@ -54,7 +54,7 @@ Page({
   },
 
   editCard() {
-    wx.navigateTo({ url: '/pages/card-entry/card-entry' })
+    wx.navigateTo({ url: '/pages/card-entry-v3/card-entry-v3' })
   },
 
   /** 进入「xxx的卡片」校友页，预览自己对外展示效果（仅本人名片页） */

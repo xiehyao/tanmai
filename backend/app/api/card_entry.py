@@ -46,6 +46,26 @@ def _parse_target_user_id(request: Request) -> Optional[int]:
         return None
 
 
+def _merge_intro_cards_into_card_field_source(card: UserCard, body: dict) -> None:
+    """将 body.intro_cards 合并进 user_cards.field_source（保留 step6 等已有键）。"""
+    if "intro_cards" not in body:
+        return
+    ic = body.get("intro_cards")
+    merged: dict = {}
+    if card.field_source:
+        try:
+            merged = json.loads(card.field_source) if isinstance(card.field_source, str) else dict(card.field_source)
+        except Exception:
+            merged = {}
+    if not isinstance(merged, dict):
+        merged = {}
+    if ic is None:
+        merged.pop("intro_cards", None)
+    else:
+        merged["intro_cards"] = ic
+    card.field_source = json.dumps(merged, ensure_ascii=False)
+
+
 def _apply_avatar_photo_urls_from_body(card: UserCard, body: dict) -> None:
     """step1：可选写入 COS 原图与混元风格化图 URL。"""
     if "avatar_photo_original_url" in body:
@@ -198,6 +218,7 @@ async def save_step_1(
         if isinstance(personal_photos, list):
             card.personal_photos = json.dumps(personal_photos)
         _apply_avatar_photo_urls_from_body(card, body)
+        _merge_intro_cards_into_card_field_source(card, body)
         db.add(card)
         db.commit()
         db.refresh(user)
@@ -230,7 +251,10 @@ async def save_step_1(
     card.company = body.get("company") or card.company
     card.phone = body.get("phone") or card.phone
     card.email = body.get("email") or card.email
-    card.bio = body.get("bio") or card.bio
+    if "bio" in body:
+        card.bio = body.get("bio")
+    else:
+        card.bio = body.get("bio") or card.bio
     card.association_title = (body.get("association_title") or "").strip() or None
     card.industry = (body.get("industry") or "").strip() or None
     fv = body.get("field_visibility")
@@ -240,6 +264,7 @@ async def save_step_1(
     if isinstance(photos, list):
         card.personal_photos = json.dumps(photos)
     _apply_avatar_photo_urls_from_body(card, body)
+    _merge_intro_cards_into_card_field_source(card, body)
     db.commit()
     return {"ok": True}
 
