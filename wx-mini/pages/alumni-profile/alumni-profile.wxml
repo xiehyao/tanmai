@@ -45,11 +45,17 @@
       </view>
     </view>
 
-    <!-- 3. 校友连连看 -->
+    <!-- 3. 校友连连看（点击展开与「帮我连连看」相同半屏，展示完整记录） -->
     <view class="section">
       <view class="section-title">校友连连看</view>
-      <view class="card-card match-card-style">
-        <text class="match-text">{{matchContent}}</text>
+      <view class="card-card match-card-style match-card-tap" bindtap="onMatchCardTap" hover-class="match-card-hover">
+        <view class="match-text">{{matchContent}}</view>
+        <view class="match-tap-hint" wx:if="{{pairHasRecord}}">
+          <text class="match-tap-hint-text">点击查看完整记录（含思考与追问）›</text>
+        </view>
+        <view class="match-tap-hint" wx:else>
+          <text class="match-tap-hint-muted">点按查看说明 · 登录后在简介中「帮我连连看」可生成分析</text>
+        </view>
       </view>
     </view>
 
@@ -112,9 +118,9 @@
         placeholder="输入追问，继续向 AI 提问…"
         confirm-type="send"
         bindconfirm="onPairFollowSubmit"
-        disabled="{{pairLoading || pairFollowLoading}}"
+        disabled="{{pairLoading || pairFollowLoading || !pairAllowFollow}}"
       />
-      <button class="pair-follow-send" bindtap="onPairFollowSubmit" disabled="{{pairLoading || pairFollowLoading}}">发送</button>
+      <button class="pair-follow-send" bindtap="onPairFollowSubmit" disabled="{{pairLoading || pairFollowLoading || !pairAllowFollow}}">发送</button>
     </view>
   </view>
 </view>

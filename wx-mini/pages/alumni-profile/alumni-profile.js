@@ -211,7 +211,9 @@ Page({
     pairThinking: '',
     pairAnswer: '',
     pairInputValue: '',
-    pairState: null
+    pairState: null,
+    pairAllowFollow: true,
+    pairHasRecord: false
   },
 
   onLoad(options) {
@@ -364,7 +366,7 @@ Page({
   async loadPairState(uid) {
     const token = wx.getStorageSync('token')
     if (!token) {
-      this.setData({ matchContent: '登录后可查看与 TA 的连连看记录。' })
+      this.setData({ matchContent: '登录后可查看与 TA 的连连看记录。', pairHasRecord: false })
       return
     }
     try {
@@ -372,14 +374,76 @@ Page({
       if (st && st.success === false && st.error) {
         this.setData({
           matchContent: st.display_excerpt || '连连看数据未就绪（请执行库表脚本）',
-          pairState: st
+          pairState: st,
+          pairHasRecord: false
         })
         return
       }
       const excerpt = (st && st.display_excerpt) ? st.display_excerpt : '暂无连连看记录，可在简介卡片中点击「帮我连连看」生成。'
-      this.setData({ matchContent: excerpt, pairState: st })
+      const hasRec = !!(st && st.has_saved_main)
+      const upd = { matchContent: excerpt, pairState: st, pairHasRecord: hasRec }
+      if (this.data.showPairSheet) {
+        upd.pairAllowFollow = !!(st && st.has_saved_main && st.cache_valid)
+      }
+      this.setData(upd)
     } catch (e) {
-      this.setData({ matchContent: '暂无连连看记录，可在简介卡片中点击「帮我连连看」生成。' })
+      this.setData({
+        matchContent: '暂无连连看记录，可在简介卡片中点击「帮我连连看」生成。',
+        pairHasRecord: false
+      })
+    }
+  },
+
+  _formatPairSheetText(st) {
+    if (!st || st.success === false) return ''
+    if (st.full_display_text && String(st.full_display_text).trim()) return st.full_display_text.trim()
+    const mt = (st.main_thinking || '').trim()
+    const ma = (st.main_answer || '').trim()
+    const parts = []
+    if (mt) parts.push('【思考】\n' + mt)
+    if (ma) parts.push(ma)
+    return parts.join('\n\n')
+  },
+
+  async onMatchCardTap() {
+    const token = wx.getStorageSync('token')
+    if (!token) {
+      wx.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+    const peerId = parseInt(this.data.userId, 10)
+    if (!peerId) return
+    wx.showLoading({ title: '加载记录...', mask: true })
+    let st = null
+    try {
+      st = await request.get(`/api/assistant/pair-connection-with/${peerId}`)
+    } catch (e) {
+      wx.hideLoading()
+      wx.showToast({ title: '加载失败', icon: 'none' })
+      return
+    }
+    wx.hideLoading()
+    const txt = this._formatPairSheetText(st)
+    const hasMain = !!(st && st.has_saved_main && ((st.main_answer || '').trim() || (st.main_thinking || '').trim()))
+    const allowFollow = !!(hasMain && st.cache_valid)
+    const body = txt || (st && st.display_excerpt) || '暂无连连看记录。'
+    this.setData({
+      showPairSheet: true,
+      pairLoading: false,
+      pairFollowLoading: false,
+      pairStreamText: body,
+      pairThinking: (st && st.main_thinking) || '',
+      pairAnswer: (st && st.main_answer) || '',
+      pairState: st,
+      pairAllowFollow: allowFollow,
+      pairInputValue: ''
+    })
+    if (st && !st.cache_valid && hasMain) {
+      wx.showToast({
+        title: '双方资料已有更新，追问前请重新点「帮我连连看」',
+        icon: 'none',
+        duration: 3200
+      })
     }
   },
 
@@ -398,6 +462,10 @@ Page({
   },
 
   async onPairFollowSubmit() {
+    if (!this.data.pairAllowFollow) {
+      wx.showToast({ title: '请先生成主分析或资料更新后重新生成', icon: 'none' })
+      return
+    }
     const prompt = (this.data.pairInputValue || '').trim()
     if (!prompt) {
       wx.showToast({ title: '请输入追问内容', icon: 'none' })
@@ -523,7 +591,8 @@ Page({
             pairLoading: false,
             pairStreamText: txt,
             pairThinking: d.main_thinking || '',
-            pairAnswer: d.main_answer || ''
+            pairAnswer: d.main_answer || '',
+            pairAllowFollow: true
           })
           this.loadPairState(peerId)
           return
@@ -531,7 +600,8 @@ Page({
         if (res.statusCode && res.statusCode !== 200) {
           this.setData({
             pairLoading: false,
-            pairStreamText: formatPairRequestError(res)
+            pairStreamText: formatPairRequestError(res),
+            pairAllowFollow: false
           })
         }
       },
@@ -570,7 +640,8 @@ Page({
             pairLoading: false,
             pairStreamText: finalText || this.data.pairStreamText,
             pairThinking: accReason,
-            pairAnswer: accContent
+            pairAnswer: accContent,
+            pairAllowFollow: true
           })
           this.loadPairState(peerId)
           try { requestTask.abort() } catch (e) {}
@@ -580,7 +651,7 @@ Page({
           const data = JSON.parse(dataStr)
           if (data.alumni) continue
           if (data.error) {
-            this.setData({ pairLoading: false, pairStreamText: data.error })
+            this.setData({ pairLoading: false, pairStreamText: data.error, pairAllowFollow: false })
             return
           }
           if (data.reasoning) {
@@ -632,7 +703,7 @@ Page({
 
     const hasMain = st && st.cache_valid && st.has_saved_main && ((st.main_answer || '').trim() || (st.main_thinking || '').trim())
     if (hasMain) {
-      const txt = st.full_display_text || [
+      const txt = this._formatPairSheetText(st) || [
         (st.main_thinking || '').trim() ? ('【思考】\n' + st.main_thinking) : '',
         st.main_answer || ''
       ].filter(Boolean).join('\n\n')
@@ -642,7 +713,9 @@ Page({
         pairStreamText: txt,
         pairThinking: st.main_thinking || '',
         pairAnswer: st.main_answer || '',
-        pairState: st
+        pairState: st,
+        pairAllowFollow: true,
+        pairInputValue: ''
       })
       return
     }
@@ -653,7 +726,9 @@ Page({
       pairStreamText: '',
       pairThinking: '',
       pairAnswer: '',
-      pairState: st
+      pairState: st,
+      pairAllowFollow: false,
+      pairInputValue: ''
     })
     this._runPairMainStream(peerId)
   },

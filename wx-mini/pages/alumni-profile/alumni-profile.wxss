@@ -91,6 +91,36 @@
   font-size: 28rpx;
   color: #374151;
   line-height: 1.7;
+  display: -webkit-box;
+  -webkit-line-clamp: 8;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+.match-card-tap {
+  position: relative;
+}
+
+.match-card-hover {
+  opacity: 0.92;
+  background: #fafafa !important;
+}
+
+.match-tap-hint {
+  margin-top: 20rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid #e5e7eb;
+}
+
+.match-tap-hint-text {
+  font-size: 24rpx;
+  color: #3b82f6;
+}
+
+.match-tap-hint-muted {
+  font-size: 24rpx;
+  color: #9ca3af;
 }
 
 /* 简介卡片 v2：与参考图一致，无字段标签 */
