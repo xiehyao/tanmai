@@ -39,6 +39,18 @@ sudo crontab -e
 
 - `journalctl -t pengyoo-apache-guard` 或 `grep pengyoo-apache-guard /var/log/messages`（视系统而定）。
 
+## 微信小程序登录（`/api/auth/login`）
+
+若小程序请求登录返回 **503**，响应里含「微信登录未配置」，说明运行 uvicorn 的进程里**没有**读到 `WECHAT_APPID` 与 `WECHAT_SECRET`。
+
+1. 在微信公众平台（小程序）→ **开发** → **开发管理** → **开发设置** 获取 **AppID**、**AppSecret**。
+2. 在服务器 **`tanmai/backend/`** 目录创建 **`.env`**（可复制 `backend/.env.example`），写入：
+   - `WECHAT_APPID=你的AppId`
+   - `WECHAT_SECRET=你的AppSecret`
+3. **重启 uvicorn**（见下节）。配置由 `app/core/config.py` 从 **`backend/.env`** 加载，不依赖启动时的工作目录。
+
+也可用 `export WECHAT_APPID=... WECHAT_SECRET=...` 写入 systemd 单元或启动脚本（已存在于环境变量中的值优先于 `.env`）。
+
 ## FastAPI（uvicorn）更新后端代码后
 
 Apache 只把 `/api` 反代到本机 **8000** 端口。拉取 `tanmai/backend` 新代码或新增路由后，**必须重启 uvicorn**，否则小程序会收到 **404 Not Found**（旧进程未加载新路由）。

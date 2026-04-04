@@ -23,7 +23,10 @@ async def jscode2session(js_code: str) -> dict:
     if not appid or not secret:
         raise HTTPException(
             status_code=503,
-            detail="微信登录未配置：请设置环境变量 WECHAT_APPID 与 WECHAT_SECRET",
+            detail=(
+                "微信登录未配置：请设置环境变量 WECHAT_APPID 与 WECHAT_SECRET；"
+                "或在服务器 backend 目录创建 .env 文件写入上述两项后重启 uvicorn。"
+            ),
         )
 
     params = {

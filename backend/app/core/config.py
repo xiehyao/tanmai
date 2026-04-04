@@ -2,15 +2,44 @@
 应用配置 - 从环境变量读取
 """
 import os
+from pathlib import Path
 from typing import Optional
 
+# 固定读取 backend/.env（不依赖当前工作目录、无需安装 python-dotenv）
+# 已存在于 os.environ 的键不会被覆盖（便于 systemd / export 优先）
+def _load_env_from_backend_dotenv() -> None:
+    backend_root = Path(__file__).resolve().parents[2]
+    path = backend_root / ".env"
+    if not path.is_file():
+        return
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except OSError:
+        return
+    for line in raw.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "=" not in line:
+            continue
+        key, _, rest = line.partition("=")
+        key = key.strip()
+        if not key:
+            continue
+        val = rest.strip()
+        if len(val) >= 2 and val[0] == val[-1] and val[0] in "\"'":
+            val = val[1:-1]
+        if key not in os.environ:
+            os.environ[key] = val
+
+
+_load_env_from_backend_dotenv()
+
 try:
-    # 优先从 .env 加载（若安装了 python-dotenv）
     from dotenv import load_dotenv  # type: ignore
 
-    load_dotenv()
+    load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 except Exception:
-    # 未安装或加载失败时静默跳过，继续使用系统环境变量
     pass
 
 
