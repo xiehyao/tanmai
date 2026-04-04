@@ -38,3 +38,14 @@ sudo crontab -e
 ### 查看告警
 
 - `journalctl -t pengyoo-apache-guard` 或 `grep pengyoo-apache-guard /var/log/messages`（视系统而定）。
+
+## FastAPI（uvicorn）更新后端代码后
+
+Apache 只把 `/api` 反代到本机 **8000** 端口。拉取 `tanmai/backend` 新代码或新增路由后，**必须重启 uvicorn**，否则小程序会收到 **404 Not Found**（旧进程未加载新路由）。
+
+```bash
+pid=$(pgrep -f "uvicorn app.main:app.*8000" | head -1); [ -n "$pid" ] && kill $pid; sleep 2
+cd /var/www/html/moodle/tanmai/backend && nohup python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 > /tmp/tanmai-uvicorn.log 2>&1 &
+```
+
+可用 `curl -s http://127.0.0.1:8000/openapi.json | grep follows` 确认 `/api/follows` 已注册。
