@@ -5,7 +5,8 @@ Page({
   data: {
     card: {},
     isOwnCard: false,
-    userId: null
+    userId: null,
+    myUserId: null
   },
 
   onLoad(options) {
@@ -23,7 +24,9 @@ Page({
     try {
       const res = await request.get('/api/cards/my')
       if (res.success && res.data) {
-        this.setData({ card: res.data })
+        const d = res.data
+        const myUid = d.user_id != null ? d.user_id : d.id
+        this.setData({ card: d, myUserId: myUid })
       } else {
         wx.showToast({ title: res.error || '加载失败', icon: 'none' })
       }
@@ -52,5 +55,16 @@ Page({
 
   editCard() {
     wx.navigateTo({ url: '/pages/card-entry/card-entry' })
+  },
+
+  /** 进入「xxx的卡片」校友页，预览自己对外展示效果（仅本人名片页） */
+  onPreviewMyAlumniProfile() {
+    if (!this.data.isOwnCard) return
+    const uid = this.data.myUserId || (this.data.card && (this.data.card.user_id || this.data.card.id))
+    if (!uid) {
+      wx.showToast({ title: '无法获取用户信息', icon: 'none' })
+      return
+    }
+    wx.navigateTo({ url: `/pages/alumni-profile/alumni-profile?user_id=${uid}` })
   }
 })

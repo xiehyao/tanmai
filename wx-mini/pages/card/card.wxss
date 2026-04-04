@@ -13,6 +13,29 @@
   color: #fff;
 }
 
+.card-header-own {
+  position: relative;
+}
+
+.card-header-hover {
+  opacity: 0.92;
+}
+
+.header-preview-hint {
+  margin-top: 24rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid rgba(255, 255, 255, 0.25);
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.header-preview-hint-text {
+  font-size: 24rpx;
+  opacity: 0.95;
+  letter-spacing: 0.02em;
+}
+
 .avatar {
   width: 160rpx;
   height: 160rpx;
@@ -61,6 +84,17 @@
   padding: 40rpx;
 }
 
+.actions-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 24rpx;
+}
+
+.actions-row::after {
+  display: none;
+}
+
 .actions button,
 .primary-btn {
   background: #667eea;
@@ -69,5 +103,44 @@
   border-radius: 8rpx;
   padding: 24rpx;
   width: 100%;
+}
+
+.actions-row .primary-btn.flex-1 {
+  flex: 1;
+  width: auto;
+  margin: 0;
+}
+
+.actions-row .primary-btn::after {
+  border: none;
+}
+
+.secondary-btn {
+  background: #fff;
+  color: #667eea;
+  border: 2rpx solid rgba(102, 126, 234, 0.45);
+}
+
+.secondary-btn::after {
+  border: none;
+}
+
+.preview-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  min-width: 200rpx;
+  padding-left: 28rpx;
+  padding-right: 28rpx;
+  font-size: 28rpx;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.preview-icon {
+  font-size: 30rpx;
+  line-height: 1;
 }
 
