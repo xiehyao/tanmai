@@ -63,6 +63,11 @@ class TestCardEntrySave:
         )
         assert r.status_code == 400
 
+    def test_upload_photo_without_token_returns_401(self, client):
+        """上传个人相片未登录应返回 401"""
+        r = client.post("/api/card-entry/upload-photo")
+        assert r.status_code == 401
+
 
 class TestHealth:
     """基础健康检查"""

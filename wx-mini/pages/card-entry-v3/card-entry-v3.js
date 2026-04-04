@@ -15,13 +15,14 @@ function getApiBase() {
   }
 }
 
+/** 个人相片：上传到 COS（cards/personal_photos/…），返回公网 URL，供 personal_photos 落库 */
 function uploadLocalImageToCos(localPath) {
   const token = wx.getStorageSync('token')
   if (!token) return Promise.reject(new Error('请先登录'))
   const apiBase = getApiBase()
   return new Promise((resolve, reject) => {
     wx.uploadFile({
-      url: `${apiBase}/api/posts/upload-image`,
+      url: `${apiBase}/api/card-entry/upload-photo`,
       filePath: localPath,
       name: 'file',
       header: { Authorization: `Bearer ${token}` },
@@ -1434,7 +1435,11 @@ Page({
 
   onPickPhoto() {
     const current = this.data.personal_photos || []
-    const remain = Math.max(1, 9 - current.length)
+    const remain = Math.max(0, 9 - current.length)
+    if (remain <= 0) {
+      wx.showToast({ title: '最多 9 张相片', icon: 'none' })
+      return
+    }
     wx.showActionSheet({
       itemList: ['相册', '拍摄'],
       success: (res) => {
@@ -1442,6 +1447,7 @@ Page({
         wx.chooseMedia({
           count: remain,
           mediaType: ['image'],
+          sizeType: ['compressed'],
           sourceType,
           success: async (r) => {
             const token = wx.getStorageSync('token')
@@ -1485,6 +1491,7 @@ Page({
                 avatar: cartoon || orig || photoUrl || this.data.avatar
               }, () => {
                 this._syncPhotoStrip()
+                this.saveStepToServer(1)
               })
               wx.showToast({ title: '已添加相片', icon: 'success' })
             } catch (e) {

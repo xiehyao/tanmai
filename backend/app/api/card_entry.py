@@ -6,7 +6,7 @@ import json
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, File, Header, HTTPException, Request, UploadFile
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
@@ -21,6 +21,7 @@ from app.core.alumni_data import (
     _get_resources,
     _get_association_info,
 )
+from app.services.cos import upload_card_personal_photo_to_cos
 
 router = APIRouter()
 
@@ -98,6 +99,30 @@ async def stylize_avatar_photo(
         return {"success": False, "detail": str(he.detail)}
     except Exception as e:
         return {"success": False, "detail": str(e)}
+
+
+@router.post("/upload-photo")
+async def upload_card_personal_photo(
+    file: UploadFile = File(...),
+    token: dict = Depends(verify_token),
+):
+    """编辑资料页个人相片：multipart 上传至 COS，返回公网 URL（与动态发帖 upload-image 响应结构一致）。"""
+    if not token.get("sub"):
+        raise HTTPException(status_code=401, detail="未登录")
+    content_type = (file.content_type or "").lower()
+    if not content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="仅支持图片文件")
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="空文件")
+    if len(data) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="单张图片不能超过 10MB")
+    uploaded = upload_card_personal_photo_to_cos(
+        file_bytes=data,
+        filename=file.filename or "",
+        content_type=content_type,
+    )
+    return {"success": True, "data": uploaded}
 
 
 @router.post("/save-step/1")
