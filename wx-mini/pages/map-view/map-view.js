@@ -117,25 +117,43 @@ Page({
   },
 
   _drawRoundedFromLocal(localPath, size, resolve, fallbackUrl) {
-    const ctx = wx.createCanvasContext('roundedMarkerCanvas', this)
-    const r = size / 2
-    ctx.save()
-    ctx.beginPath()
-    ctx.arc(r, r, r, 0, Math.PI * 2)
-    ctx.clip()
-    ctx.drawImage(localPath, 0, 0, size, size)
-    ctx.draw(false, () => {
-      ctx.restore()
-      setTimeout(() => {
-        wx.canvasToTempFilePath({
-          canvasId: 'roundedMarkerCanvas',
-          destWidth: size,
-          destHeight: size,
-          success: (res) => resolve(res.tempFilePath),
-          fail: () => resolve(fallbackUrl)
-        }, this)
-      }, 50)
-    })
+    const query = wx.createSelectorQuery().in(this)
+    query
+      .select('#roundedMarkerCanvas')
+      .fields({ node: true, size: true })
+      .exec((res) => {
+        const canvas = res && res[0] && res[0].node
+        if (!canvas) {
+          resolve(fallbackUrl)
+          return
+        }
+        const ctx = canvas.getContext('2d')
+        const dpr = wx.getSystemInfoSync().pixelRatio || 1
+        canvas.width = size * dpr
+        canvas.height = size * dpr
+        ctx.scale(dpr, dpr)
+        const img = canvas.createImage()
+        img.onload = () => {
+          const r = size / 2
+          ctx.save()
+          ctx.beginPath()
+          ctx.arc(r, r, r, 0, Math.PI * 2)
+          ctx.clip()
+          ctx.drawImage(img, 0, 0, size, size)
+          ctx.restore()
+          wx.canvasToTempFilePath({
+            canvas,
+            width: size,
+            height: size,
+            destWidth: size * dpr,
+            destHeight: size * dpr,
+            success: (out) => resolve(out.tempFilePath),
+            fail: () => resolve(fallbackUrl)
+          })
+        }
+        img.onerror = () => resolve(fallbackUrl)
+        img.src = localPath
+      })
   },
 
   async updateMarkers() {

@@ -1,7 +1,8 @@
 <!--pages/map-view/map-view.wxml（非 tab，可返回）-->
 <view class="map-page">
   <canvas
-    canvas-id="roundedMarkerCanvas"
+    type="2d"
+    id="roundedMarkerCanvas"
     style="position: fixed; left: -9999px; width: 64px; height: 64px;"
   />
   <map
@@ -74,7 +75,7 @@
           <view class="map-card-placeholder"></view>
         </view>
         <view class="map-card-bio" wx:if="{{cardData.bio}}">
-          <text class="bio-text">{{cardData.bio}}</text>
+          <text class="bio-text" user-select>{{cardData.bio}}</text>
         </view>
       </view>
     </view>

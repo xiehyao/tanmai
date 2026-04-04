@@ -12,7 +12,7 @@
           src="{{introHeroUrl}}"
           mode="aspectFill"
         />
-        <text class="intro-body-text" wx:if="{{introBodyText}}">{{introBodyText}}</text>
+        <text class="intro-body-text" wx:if="{{introBodyText}}" user-select>{{introBodyText}}</text>
         <view class="intro-bio-empty" wx:else>
           <text class="intro-text-muted">暂无简介</text>
         </view>
@@ -112,7 +112,7 @@
     <scroll-view scroll-y class="pair-sheet-body" scroll-with-animation="{{true}}">
       <view wx:if="{{pairLoading && !pairStreamText}}" class="pair-loading-hint">AI 正在分析双方资料…</view>
       <view wx:if="{{pairFollowLoading && pairStreamText}}" class="pair-loading-hint">AI 正在回复追问…</view>
-      <text class="pair-stream-text" selectable="{{true}}">{{pairStreamText}}</text>
+      <text class="pair-stream-text" user-select>{{pairStreamText}}</text>
     </scroll-view>
     <view class="pair-follow-bar">
       <input
