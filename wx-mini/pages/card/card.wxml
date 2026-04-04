@@ -13,9 +13,6 @@
     <text class="name">{{card.name || card.nickname || '未设置'}}</text>
     <text class="nickname" wx:if="{{card.nickname && card.name && card.name !== card.nickname}}">（{{card.nickname}}）</text>
     <text class="work-wechat" wx:if="{{card.wechat_id}}">微信: {{card.wechat_id}}</text>
-    <view class="header-preview-hint" wx:if="{{isOwnCard}}">
-      <text class="header-preview-hint-text">预览我的名片展示 ›</text>
-    </view>
   </view>
   
   <view class="card-content">
@@ -48,7 +45,6 @@
   <view class="actions actions-row" wx:if="{{isOwnCard}}">
     <button class="secondary-btn preview-btn" bindtap="onPreviewMyAlumniProfile">
       <text class="preview-icon">👁</text>
-      <text>预览</text>
     </button>
     <button class="primary-btn flex-1" bindtap="editCard">编辑名片</button>
   </view>
