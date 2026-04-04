@@ -157,6 +157,26 @@ function _defaultFieldVisibility() {
   keys.forEach(k => { o[k] = 'public'; l[k] = '公开'; i[k] = VISIBILITY_ICONS.public })
   return { fieldVisibility: o, fieldVisibilityLabels: l, fieldVisibilityIcons: i }
 }
+
+/** 用 step1.field_visibility 覆盖默认可见性，避免代填切换用户后仍显示上一人/工作人员的可见性 */
+function _fieldVisibilityFromStep1(s1) {
+  const d = _defaultFieldVisibility()
+  const raw = s1 && s1.field_visibility
+  if (!raw || typeof raw !== 'object') {
+    return { fieldVisibility: d.fieldVisibility, fieldVisibilityLabels: d.fieldVisibilityLabels, fieldVisibilityIcons: d.fieldVisibilityIcons }
+  }
+  const fieldVisibility = { ...d.fieldVisibility, ...raw }
+  const fieldVisibilityIcons = { ...d.fieldVisibilityIcons }
+  const fieldVisibilityLabels = { ...d.fieldVisibilityLabels }
+  Object.keys(fieldVisibility).forEach((k) => {
+    const v = fieldVisibility[k]
+    if (v && VISIBILITY_ICONS[v]) {
+      fieldVisibilityIcons[k] = VISIBILITY_ICONS[v]
+      fieldVisibilityLabels[k] = VISIBILITY_LABELS[v] || '公开'
+    }
+  })
+  return { fieldVisibility, fieldVisibilityLabels, fieldVisibilityIcons }
+}
 // 根据当前列表长度和 fieldVisibilityIcons 生成动态子项的 icon 数组（用于 wxml 中 wx:for 的 index）
 function _visibilityIconsArray(icons, prefix, length) {
   const arr = []; for (let j = 0; j < (length || 0); j++) arr.push(icons[prefix + j] || VISIBILITY_ICONS.public); return arr
@@ -1101,15 +1121,21 @@ Page({
           pp[0] = origPhoto
         }
         const photoStripItems = buildPhotoStripItems(origPhoto, cartoonPhoto, pp)
+        // 工作人员代填：目标校友某字段为空时不得用 this.data（常为当前登录用户）兜底
+        const staffTarget = !!this.data.staffTargetUserId
+        const avatarFromServer = (s1.display_avatar || s1.selected_avatar || s1.avatar || '').trim()
+        const photoUrlFromServer = ((pp && pp[0]) || s1.photo_url || '').trim()
+        const visPack = _fieldVisibilityFromStep1(s1)
         this.setData({
-          avatar: s1.display_avatar || s1.selected_avatar || s1.avatar || this.data.avatar,
+          ...visPack,
+          avatar: staffTarget ? avatarFromServer : (avatarFromServer || this.data.avatar),
           personal_photos: pp,
-          photoUrl: (pp && pp[0]) || s1.photo_url || this.data.photoUrl || '',
+          photoUrl: staffTarget ? photoUrlFromServer : (photoUrlFromServer || this.data.photoUrl || ''),
           avatar_photo_original_url: origPhoto,
           avatar_photo_cartoon_url: cartoonPhoto,
           photoStripItems,
-          wechatId: s1.wechat_id || this.data.wechatId || '',
-          name: s1.name || this.data.name,
+          wechatId: staffTarget ? (s1.wechat_id || '') : (s1.wechat_id || this.data.wechatId || ''),
+          name: staffTarget ? (s1.name || '') : (s1.name || this.data.name),
           nickname: s1.nickname || '',
           gender: s1.gender || '',
           genderLabel: genderLabelFor(s1.gender || ''),
@@ -1120,7 +1146,7 @@ Page({
           industry: (s1.industry != null && s1.industry !== '') ? String(s1.industry) : '',
           contactItems: contactItemsBuilt,
           ..._previewFromContactItems(contactItemsBuilt),
-          address: firstAddress || this.data.address,
+          address: staffTarget ? (firstAddress || '') : (firstAddress || this.data.address),
           personalIntro: personalIntroVal,
           ...introCardsPatch,
           // 需求与状态（step3）
@@ -1144,7 +1170,7 @@ Page({
           resourcesCount: (s4.resources && s4.resources.length) || 0,
           resources: _buildResourcesList(s4.resources),
           // 社团 / 校友会（step5）
-          associationOrgs: s5.orgs || s5.association_orgs || '惠安一中大湾区校友会',
+          associationOrgs: s5.orgs || s5.association_orgs || (staffTarget ? '' : '惠安一中大湾区校友会'),
           associationWilling: !!s5.willing_to_serve,
           associationRole: s5.association_positions ? (Array.isArray(s5.association_positions) ? s5.association_positions.join('、') : s5.association_positions) : '',
           board_position: s5.board_position || '',
@@ -1171,7 +1197,12 @@ Page({
             s6.raw ||
             '',
           // 教育经历列表
-          eduExperiences: eduList.length ? eduList : this.data.eduExperiences
+          eduExperiences: eduList.length ? eduList : (staffTarget ? [] : this.data.eduExperiences),
+          // 以下列表接口未单独返回时，代填切换用户须清空，避免残留本人/上一人数据
+          workExperiences: staffTarget ? [] : this.data.workExperiences,
+          positions: staffTarget ? [{ company: '', title: '', duration: '' }] : this.data.positions,
+          paperCards: staffTarget ? [] : this.data.paperCards,
+          staffEvaluation: staffTarget ? {} : this.data.staffEvaluation
         }, () => {
           // 目标用户若无 intro_cards，必须用当前已加载的 step1 状态生成默认卡；不可保留页面里上一任用户/本人残留的 introCards
           if (introFromFs && introFromFs.length) {
