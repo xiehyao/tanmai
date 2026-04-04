@@ -116,6 +116,37 @@ function _buildContactItemsFromLocations(phone, wechat, email, locations) {
   }
   return items
 }
+
+/** 联系方式中的多条地址 → save-step/1 的 locations[]（与 user_locations / loadData 一致） */
+function _buildLocationsPayloadFromContactItems(contactItems, fieldVisibility) {
+  const items = contactItems || []
+  const vis = fieldVisibility || {}
+  const out = []
+  items.forEach((c, idx) => {
+    if (c.type !== 'address') return
+    const addr = (c.value != null ? String(c.value) : '').trim()
+    if (!addr) return
+    let lat = null
+    let lng = null
+    if (c.latitude != null && c.latitude !== '') {
+      const n = Number(c.latitude)
+      if (!Number.isNaN(n)) lat = n
+    }
+    if (c.longitude != null && c.longitude !== '') {
+      const n = Number(c.longitude)
+      if (!Number.isNaN(n)) lng = n
+    }
+    out.push({
+      location_type: String(c.location_type || 'work').toLowerCase(),
+      address: addr,
+      latitude: lat,
+      longitude: lng,
+      location_visibility: vis['contact_' + idx] || 'public',
+      source: 'card_entry_v3'
+    })
+  })
+  return out
+}
 function _previewFromContactItems(items) {
   const arr = items || []
   const addresses = (arr.filter(c => c.type === 'address') || []).map(c => c.value).filter(Boolean)
@@ -1008,6 +1039,7 @@ Page({
       wechat_id: this.data.wechatId || first('wechat'),
       email: first('email'),
       main_address: first('address') || this.data.address,
+      locations: _buildLocationsPayloadFromContactItems(this.data.contactItems, this.data.fieldVisibility),
       bio,
       field_visibility: this.data.fieldVisibility || {},
       selected_avatar: this.data.avatar || '',

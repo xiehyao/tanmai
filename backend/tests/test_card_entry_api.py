@@ -76,6 +76,30 @@ class TestCardEntrySave:
         assert fs.get("intro_cards") == intro_cards
         assert (d.get("step1") or {}).get("bio") == "长段简介文字测试"
 
+    def test_save_step1_locations_persisted(self, client, auth_headers, user_id):
+        """更新已有用户时 locations 应写入 user_locations（代填与普通保存共用）"""
+        locations = [
+            {"location_type": "residence", "address": "深圳宝安沙井", "location_visibility": "public", "source": "card_entry_v3"},
+            {"location_type": "work", "address": "工作地址一", "location_visibility": "alumni", "source": "card_entry_v3"},
+            {"location_type": "work", "address": "工作地址二", "location_visibility": "public", "source": "card_entry_v3"},
+        ]
+        r = client.post(
+            f"/api/card-entry/save-step/1?target_user_id={user_id}",
+            headers=auth_headers,
+            json={
+                "name": "测试用户",
+                "company": "测试公司",
+                "locations": locations,
+            },
+        )
+        assert r.status_code == 200, f"Expected 200, got {r.status_code}: {r.text}"
+        d = client.get(f"/api/card-entry/data?target_user_id={user_id}", headers=auth_headers).json()
+        locs = (d.get("step1") or {}).get("locations") or []
+        addrs = [x.get("address") for x in locs if isinstance(x, dict)]
+        assert "深圳宝安沙井" in addrs
+        assert "工作地址一" in addrs
+        assert "工作地址二" in addrs
+
     def test_save_step1_without_target_returns_400(self, client, auth_headers):
         """无 target_user_id 且非 create_new 应返回 400"""
         r = client.post(

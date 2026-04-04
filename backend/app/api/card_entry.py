@@ -76,6 +76,52 @@ def _apply_avatar_photo_urls_from_body(card: UserCard, body: dict) -> None:
         card.avatar_photo_cartoon_url = (str(v).strip() or None) if v is not None else None
 
 
+def _save_locations(db: Session, user_id: int, locations: list, source_default: Optional[str]) -> None:
+    """用 body.locations 全量替换 user_locations（与 GET step1.locations 结构一致）。"""
+    db.execute(text("DELETE FROM user_locations WHERE user_id = :uid"), {"uid": user_id})
+    default_src = (source_default or "card_entry").strip() or "card_entry"
+    for loc in locations or []:
+        if not isinstance(loc, dict):
+            continue
+        addr = (loc.get("address") or "").strip()
+        if not addr:
+            continue
+        lt = (str(loc.get("location_type") or "work")).strip() or "work"
+        if len(lt) > 50:
+            lt = lt[:50]
+        lat = loc.get("latitude")
+        lng = loc.get("longitude")
+        if lat is not None and lat != "":
+            try:
+                lat = float(lat)
+            except (TypeError, ValueError):
+                lat = None
+        else:
+            lat = None
+        if lng is not None and lng != "":
+            try:
+                lng = float(lng)
+            except (TypeError, ValueError):
+                lng = None
+        else:
+            lng = None
+        lv = (str(loc.get("location_visibility") or "public")).strip() or "public"
+        if len(lv) > 50:
+            lv = lv[:50]
+        src = (str(loc.get("source") or default_src)).strip() or default_src
+        if len(src) > 100:
+            src = src[:100]
+        db.execute(
+            text(
+                """
+                INSERT INTO user_locations (user_id, location_type, address, latitude, longitude, location_visibility, source)
+                VALUES (:uid, :lt, :addr, :lat, :lng, :lv, :src)
+                """
+            ),
+            {"uid": user_id, "lt": lt, "addr": addr[:500], "lat": lat, "lng": lng, "lv": lv, "src": src},
+        )
+
+
 @router.post("/stylize-avatar-photo")
 async def stylize_avatar_photo(
     request: Request,
@@ -265,6 +311,7 @@ async def save_step_1(
         card.personal_photos = json.dumps(photos)
     _apply_avatar_photo_urls_from_body(card, body)
     _merge_intro_cards_into_card_field_source(card, body)
+    _save_locations(db, target_user_id, body.get("locations") or [], None)
     db.commit()
     return {"ok": True}
 
