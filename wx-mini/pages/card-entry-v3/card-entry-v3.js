@@ -56,6 +56,24 @@ function stylizeAvatarFromCosUrl(cosUrl) {
     })
 }
 
+/** 相片横滑：有原图/卡通时分开展示，其余为附加图 */
+function buildPhotoStripItems(orig, cartoon, photos) {
+  const o = (orig || '').trim()
+  const c = (cartoon || '').trim()
+  const pp = Array.isArray(photos) ? photos : []
+  const items = []
+  if (o || c) {
+    if (o) items.push({ url: o, tag: '原图', stripRole: 'orig', pIndex: -1 })
+    if (c && c !== o) items.push({ url: c, tag: 'AI卡通', stripRole: 'cartoon', pIndex: -1 })
+    pp.slice(1).forEach((u, i) => {
+      items.push({ url: u, tag: '', stripRole: 'extra', pIndex: 1 + i })
+    })
+  } else {
+    pp.forEach((u, i) => items.push({ url: u, tag: '', stripRole: 'legacy', pIndex: i }))
+  }
+  return items
+}
+
 const GENDER_OPTIONS = [
   { label: '请选择', value: '' },
   { label: '男', value: 'male' },
@@ -490,6 +508,7 @@ Page({
     personal_photos: [], // 多张相片，对应后端 step1.personal_photos
     avatar_photo_original_url: '', // COS 原图
     avatar_photo_cartoon_url: '', // 混元风格化 COS（有则对外优先展示）
+    photoStripItems: [], // 相片区展示用：原图、AI 卡通、附加图
     wechatId: '',
     name: '',
     nickname: '',
@@ -1052,12 +1071,14 @@ Page({
           if (pp.length === 0) pp = head ? [head] : []
           else pp[0] = head
         }
+        const photoStripItems = buildPhotoStripItems(origPhoto, cartoonPhoto, pp)
         this.setData({
           avatar: s1.display_avatar || s1.selected_avatar || s1.avatar || this.data.avatar,
           personal_photos: pp,
           photoUrl: (pp && pp[0]) || s1.photo_url || this.data.photoUrl || '',
           avatar_photo_original_url: origPhoto,
           avatar_photo_cartoon_url: cartoonPhoto,
+          photoStripItems,
           wechatId: s1.wechat_id || this.data.wechatId || '',
           name: s1.name || this.data.name,
           nickname: s1.nickname || '',
@@ -1142,12 +1163,19 @@ Page({
       const res = await request.get('/api/cards/my')
       if (res.success && res.data) {
         const u = res.data
+        const pp = Array.isArray(u.personal_photos) ? u.personal_photos : []
+        const o = u.avatar_photo_original_url || ''
+        const c = u.avatar_photo_cartoon_url || ''
         this.setData({
-          avatar: u.display_avatar || u.avatar || u.selected_avatar || '',
+          avatar: u.avatar || u.selected_avatar || '',
           name: u.name || u.nickname || '',
           company: u.company || '',
           title: u.title || '',
           industry: u.industry || '',
+          personal_photos: pp,
+          avatar_photo_original_url: o,
+          avatar_photo_cartoon_url: c,
+          photoStripItems: buildPhotoStripItems(o, c, pp),
           contactItems: _buildContactItems(
             u.phone || '',
             u.wechat_id || u.wechat || '',
@@ -1351,6 +1379,59 @@ Page({
     this.setData({ resources }, () => { this._syncVisibilityIconArrays && this._syncVisibilityIconArrays() })
   },
 
+  _syncPhotoStrip() {
+    const items = buildPhotoStripItems(
+      this.data.avatar_photo_original_url,
+      this.data.avatar_photo_cartoon_url,
+      this.data.personal_photos
+    )
+    this.setData({ photoStripItems: items })
+  },
+
+  /** 删除相片条中的某张（原图 / AI 卡通 / 附加图） */
+  onRemovePhotoStrip(e) {
+    const role = e.currentTarget.dataset.role
+    const pIndex = parseInt(e.currentTarget.dataset.pindex, 10)
+    let photos = [...(this.data.personal_photos || [])]
+    let orig = this.data.avatar_photo_original_url || ''
+    let cartoon = this.data.avatar_photo_cartoon_url || ''
+    let avatar = this.data.avatar || ''
+    if (role === 'orig') {
+      orig = ''
+      cartoon = ''
+      photos = []
+      avatar = ''
+    } else if (role === 'cartoon') {
+      cartoon = ''
+      if (photos.length && orig) {
+        photos = [orig, ...photos.slice(1)]
+      }
+      avatar = orig || photos[0] || ''
+    } else if (role === 'extra') {
+      if (!isNaN(pIndex) && pIndex >= 1) {
+        photos = photos.filter((_, i) => i !== pIndex)
+      }
+      avatar = cartoon || orig || photos[0] || ''
+    } else if (role === 'legacy') {
+      if (!isNaN(pIndex) && pIndex >= 0) {
+        if (pIndex === 0) {
+          orig = ''
+          cartoon = ''
+        }
+        photos = photos.filter((_, i) => i !== pIndex)
+      }
+      avatar = cartoon || orig || photos[0] || ''
+    }
+    const photoUrl = photos[0] || ''
+    this.setData({
+      personal_photos: photos,
+      photoUrl,
+      avatar_photo_original_url: orig,
+      avatar_photo_cartoon_url: cartoon,
+      avatar
+    }, () => this._syncPhotoStrip())
+  },
+
   onPickPhoto() {
     const current = this.data.personal_photos || []
     const remain = Math.max(1, 9 - current.length)
@@ -1387,6 +1468,7 @@ Page({
                     if (cu) cartoon = cu
                   } catch (e) {
                     console.warn('stylize avatar:', e)
+                    wx.showToast({ title: '卡通头像生成失败，已保留原图', icon: 'none' })
                   }
                   const display = cartoon || cosUrl
                   working = [display]
@@ -1399,7 +1481,10 @@ Page({
                 personal_photos: working,
                 photoUrl,
                 avatar_photo_original_url: orig,
-                avatar_photo_cartoon_url: cartoon
+                avatar_photo_cartoon_url: cartoon,
+                avatar: cartoon || orig || photoUrl || this.data.avatar
+              }, () => {
+                this._syncPhotoStrip()
               })
               wx.showToast({ title: '已添加相片', icon: 'success' })
             } catch (e) {
@@ -1411,18 +1496,6 @@ Page({
         })
       }
     })
-  },
-  onRemovePersonalPhoto(e) {
-    const index = parseInt(e.currentTarget.dataset.index, 10)
-    const personal_photos = (this.data.personal_photos || []).filter((_, i) => i !== index)
-    const photoUrl = personal_photos[0] || ''
-    let orig = this.data.avatar_photo_original_url
-    let cartoon = this.data.avatar_photo_cartoon_url
-    if (index === 0) {
-      orig = ''
-      cartoon = ''
-    }
-    this.setData({ personal_photos, photoUrl, avatar_photo_original_url: orig, avatar_photo_cartoon_url: cartoon })
   },
   onPickAvatar() {
     this.setData({ showAvatarSheet: true })

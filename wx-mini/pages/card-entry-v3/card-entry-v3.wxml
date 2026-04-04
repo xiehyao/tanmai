@@ -120,8 +120,11 @@
           <view class="form-row">
             <text class="form-label">相片</text>
             <view class="internal-original-photos">
-              <block wx:if="{{personal_photos && personal_photos.length > 0}}">
-                <image wx:for="{{personal_photos}}" wx:key="*this" class="internal-photo-thumb" src="{{item}}" mode="aspectFill" />
+              <block wx:if="{{photoStripItems && photoStripItems.length > 0}}">
+                <view wx:for="{{photoStripItems}}" wx:for-item="strip" wx:for-index="sidx" wx:key="sidx" class="internal-photo-strip-cell">
+                  <image class="internal-photo-thumb" src="{{strip.url}}" mode="aspectFill" />
+                  <text wx:if="{{strip.tag}}" class="internal-photo-tag">{{strip.tag}}</text>
+                </view>
               </block>
               <text wx:else class="internal-avatar-label">（未上传）</text>
             </view>
@@ -271,9 +274,10 @@
           <view class="personal-photo-item personal-photo-add" bindtap="onPickPhoto">
             <text class="photo-add-text">+ 添加</text>
           </view>
-          <view class="personal-photo-item" wx:for="{{personal_photos}}" wx:key="index">
-            <image class="personal-photo-img" src="{{item}}" mode="aspectFill" />
-            <view class="personal-photo-del" data-index="{{index}}" catchtap="onRemovePersonalPhoto">×</view>
+          <view class="personal-photo-item" wx:for="{{photoStripItems}}" wx:for-item="strip" wx:for-index="sidx" wx:key="sidx">
+            <image class="personal-photo-img" src="{{strip.url}}" mode="aspectFill" />
+            <text wx:if="{{strip.tag}}" class="photo-strip-tag">{{strip.tag}}</text>
+            <view class="personal-photo-del" data-role="{{strip.stripRole}}" data-pindex="{{strip.pIndex}}" catchtap="onRemovePhotoStrip">×</view>
           </view>
         </scroll-view>
         <view class="visibility-cell" data-field="photo" data-label="相片" catchtap="onVisibilityTap">
