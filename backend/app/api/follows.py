@@ -58,7 +58,10 @@ async def follow_status(
     if payload and payload.get("sub"):
         try:
             uid = int(payload["sub"])
-            if uid != followee_id:
+        except (TypeError, ValueError):
+            uid = None
+        if uid and uid != followee_id:
+            try:
                 r2 = db.execute(
                     text(
                         """
@@ -70,8 +73,8 @@ async def follow_status(
                     {"me": uid, "peer": followee_id},
                 )
                 following = r2.fetchone() is not None
-        except (TypeError, ValueError):
-            pass
+            except Exception:
+                following = False
 
     return {
         "success": True,
