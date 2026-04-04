@@ -136,6 +136,28 @@ def fetch_full_alumni(db: Session) -> List[Dict[str, Any]]:
     return result
 
 
+def fetch_user_bundle_for_llm(db: Session, user_id: int) -> Optional[Dict[str, Any]]:
+    """
+    获取单个用户的完整资料（与 fetch_full_alumni 单条结构一致），供双人连连看等场景注入 LLM。
+    不限制 openid，任意注册用户均可。
+    """
+    u = db.query(User).filter(User.id == user_id).first()
+    if not u:
+        return None
+    card = (
+        db.query(UserCard)
+        .filter(UserCard.user_id == u.id)
+        .order_by(UserCard.id.asc())
+        .first()
+    )
+    item = _user_to_dict(u, card)
+    item["education"] = _get_education(db, u.id) or {}
+    item["needs"] = _get_needs(db, u.id) or {}
+    item["resources"] = _get_resources(db, u.id)
+    item["association"] = _get_association_info(db, u.id) or {}
+    return item
+
+
 def format_alumni_for_llm(
     alumni_list: List[Dict[str, Any]],
     max_chars: int = 25000,

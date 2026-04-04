@@ -1,5 +1,18 @@
 // pages/alumni-profile/alumni-profile.js
 const request = require('../../utils/request.js')
+const { utf8BytesToString, getUtf8SafeDecodeLength } = require('../../utils/stream-sse.js')
+
+function getApiBase() {
+  try {
+    const app = getApp()
+    if (app && app.globalData && app.globalData.apiBase) return app.globalData.apiBase
+  } catch (e) {}
+  try {
+    return require('../../config.js').apiBase || 'https://www.pengyoo.com'
+  } catch (e) {
+    return 'https://www.pengyoo.com'
+  }
+}
 
 // 根据出生日期推算星座（月日）
 function getConstellation(month, day) {
@@ -23,6 +36,15 @@ function formatMiddleSchool(s2) {
     parts.push(`${s2.high_school} 高${String(s2.high_graduation_year).slice(-2)}届`)
   }
   return parts.join(' ')
+}
+
+/** 简介自动拼接：优先高中届别 */
+function formatHighSchoolLine(s2) {
+  if (!s2) return ''
+  if (s2.high_school && s2.high_graduation_year) {
+    return `${s2.high_school} 高${String(s2.high_graduation_year).slice(-2)}届`
+  }
+  return ''
 }
 
 // 格式化大学信息：北邮00级本 04级硕 通信工程
@@ -71,13 +93,85 @@ function formatInterests(profile) {
   return ''
 }
 
+function mergeS2FromUser(u, s2) {
+  if (s2 && Object.keys(s2).length > 0) return s2
+  return {
+    middle_school: u.middle_school,
+    middle_graduation_year: u.middle_graduation_year,
+    high_school: u.high_school,
+    high_graduation_year: u.high_graduation_year,
+    bachelor_university: u.bachelor_university,
+    bachelor_major: u.bachelor_major,
+    bachelor_graduation_year: u.bachelor_graduation_year,
+    master_university: u.master_university,
+    master_major: u.master_major,
+    master_graduation_year: u.master_graduation_year,
+    doctor_university: u.doctor_university,
+    doctor_graduation_year: u.doctor_graduation_year
+  }
+}
+
+/**
+ * 无手写简介时按顺序拼接：高中届别 → 大学 → 城市/公司/职务 → 兴趣与联系方式
+ */
+function buildAutoIntroParagraph(user, profile) {
+  const u = user || {}
+  const s1 = profile?.step1 || {}
+  const s2 = mergeS2FromUser(u, profile?.step2 || {})
+  const s5 = profile?.step5 || {}
+  const lines = []
+  const hs = formatHighSchoolLine(s2)
+  const ms = formatMiddleSchool(s2)
+  if (hs) lines.push(hs)
+  else if (ms) lines.push(ms)
+  const uni = formatUniversity(s2)
+  if (uni) lines.push(uni)
+  const addr = (s1.locations && s1.locations[0] && s1.locations[0].address)
+    ? s1.locations[0].address
+    : (u.address || '')
+  const company = u.company || s1.company || ''
+  const title = u.title || s1.title || ''
+  const workBits = []
+  if (addr) workBits.push(`常驻${addr}`)
+  if (company && title) workBits.push(`在${company}担任${title}`)
+  else if (company) workBits.push(`在${company}工作`)
+  else if (title) workBits.push(`职务：${title}`)
+  if (workBits.length) lines.push(workBits.join('，'))
+  const interests = formatInterests(profile)
+  const contacts = [u.phone || s1.phone, u.wechat_id || s1.wechat_id, u.email || s1.email].filter(Boolean)
+  const tail = []
+  if (interests) tail.push(`兴趣爱好：${interests}`)
+  if (contacts.length) tail.push(`联系方式：${contacts.join('，')}`)
+  const social = formatSocialPositions(s5)
+  if (social) tail.push(`社会职务：${social}`)
+  if (tail.length) lines.push(tail.join('。'))
+  return lines.filter(Boolean).join('\n')
+}
+
+/** 当前用户是否已具备「帮我连连看」所需名片与信息 */
+function isSelfCardEntryComplete(entry) {
+  if (!entry) return false
+  const s1 = entry.step1 || {}
+  const s2 = entry.step2 || {}
+  const name = (s1.name || '').trim()
+  const company = (s1.company || '').trim()
+  if (!name || !company) return false
+  const hasIntro = !!(s1.bio && String(s1.bio).trim())
+  const hasContact = !!(s1.phone || s1.wechat_id || s1.email)
+  const hasEdu = !!(s2.high_school || s2.bachelor_university || s2.master_university || s2.middle_school)
+  return hasIntro || hasContact || hasEdu
+}
+
 Page({
   data: {
     user: null,
-    profileData: null,  // card-entry 返回的 step1-6
+    userId: null,
+    profileData: null,
     introCards: [],
     matchContent: '',
-    // 格式化后的展示字段
+    ownerName: '校友',
+    sectionTitleIntro: '校友的简介',
+    sectionTitleCard: '校友的名片',
     displayName: '',
     displayPhotos: [],
     displayConstellation: '',
@@ -88,7 +182,14 @@ Page({
     displayInterests: '',
     displayAssociationNeeds: '',
     displayContact: '',
-    displayAddress: ''
+    displayAddress: '',
+    introHeroUrl: '',
+    introBodyText: '',
+    showPairSheet: false,
+    pairLoading: false,
+    pairStreamText: '',
+    pairThinking: '',
+    pairAnswer: ''
   },
 
   onLoad(options) {
@@ -102,15 +203,49 @@ Page({
     this.loadUser(uid)
   },
 
+  _ownerDisplayName(user, s1) {
+    const u = user || {}
+    return (s1 && s1.name) || u.name || u.nickname || '校友'
+  },
+
+  _computeIntroPresentation(user, profileRes) {
+    const u = user || {}
+    const s1 = profileRes?.step1 || {}
+    const photos = Array.isArray(s1.personal_photos) ? s1.personal_photos : (Array.isArray(u.personal_photos) ? u.personal_photos : [])
+    const introHeroUrl =
+      (s1.avatar_photo_cartoon_url || '').trim() ||
+      (s1.avatar_photo_original_url || '').trim() ||
+      (photos[0] || '') ||
+      u.selected_avatar ||
+      u.avatar ||
+      ''
+    const bioRaw = (s1.bio || u.bio || '').trim()
+    const profile = profileRes
+      ? {
+          step1: profileRes.step1 || {},
+          step2: profileRes.step2 || {},
+          step4: profileRes.step4 || {},
+          step5: profileRes.step5 || {},
+          step6: profileRes.step6 || {}
+        }
+      : { step1: {}, step2: {}, step4: {}, step5: {}, step6: {} }
+    const introBodyText = bioRaw || buildAutoIntroParagraph(u, profile)
+    return { introHeroUrl, introBodyText }
+  },
+
   async loadUser(uid) {
     wx.showLoading({ title: '加载中...' })
     try {
       const res = await request.get(`/api/users/${uid}`)
       if (res.success && res.data) {
         const user = res.data
+        const name = user.name || user.nickname || '校友'
         this.setData({
           user,
-          pageTitle: (user.name || user.nickname || '校友') + '的世界'
+          pageTitle: name + '的卡片',
+          ownerName: name,
+          sectionTitleIntro: name + '的简介',
+          sectionTitleCard: name + '的名片'
         })
         wx.setNavigationBarTitle({ title: this.data.pageTitle })
         await this.loadProfileData(uid, user)
@@ -135,7 +270,16 @@ Page({
       const s5 = res.step5 || {}
       const profile = { step1: s1, step2: s2, step4: res.step4 || {}, step5: s5, step6: res.step6 || {} }
       const display = this._buildDisplayFields(user, profile)
-      this.setData({ profileData: res, ...display })
+      const intro = this._computeIntroPresentation(user, res)
+      const ownerName = this._ownerDisplayName(user, s1)
+      this.setData({
+        profileData: res,
+        ...display,
+        ...intro,
+        ownerName,
+        sectionTitleIntro: ownerName + '的简介',
+        sectionTitleCard: ownerName + '的名片'
+      })
     } catch (e) {
       this._applyDisplayFromUser(user)
     }
@@ -144,7 +288,15 @@ Page({
   _applyDisplayFromUser(user) {
     if (!user) return
     const display = this._buildDisplayFields(user, null)
-    this.setData(display)
+    const intro = this._computeIntroPresentation(user, null)
+    const ownerName = user.name || user.nickname || '校友'
+    this.setData({
+      ...display,
+      ...intro,
+      ownerName,
+      sectionTitleIntro: ownerName + '的简介',
+      sectionTitleCard: ownerName + '的名片'
+    })
   },
 
   _buildDisplayFields(user, profile) {
@@ -153,18 +305,7 @@ Page({
     let s2 = profile?.step2 || {}
     let s5 = profile?.step5 || {}
     if (!s2 || Object.keys(s2).length === 0) {
-      s2 = {
-        middle_school: u.middle_school,
-        middle_graduation_year: u.middle_graduation_year,
-        high_school: u.high_school,
-        high_graduation_year: u.high_graduation_year,
-        bachelor_university: u.bachelor_university,
-        bachelor_major: u.bachelor_major,
-        bachelor_graduation_year: u.bachelor_graduation_year,
-        master_university: u.master_university,
-        master_major: u.master_major,
-        master_graduation_year: u.master_graduation_year
-      }
+      s2 = mergeS2FromUser(u, s2)
     }
     if (!s5 || Object.keys(s5).length === 0) {
       s5 = {
@@ -194,12 +335,6 @@ Page({
     }
   },
 
-  _applyDisplayFromUser(user) {
-    if (!user) return
-    const display = this._buildDisplayFields(user, null)
-    this.setData(display)
-  },
-
   async loadIntroCards(uid) {
     try {
       const res = await request.get('/api/intro-cards/user/' + uid)
@@ -222,5 +357,127 @@ Page({
 
   onFollowTap() {
     wx.showToast({ title: '关注功能开发中', icon: 'none' })
+  },
+
+  closePairSheet() {
+    this.setData({ showPairSheet: false, pairLoading: false })
+  },
+
+  stopPairTap() {},
+
+  async onPairHelpTap() {
+    const token = wx.getStorageSync('token')
+    if (!token) {
+      wx.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+    wx.showLoading({ title: '校验资料...', mask: true })
+    let entry = null
+    try {
+      entry = await request.get('/api/card-entry/data')
+    } catch (e) {
+      wx.hideLoading()
+      wx.showToast({ title: '无法获取我的名片', icon: 'none' })
+      return
+    }
+    wx.hideLoading()
+    if (!isSelfCardEntryComplete(entry)) {
+      wx.showToast({ title: '必须填写完成后，方可使用此功能', icon: 'none' })
+      return
+    }
+    const peerId = parseInt(this.data.userId, 10)
+    if (!peerId) return
+    this.setData({
+      showPairSheet: true,
+      pairLoading: true,
+      pairStreamText: '',
+      pairThinking: '',
+      pairAnswer: ''
+    })
+    const apiBase = getApiBase()
+    let buffer = ''
+    let byteBuffer = []
+    let accReason = ''
+    let accContent = ''
+    const requestTask = wx.request({
+      url: `${apiBase}/api/assistant/llm-pair-connection`,
+      method: 'POST',
+      data: { peer_user_id: peerId },
+      header: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      enableChunked: true,
+      success: (res) => {
+        if (res.statusCode && res.statusCode !== 200) {
+          this.setData({ pairLoading: false, pairStreamText: '服务暂不可用(' + res.statusCode + ')' })
+        }
+      },
+      fail: () => {
+        this.setData({ pairLoading: false })
+        wx.showToast({ title: '请求失败', icon: 'none' })
+      }
+    })
+    requestTask.onChunkReceived((res) => {
+      if (typeof res.data === 'string') {
+        buffer += res.data
+      } else {
+        const raw = res.data
+        const u8 = raw instanceof Uint8Array ? raw : (raw instanceof ArrayBuffer ? new Uint8Array(raw) : new Uint8Array(0))
+        for (let i = 0; i < u8.length; i++) byteBuffer.push(u8[i])
+        const safeLen = getUtf8SafeDecodeLength(new Uint8Array(byteBuffer))
+        if (safeLen > 0) {
+          const toDecode = new Uint8Array(byteBuffer.splice(0, safeLen))
+          buffer += utf8BytesToString(toDecode)
+        }
+      }
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+      for (const line of lines) {
+        if (!line.trim()) continue
+        if (!line.startsWith('data: ')) continue
+        const dataStr = line.substring(6).trim()
+        if (dataStr === '[DONE]') {
+          let finalText = ''
+          if (accReason) finalText += '【思考】\n' + accReason
+          if (accContent) {
+            if (finalText) finalText += '\n\n'
+            finalText += accContent
+          }
+          this.setData({
+            pairLoading: false,
+            pairStreamText: finalText || this.data.pairStreamText,
+            pairThinking: accReason,
+            pairAnswer: accContent
+          })
+          try { requestTask.abort() } catch (e) {}
+          return
+        }
+        try {
+          const data = JSON.parse(dataStr)
+          if (data.alumni) continue
+          if (data.error) {
+            this.setData({ pairLoading: false, pairStreamText: data.error })
+            return
+          }
+          if (data.reasoning) {
+            accReason += data.reasoning
+            const show = (accReason ? '【思考】\n' + accReason + '\n\n' : '') + (accContent || '')
+            this.setData({ pairStreamText: show, pairThinking: accReason })
+          }
+          if (data.content) {
+            accContent += data.content
+            const show = (accReason ? '【思考】\n' + accReason + '\n\n' : '') + accContent
+            this.setData({ pairStreamText: show, pairAnswer: accContent })
+          }
+        } catch (e) {
+          console.warn('pair SSE parse', e)
+        }
+      }
+    })
+  },
+
+  onUnload() {
+    this._pairReq = null
   }
 })

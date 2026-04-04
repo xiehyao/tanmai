@@ -1,9 +1,27 @@
 <!--pages/alumni-profile/alumni-profile.wxml-->
 <view class="profile-page" wx:if="{{user}}">
   <scroll-view scroll-y class="profile-scroll">
-    <!-- 名片卡：布局与名片夹一致，左头像右信息 -->
+    <!-- 1. 简介（新布局：姓名 + 大图 + 正文） -->
     <view class="section">
-      <view class="section-title">我的名片</view>
+      <view class="section-title">{{sectionTitleIntro}}</view>
+      <view class="card-card intro-card-v2">
+        <text class="intro-name-head">{{displayName || ownerName}}</text>
+        <image
+          wx:if="{{introHeroUrl}}"
+          class="intro-hero-img"
+          src="{{introHeroUrl}}"
+          mode="aspectFill"
+        />
+        <text class="intro-body-text" wx:if="{{introBodyText}}">{{introBodyText}}</text>
+        <view class="intro-bio-empty" wx:else>
+          <text class="intro-text-muted">暂无简介</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 2. 名片（整块下移） -->
+    <view class="section">
+      <view class="section-title">{{sectionTitleCard}}</view>
       <view class="card-card my-card-style">
         <view class="card-row">
           <image
@@ -24,69 +42,12 @@
       </view>
     </view>
 
-    <!-- 校友简介卡 -->
-    <view class="section">
-      <view class="section-title">我的简介</view>
-      <view class="card-card intro-card-style">
-        <view class="intro-info-item" wx:if="{{displayName}}">
-          <text class="intro-label">姓名</text>
-          <text class="intro-value">{{displayName}}</text>
-        </view>
-        <view class="intro-photos" wx:if="{{displayPhotos && displayPhotos.length > 0}}">
-          <image
-            wx:for="{{displayPhotos}}"
-            wx:key="*this"
-            class="intro-photo"
-            src="{{item}}"
-            mode="aspectFill"
-          />
-        </view>
-        <view class="intro-info-item" wx:if="{{displayConstellation}}">
-          <text class="intro-label">星座</text>
-          <text class="intro-value">{{displayConstellation}}</text>
-        </view>
-        <view class="intro-info-item" wx:if="{{displayMiddleSchool}}">
-          <text class="intro-label">中学</text>
-          <text class="intro-value">{{displayMiddleSchool}}</text>
-        </view>
-        <view class="intro-info-item" wx:if="{{displayUniversity}}">
-          <text class="intro-label">大学</text>
-          <text class="intro-value">{{displayUniversity}}</text>
-        </view>
-        <view class="intro-info-item" wx:if="{{displayCompanyTitle}}">
-          <text class="intro-label">公司及职位</text>
-          <text class="intro-value">{{displayCompanyTitle}}</text>
-        </view>
-        <view class="intro-info-item" wx:if="{{displaySocialPositions}}">
-          <text class="intro-label">社会职位</text>
-          <text class="intro-value">{{displaySocialPositions}}</text>
-        </view>
-        <view class="intro-info-item" wx:if="{{displayInterests}}">
-          <text class="intro-label">兴趣爱好</text>
-          <text class="intro-value">{{displayInterests}}</text>
-        </view>
-        <view class="intro-info-item" wx:if="{{displayAssociationNeeds}}">
-          <text class="intro-label">对校友会的需求</text>
-          <text class="intro-value">{{displayAssociationNeeds}}</text>
-        </view>
-        <view class="intro-info-item" wx:if="{{displayContact}}">
-          <text class="intro-label">联系方式</text>
-          <text class="intro-value">{{displayContact}}</text>
-        </view>
-        <view class="intro-bio" wx:if="{{user.bio}}">
-          <text class="intro-text">{{user.bio}}</text>
-        </view>
-        <view class="intro-bio intro-bio-empty" wx:elif="{{!displayName && (!displayPhotos || !displayPhotos.length) && !displayConstellation && !displayMiddleSchool && !displayUniversity && !displayCompanyTitle && !displaySocialPositions && !displayInterests && !displayAssociationNeeds && !displayContact && !user.bio}}">
-          <text class="intro-text">暂无简介</text>
-        </view>
-      </view>
-    </view>
-
-    <!-- 校友连连看（我与该校友的 AI 匹配） -->
+    <!-- 3. 校友连连看 -->
     <view class="section">
       <view class="section-title">校友连连看</view>
       <view class="card-card match-card-style">
         <text class="match-text">{{matchContent}}</text>
+        <button class="pair-help-btn" bindtap="onPairHelpTap">帮我连连看</button>
       </view>
     </view>
 
@@ -127,5 +88,18 @@
         <text class="bar-num">168</text>
       </view>
     </view>
+  </view>
+
+  <!-- 双人连连看 3/4 半屏 -->
+  <view class="pair-mask" wx:if="{{showPairSheet}}" catchtouchmove="stopPairTap" bindtap="closePairSheet"></view>
+  <view class="pair-sheet" wx:if="{{showPairSheet}}" catchtap="stopPairTap">
+    <view class="pair-sheet-header">
+      <text class="pair-sheet-title">连连看 · 互助切入点</text>
+      <text class="pair-sheet-close" bindtap="closePairSheet">关闭</text>
+    </view>
+    <scroll-view scroll-y class="pair-sheet-body" scroll-with-animation="{{true}}">
+      <view wx:if="{{pairLoading && !pairStreamText}}" class="pair-loading-hint">AI 正在分析双方资料…</view>
+      <text class="pair-stream-text" selectable="{{true}}">{{pairStreamText}}</text>
+    </scroll-view>
   </view>
 </view>
