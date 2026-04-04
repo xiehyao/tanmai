@@ -506,7 +506,7 @@ Page({
     // 基本信息（step1）
     avatar: '',
     photoUrl: '', // 兼容：单张相片展示，与 personal_photos[0] 同步
-    personal_photos: [], // 多张相片，对应后端 step1.personal_photos
+    personal_photos: [], // 多张原始图 COS URL，对应后端 step1.personal_photos（与 avatar_photo_* 分列）
     avatar_photo_original_url: '', // COS 原图
     avatar_photo_cartoon_url: '', // 混元风格化 COS（有则对外优先展示）
     photoStripItems: [], // 相片区展示用：原图、AI 卡通、附加图
@@ -1067,10 +1067,11 @@ Page({
         const origPhoto = s1.avatar_photo_original_url || ''
         const cartoonPhoto = s1.avatar_photo_cartoon_url || ''
         let pp = Array.isArray(s1.personal_photos) ? [...s1.personal_photos] : []
-        if (origPhoto || cartoonPhoto) {
-          const head = cartoonPhoto || origPhoto
-          if (pp.length === 0) pp = head ? [head] : []
-          else pp[0] = head
+        // personal_photos 存各张「原始」COS URL；仅兜底补首图；旧数据若首项误存为卡通 URL 则纠正
+        if (pp.length === 0 && origPhoto) {
+          pp = [origPhoto]
+        } else if (origPhoto && cartoonPhoto && pp.length > 0 && pp[0] === cartoonPhoto && pp[0] !== origPhoto) {
+          pp[0] = origPhoto
         }
         const photoStripItems = buildPhotoStripItems(origPhoto, cartoonPhoto, pp)
         this.setData({
@@ -1389,6 +1390,42 @@ Page({
     this.setData({ photoStripItems: items })
   },
 
+  /** 相片行：按索引删除（personal_photos 均为原始 COS URL） */
+  onRemovePersonalPhoto(e) {
+    const index = parseInt(e.currentTarget.dataset.index, 10)
+    if (isNaN(index) || index < 0) return
+    let photos = [...(this.data.personal_photos || [])]
+    if (index >= photos.length) return
+    let orig = this.data.avatar_photo_original_url || ''
+    let cartoon = this.data.avatar_photo_cartoon_url || ''
+    let avatar = this.data.avatar || ''
+    if (index === 0) {
+      photos = photos.slice(1)
+      if (photos.length === 0) {
+        orig = ''
+        cartoon = ''
+        avatar = ''
+      } else {
+        orig = photos[0]
+        cartoon = ''
+        avatar = cartoon || orig || ''
+      }
+    } else {
+      photos = photos.filter((_, i) => i !== index)
+    }
+    const photoUrl = photos[0] || ''
+    this.setData({
+      personal_photos: photos,
+      photoUrl,
+      avatar_photo_original_url: orig,
+      avatar_photo_cartoon_url: cartoon,
+      avatar: cartoon || orig || photoUrl || avatar
+    }, () => {
+      this._syncPhotoStrip()
+      this.saveStepToServer(1)
+    })
+  },
+
   /** 删除相片条中的某张（原图 / AI 卡通 / 附加图） */
   onRemovePhotoStrip(e) {
     const role = e.currentTarget.dataset.role
@@ -1476,8 +1513,8 @@ Page({
                     console.warn('stylize avatar:', e)
                     wx.showToast({ title: '卡通头像生成失败，已保留原图', icon: 'none' })
                   }
-                  const display = cartoon || cosUrl
-                  working = [display]
+                  // 落库 personal_photos 只存 COS 原始图 URL；展示用 avatar_photo_* + avatar
+                  working.push(cosUrl)
                 } else {
                   working.push(cosUrl)
                 }
