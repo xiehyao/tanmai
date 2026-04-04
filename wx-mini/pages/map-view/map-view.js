@@ -128,7 +128,8 @@ Page({
           return
         }
         const ctx = canvas.getContext('2d')
-        const dpr = wx.getSystemInfoSync().pixelRatio || 1
+        const win = typeof wx.getWindowInfo === 'function' ? wx.getWindowInfo() : null
+        const dpr = (win && win.pixelRatio) || 1
         canvas.width = size * dpr
         canvas.height = size * dpr
         ctx.scale(dpr, dpr)
