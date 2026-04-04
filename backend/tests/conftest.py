@@ -100,15 +100,39 @@ def _init_sqlite_test_db() -> None:
                 """
             )
         )
-        # 兼容旧 sqlite 文件：补充 user_cards 新列
-        for stmt in (
-            "ALTER TABLE user_cards ADD COLUMN avatar_photo_original_url VARCHAR(500)",
-            "ALTER TABLE user_cards ADD COLUMN avatar_photo_cartoon_url VARCHAR(500)",
-        ):
-            try:
-                conn.execute(sql_text(stmt))
-            except Exception:
-                pass
+        conn.execute(
+            sql_text(
+                """
+                CREATE TABLE IF NOT EXISTS user_pair_llm (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_min_id INTEGER NOT NULL,
+                    user_max_id INTEGER NOT NULL,
+                    hash_min VARCHAR(64) NOT NULL,
+                    hash_max VARCHAR(64) NOT NULL,
+                    main_thinking TEXT,
+                    main_answer TEXT,
+                    created_at TEXT,
+                    updated_at TEXT,
+                    UNIQUE (user_min_id, user_max_id)
+                )
+                """
+            )
+        )
+        conn.execute(
+            sql_text(
+                """
+                CREATE TABLE IF NOT EXISTS user_pair_llm_message (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    pair_llm_id INTEGER NOT NULL,
+                    seq INTEGER NOT NULL,
+                    role VARCHAR(16) NOT NULL,
+                    content TEXT NOT NULL,
+                    created_at TEXT,
+                    UNIQUE (pair_llm_id, seq)
+                )
+                """
+            )
+        )
         conn.execute(
             sql_text(
                 """

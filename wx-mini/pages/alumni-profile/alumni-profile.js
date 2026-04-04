@@ -206,9 +206,12 @@ Page({
     introBodyText: '',
     showPairSheet: false,
     pairLoading: false,
+    pairFollowLoading: false,
     pairStreamText: '',
     pairThinking: '',
-    pairAnswer: ''
+    pairAnswer: '',
+    pairInputValue: '',
+    pairState: null
   },
 
   onLoad(options) {
@@ -267,7 +270,7 @@ Page({
         wx.setNavigationBarTitle({ title: this.data.pageTitle })
         await this.loadProfileData(uid, user)
         this.loadIntroCards(uid)
-        this.loadMatchContent(uid)
+        this.loadPairState(uid)
       } else {
         wx.showToast({ title: res.error || '加载失败', icon: 'none' })
       }
@@ -358,13 +361,25 @@ Page({
     }
   },
 
-  async loadMatchContent(uid) {
+  async loadPairState(uid) {
+    const token = wx.getStorageSync('token')
+    if (!token) {
+      this.setData({ matchContent: '登录后可查看与 TA 的连连看记录。' })
+      return
+    }
     try {
-      const res = await request.get('/api/alumni/match-with', { user_id: uid })
-      const content = (res && res.content) ? res.content : '暂无 AI 匹配结果，敬请期待。'
-      this.setData({ matchContent: content })
+      const st = await request.get(`/api/assistant/pair-connection-with/${uid}`)
+      if (st && st.success === false && st.error) {
+        this.setData({
+          matchContent: st.display_excerpt || '连连看数据未就绪（请执行库表脚本）',
+          pairState: st
+        })
+        return
+      }
+      const excerpt = (st && st.display_excerpt) ? st.display_excerpt : '暂无连连看记录，可在简介卡片中点击「帮我连连看」生成。'
+      this.setData({ matchContent: excerpt, pairState: st })
     } catch (e) {
-      this.setData({ matchContent: '暂无 AI 匹配结果，敬请期待。' })
+      this.setData({ matchContent: '暂无连连看记录，可在简介卡片中点击「帮我连连看」生成。' })
     }
   },
 
@@ -373,40 +388,113 @@ Page({
   },
 
   closePairSheet() {
-    this.setData({ showPairSheet: false, pairLoading: false })
+    this.setData({ showPairSheet: false, pairLoading: false, pairFollowLoading: false })
   },
 
   stopPairTap() {},
 
-  async onPairHelpTap() {
+  onPairInput(e) {
+    this.setData({ pairInputValue: e.detail.value || '' })
+  },
+
+  async onPairFollowSubmit() {
+    const prompt = (this.data.pairInputValue || '').trim()
+    if (!prompt) {
+      wx.showToast({ title: '请输入追问内容', icon: 'none' })
+      return
+    }
     const token = wx.getStorageSync('token')
     if (!token) {
       wx.showToast({ title: '请先登录', icon: 'none' })
       return
     }
-    wx.showLoading({ title: '校验资料...', mask: true })
-    let entry = null
-    try {
-      entry = await request.get('/api/card-entry/data')
-    } catch (e) {
-      wx.hideLoading()
-      wx.showToast({ title: '无法获取我的名片', icon: 'none' })
-      return
-    }
-    wx.hideLoading()
-    if (!isSelfCardEntryComplete(entry)) {
-      wx.showToast({ title: '必须填写完成后，方可使用此功能', icon: 'none' })
-      return
-    }
     const peerId = parseInt(this.data.userId, 10)
     if (!peerId) return
-    this.setData({
-      showPairSheet: true,
-      pairLoading: true,
-      pairStreamText: '',
-      pairThinking: '',
-      pairAnswer: ''
+    const prev = this.data.pairStreamText || ''
+    this.setData({ pairFollowLoading: true, pairInputValue: '' })
+    const apiBase = getApiBase()
+    let buffer = ''
+    let byteBuffer = []
+    let accReason = ''
+    let accContent = ''
+    const requestTask = wx.request({
+      url: `${apiBase}/api/assistant/llm-pair-follow-up`,
+      method: 'POST',
+      data: { peer_user_id: peerId, prompt },
+      header: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      enableChunked: true,
+      success: (res) => {
+        if (res.statusCode === 409) {
+          this.setData({ pairFollowLoading: false })
+          wx.showToast({ title: '资料已更新，请关闭后重新点「帮我连连看」', icon: 'none' })
+          return
+        }
+        if (res.statusCode && res.statusCode !== 200) {
+          this.setData({
+            pairFollowLoading: false,
+            pairStreamText: prev + '\n\n' + formatPairRequestError(res)
+          })
+        }
+      },
+      fail: () => {
+        this.setData({ pairFollowLoading: false })
+        wx.showToast({ title: '请求失败', icon: 'none' })
+      }
     })
+    const headerShown = prev + '\n\n【追问】\n' + prompt + '\n\n【回复】\n'
+    requestTask.onChunkReceived((res) => {
+      if (typeof res.data === 'string') {
+        buffer += res.data
+      } else {
+        const raw = res.data
+        const u8 = raw instanceof Uint8Array ? raw : (raw instanceof ArrayBuffer ? new Uint8Array(raw) : new Uint8Array(0))
+        for (let i = 0; i < u8.length; i++) byteBuffer.push(u8[i])
+        const safeLen = getUtf8SafeDecodeLength(new Uint8Array(byteBuffer))
+        if (safeLen > 0) {
+          const toDecode = new Uint8Array(byteBuffer.splice(0, safeLen))
+          buffer += utf8BytesToString(toDecode)
+        }
+      }
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+      for (const line of lines) {
+        if (!line.trim()) continue
+        if (!line.startsWith('data: ')) continue
+        const dataStr = line.substring(6).trim()
+        if (dataStr === '[DONE]') {
+          const body = (accContent || accReason) || ''
+          this.setData({
+            pairFollowLoading: false,
+            pairStreamText: headerShown + body,
+            pairInputValue: ''
+          })
+          this.loadPairState(peerId)
+          try { requestTask.abort() } catch (e) {}
+          return
+        }
+        try {
+          const data = JSON.parse(dataStr)
+          if (data.alumni) continue
+          if (data.error) {
+            this.setData({ pairFollowLoading: false, pairStreamText: prev + '\n\n' + data.error })
+            return
+          }
+          if (data.reasoning) accReason += data.reasoning
+          if (data.content) accContent += data.content
+          const body = accContent || accReason
+          this.setData({ pairStreamText: headerShown + (body || '') })
+        } catch (e) {
+          console.warn('follow-up SSE', e)
+        }
+      }
+    })
+  },
+
+  _runPairMainStream(peerId) {
+    const token = wx.getStorageSync('token')
     const apiBase = getApiBase()
     let buffer = ''
     let byteBuffer = []
@@ -415,13 +503,31 @@ Page({
     const requestTask = wx.request({
       url: `${apiBase}/api/assistant/llm-pair-connection`,
       method: 'POST',
-      data: { peer_user_id: peerId },
+      data: { peer_user_id: peerId, force_refresh: false },
       header: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`
       },
       enableChunked: true,
       success: (res) => {
+        let d = res.data
+        if (typeof d === 'string') {
+          try { d = JSON.parse(d) } catch (e) { d = null }
+        }
+        if (res.statusCode === 200 && d && d.cached) {
+          const txt = d.full_display_text || [
+            d.main_thinking ? ('【思考】\n' + d.main_thinking) : '',
+            d.main_answer || ''
+          ].filter(Boolean).join('\n\n')
+          this.setData({
+            pairLoading: false,
+            pairStreamText: txt,
+            pairThinking: d.main_thinking || '',
+            pairAnswer: d.main_answer || ''
+          })
+          this.loadPairState(peerId)
+          return
+        }
         if (res.statusCode && res.statusCode !== 200) {
           this.setData({
             pairLoading: false,
@@ -466,6 +572,7 @@ Page({
             pairThinking: accReason,
             pairAnswer: accContent
           })
+          this.loadPairState(peerId)
           try { requestTask.abort() } catch (e) {}
           return
         }
@@ -491,6 +598,64 @@ Page({
         }
       }
     })
+  },
+
+  async onPairHelpTap() {
+    const token = wx.getStorageSync('token')
+    if (!token) {
+      wx.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+    wx.showLoading({ title: '校验资料...', mask: true })
+    let entry = null
+    try {
+      entry = await request.get('/api/card-entry/data')
+    } catch (e) {
+      wx.hideLoading()
+      wx.showToast({ title: '无法获取我的名片', icon: 'none' })
+      return
+    }
+    wx.hideLoading()
+    if (!isSelfCardEntryComplete(entry)) {
+      wx.showToast({ title: '必须填写完成后，方可使用此功能', icon: 'none' })
+      return
+    }
+    const peerId = parseInt(this.data.userId, 10)
+    if (!peerId) return
+
+    let st = null
+    try {
+      st = await request.get(`/api/assistant/pair-connection-with/${peerId}`)
+    } catch (e) {
+      st = null
+    }
+
+    const hasMain = st && st.cache_valid && st.has_saved_main && ((st.main_answer || '').trim() || (st.main_thinking || '').trim())
+    if (hasMain) {
+      const txt = st.full_display_text || [
+        (st.main_thinking || '').trim() ? ('【思考】\n' + st.main_thinking) : '',
+        st.main_answer || ''
+      ].filter(Boolean).join('\n\n')
+      this.setData({
+        showPairSheet: true,
+        pairLoading: false,
+        pairStreamText: txt,
+        pairThinking: st.main_thinking || '',
+        pairAnswer: st.main_answer || '',
+        pairState: st
+      })
+      return
+    }
+
+    this.setData({
+      showPairSheet: true,
+      pairLoading: true,
+      pairStreamText: '',
+      pairThinking: '',
+      pairAnswer: '',
+      pairState: st
+    })
+    this._runPairMainStream(peerId)
   },
 
   onUnload() {

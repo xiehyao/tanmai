@@ -101,7 +101,20 @@
     </view>
     <scroll-view scroll-y class="pair-sheet-body" scroll-with-animation="{{true}}">
       <view wx:if="{{pairLoading && !pairStreamText}}" class="pair-loading-hint">AI 正在分析双方资料…</view>
+      <view wx:if="{{pairFollowLoading && pairStreamText}}" class="pair-loading-hint">AI 正在回复追问…</view>
       <text class="pair-stream-text" selectable="{{true}}">{{pairStreamText}}</text>
     </scroll-view>
+    <view class="pair-follow-bar">
+      <input
+        class="pair-follow-input"
+        value="{{pairInputValue}}"
+        bindinput="onPairInput"
+        placeholder="输入追问，继续向 AI 提问…"
+        confirm-type="send"
+        bindconfirm="onPairFollowSubmit"
+        disabled="{{pairLoading || pairFollowLoading}}"
+      />
+      <button class="pair-follow-send" bindtap="onPairFollowSubmit" disabled="{{pairLoading || pairFollowLoading}}">发送</button>
+    </view>
   </view>
 </view>
